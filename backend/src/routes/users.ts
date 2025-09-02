@@ -482,7 +482,7 @@ router.post("/import", async (req, res, next) => {
       ...result,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
@@ -493,20 +493,20 @@ router.get("/import/template", async (req, res, next) => {
   try {
     const template = getUserImportTemplate();
 
-    res.json({
+    return res.json({
       success: true,
       template,
       message:
         "User import template with sample data. The 'Role' and 'Last login time' fields will be ignored during import.",
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
 // @desc    Get all roles
 // @route   GET /api/users/roles
-// @access  Private
+// @access  Public (for dropdowns)
 router.get("/roles", async (req, res, next) => {
   try {
     const roles = await prisma.role.findMany({
@@ -517,12 +517,58 @@ router.get("/roles", async (req, res, next) => {
       orderBy: { name: "asc" },
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: { roles },
     });
   } catch (error) {
-    next(error);
+    return next(error);
+  }
+});
+
+// @desc    Get user's role
+// @route   GET /api/users/:id/role
+// @access  Private
+router.get("/:id/role", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: {
+          select: {
+            id: true,
+            name: true,
+            permissions: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+        },
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    return next(error);
   }
 });
 

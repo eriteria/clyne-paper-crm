@@ -13,8 +13,10 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  Edit3,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
+import EditUserModal from "@/components/EditUserModal";
 
 interface User {
   id: string;
@@ -29,10 +31,12 @@ interface User {
     id: string;
     name: string;
     region?: {
+      id: string;
       name: string;
     };
   };
   region?: {
+    id: string;
     name: string;
   };
   isActive: boolean;
@@ -46,6 +50,7 @@ export default function UsersPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(12); // Number of users per page
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -85,7 +90,7 @@ export default function UsersPage() {
   const { data: rolesData } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
-      const response = await apiClient.get("/users/roles");
+      const response = await apiClient.get("/roles");
       return response.data;
     },
   });
@@ -152,8 +157,8 @@ export default function UsersPage() {
   };
 
   // Get roles from separate roles endpoint
-  const roles: string[] = Array.isArray(rolesData?.data?.roles)
-    ? rolesData.data.roles.map((role: { name: string }) => role.name)
+  const roles: string[] = Array.isArray(rolesData?.data)
+    ? rolesData.data.map((role: { name: string }) => role.name)
     : [];
 
   // Since backend handles filtering, we don't need client-side filtering
@@ -283,6 +288,13 @@ export default function UsersPage() {
               </div>
               <div className="flex gap-2">
                 <button
+                  onClick={() => setEditingUser(user)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                  title="Edit user"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </button>
+                <button
                   onClick={() =>
                     toggleStatusMutation.mutate({
                       id: user.id,
@@ -391,6 +403,15 @@ export default function UsersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          isOpen={!!editingUser}
+          onClose={() => setEditingUser(null)}
+        />
       )}
     </div>
   );
