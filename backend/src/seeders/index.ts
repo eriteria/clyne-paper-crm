@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { seedCustomers } from "./customers";
 
 const prisma = new PrismaClient();
 
@@ -276,6 +277,9 @@ async function main() {
   }
 
   console.log("✅ Database seeding completed successfully!");
+  // Seed customers
+  await seedCustomers();
+
   console.log("\n📋 Created:");
   console.log(
     "- 6 Roles (Admin, Manager, TeamLeader, Sales, Warehouse, Viewer)"
@@ -286,6 +290,7 @@ async function main() {
     "- 4 Users (admin@clynepaper.com, leader1@clynepaper.com, sales1@clynepaper.com, warehouse@clynepaper.com)"
   );
   console.log("- 5 Inventory Items");
+  console.log("- 8 Customers");
   console.log("\n🔑 Default password for all users: password123");
 }
 

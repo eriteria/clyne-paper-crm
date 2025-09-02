@@ -117,20 +117,41 @@ model WaybillItem {
   @@map("waybill_items")
 }
 
+model Customer {
+  id              String    @id @default(cuid())
+  name            String
+  email           String?
+  phone           String?
+  address         String?
+  companyName     String?   @map("company_name")
+  contactPerson   String?   @map("contact_person")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  invoices        Invoice[]
+
+  @@map("customers")
+}
+
 model Invoice {
   id              String        @id @default(cuid())
   invoiceNumber   String        @unique @map("invoice_number")
   date            DateTime
-  customerName    String        @map("customer_name")
-  customerContact String?       @map("customer_contact")
+  customerId      String        @map("customer_id")
+  customerName    String        @map("customer_name") // Keep for backward compatibility
+  customerContact String?       @map("customer_contact") // Keep for backward compatibility
   billedByUserId  String        @map("billed_by_user_id")
   teamId          String?       @map("team_id")
   regionId        String?       @map("region_id")
   totalAmount     Decimal       @map("total_amount") @db.Decimal(12, 2)
+  taxAmount       Decimal       @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  discountAmount  Decimal       @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  notes           String?
+  dueDate         DateTime?     @map("due_date")
   status          String        @default("DRAFT")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
   items           InvoiceItem[]
+  customer        Customer      @relation(fields: [customerId], references: [id])
   billedBy        User          @relation(fields: [billedByUserId], references: [id])
   region          Region?       @relation(fields: [regionId], references: [id])
   team            Team?         @relation(fields: [teamId], references: [id])

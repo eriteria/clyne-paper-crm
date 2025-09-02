@@ -18,6 +18,7 @@ import regionRoutes from "./routes/regions";
 import inventoryRoutes from "./routes/inventory";
 import waybillRoutes from "./routes/waybills";
 import invoiceRoutes from "./routes/invoices";
+import customerRoutes from "./routes/customers";
 import reportRoutes from "./routes/reports";
 import adminRoutes from "./routes/admin";
 
@@ -71,6 +72,7 @@ app.use("/api/regions", regionRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/waybills", waybillRoutes);
 app.use("/api/invoices", invoiceRoutes);
+app.use("/api/customers", customerRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
 
