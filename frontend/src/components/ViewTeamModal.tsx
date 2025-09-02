@@ -71,8 +71,12 @@ export default function ViewTeamModal({
                     {team.leader && (
                       <div className="flex items-center text-gray-600">
                         <Crown className="h-5 w-5 mr-2 text-yellow-500" />
-                        <span className="font-medium">{team.leader.fullName}</span>
-                        <span className="text-gray-400 ml-2">({team.leader.email})</span>
+                        <span className="font-medium">
+                          {team.leader.fullName}
+                        </span>
+                        <span className="text-gray-400 ml-2">
+                          ({team.leader.email})
+                        </span>
                       </div>
                     )}
                   </div>
@@ -118,14 +122,16 @@ export default function ViewTeamModal({
                     Location Coverage
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {team.locationNames.map((location: string, index: number) => (
-                      <span
-                        key={index}
-                        className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                      >
-                        {location}
-                      </span>
-                    ))}
+                    {team.locationNames.map(
+                      (location: string, index: number) => (
+                        <span
+                          key={index}
+                          className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                        >
+                          {location}
+                        </span>
+                      )
+                    )}
                   </div>
                 </div>
               )}
@@ -148,18 +154,26 @@ export default function ViewTeamModal({
                             <h5 className="font-medium text-gray-900">
                               {member.fullName}
                             </h5>
-                            <p className="text-sm text-gray-600">{member.email}</p>
+                            <p className="text-sm text-gray-600">
+                              {member.email}
+                            </p>
                             {member.phone && (
-                              <p className="text-sm text-gray-600">{member.phone}</p>
+                              <p className="text-sm text-gray-600">
+                                {member.phone}
+                              </p>
                             )}
                           </div>
                           <div className="text-right">
                             <span className="inline-block px-2 py-1 bg-gray-100 text-gray-800 rounded-md text-xs">
                               {member.role?.name || "No Role"}
                             </span>
-                            <div className={`mt-1 text-xs ${
-                              member.isActive ? "text-green-600" : "text-red-600"
-                            }`}>
+                            <div
+                              className={`mt-1 text-xs ${
+                                member.isActive
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
                               {member.isActive ? "Active" : "Inactive"}
                             </div>
                           </div>
@@ -249,18 +263,22 @@ export default function ViewTeamModal({
                                 ₦{invoice.totalAmount?.toLocaleString() || "0"}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                  invoice.status === "PAID"
-                                    ? "bg-green-100 text-green-800"
-                                    : invoice.status === "PENDING"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-gray-100 text-gray-800"
-                                }`}>
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    invoice.status === "PAID"
+                                      ? "bg-green-100 text-green-800"
+                                      : invoice.status === "PENDING"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
                                   {invoice.status}
                                 </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(invoice.createdAt).toLocaleDateString()}
+                                {new Date(
+                                  invoice.createdAt
+                                ).toLocaleDateString()}
                               </td>
                             </tr>
                           ))}

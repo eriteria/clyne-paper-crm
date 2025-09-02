@@ -136,7 +136,9 @@ export default function CreateTeamModal({
   };
 
   const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
-  const users = Array.isArray(usersData?.data?.users) ? usersData.data.users : [];
+  const users = Array.isArray(usersData?.data?.users)
+    ? usersData.data.users
+    : [];
 
   if (!isOpen) return null;
 
@@ -145,7 +147,9 @@ export default function CreateTeamModal({
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Team</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Create New Team
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -175,9 +179,7 @@ export default function CreateTeamModal({
                 setFormData({ ...formData, name: e.target.value })
               }
               className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.name
-                  ? "border-red-300 bg-red-50"
-                  : "border-gray-300"
+                errors.name ? "border-red-300 bg-red-50" : "border-gray-300"
               }`}
               placeholder="Enter team name"
             />
@@ -197,9 +199,7 @@ export default function CreateTeamModal({
                 setFormData({ ...formData, regionId: e.target.value })
               }
               className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.regionId
-                  ? "border-red-300 bg-red-50"
-                  : "border-gray-300"
+                errors.regionId ? "border-red-300 bg-red-50" : "border-gray-300"
               }`}
             >
               <option value="">Select a region</option>

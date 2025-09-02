@@ -140,7 +140,9 @@ export default function EditTeamModal({
   };
 
   const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
-  const users = Array.isArray(usersData?.data?.users) ? usersData.data.users : [];
+  const users = Array.isArray(usersData?.data?.users)
+    ? usersData.data.users
+    : [];
 
   if (!isOpen) return null;
 
@@ -179,9 +181,7 @@ export default function EditTeamModal({
                 setFormData({ ...formData, name: e.target.value })
               }
               className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.name
-                  ? "border-red-300 bg-red-50"
-                  : "border-gray-300"
+                errors.name ? "border-red-300 bg-red-50" : "border-gray-300"
               }`}
               placeholder="Enter team name"
             />
@@ -201,9 +201,7 @@ export default function EditTeamModal({
                 setFormData({ ...formData, regionId: e.target.value })
               }
               className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.regionId
-                  ? "border-red-300 bg-red-50"
-                  : "border-gray-300"
+                errors.regionId ? "border-red-300 bg-red-50" : "border-gray-300"
               }`}
             >
               <option value="">Select a region</option>

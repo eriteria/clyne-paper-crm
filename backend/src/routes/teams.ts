@@ -71,7 +71,7 @@ router.get("/", async (req, res, next) => {
             },
           },
           _count: {
-            select: { 
+            select: {
               members: true,
               customers: true,
               invoices: true,
@@ -340,7 +340,9 @@ router.put("/:id", async (req, res, next) => {
         ...(name && { name }),
         ...(regionId && { regionId }),
         ...(leaderUserId !== undefined && { leaderUserId }),
-        ...(locationNames && { locationNames: Array.isArray(locationNames) ? locationNames : [] }),
+        ...(locationNames && {
+          locationNames: Array.isArray(locationNames) ? locationNames : [],
+        }),
       },
       include: {
         region: true,
@@ -523,7 +525,7 @@ router.delete("/:id/members", async (req, res, next) => {
 
     // Remove users from the team
     await prisma.user.updateMany({
-      where: { 
+      where: {
         id: { in: userIds },
         teamId: id,
       },

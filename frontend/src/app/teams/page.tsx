@@ -6,7 +6,6 @@ import {
   Users,
   Plus,
   Search,
-  Filter,
   Edit,
   Trash2,
   Eye,
@@ -109,72 +108,84 @@ export default function TeamsPage() {
   const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mt-1">
             Manage teams, assign members, and track performance
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Create Team
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Team
+          </button>
+          <button
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ["teams"] })
+            }
+            className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+            title="Refresh teams list"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search teams or leaders..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+      {/* Search and Filters */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Search teams or leaders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+            />
           </div>
 
-          {/* Region Filter */}
-          <div className="sm:w-48">
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-              >
-                <option value="">All Regions</option>
-                {regions.map((region: any) => (
-                  <option key={region.id} value={region.id}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <select
+            value={selectedRegion}
+            onChange={(e) => setSelectedRegion(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+          >
+            <option value="">All Regions</option>
+            {regions.map((region: any) => (
+              <option key={region.id} value={region.id}>
+                {region.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="text-sm text-gray-600 flex items-center">
+            <Users className="h-4 w-4 mr-2" />
+            Showing {pagination ? (pagination.page - 1) * pagination.limit + 1 : 1}-
+            {pagination ? Math.min(pagination.page * pagination.limit, pagination.total) : teams.length} of{" "}
+            {pagination?.total || teams.length} teams
+            {searchTerm || selectedRegion ? " (filtered)" : ""}
           </div>
         </div>
       </div>
 
       {/* Teams Grid */}
       {isLoading ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Loading teams...</p>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600">Loading teams...</span>
         </div>
       ) : teams.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="text-center py-12 bg-white rounded-lg shadow">
           <Users className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No teams found</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
+            No teams found
+          </h3>
           <p className="mt-1 text-sm text-gray-500">
             {searchTerm || selectedRegion
               ? "No teams match your search criteria."
@@ -197,20 +208,23 @@ export default function TeamsPage() {
           {teams.map((team) => (
             <div
               key={team.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
             >
-              {/* Team Header */}
               <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    {team.name}
-                  </h3>
-                  {team.region && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Building className="h-4 w-4 mr-1" />
-                      {team.region.name}
-                    </div>
-                  )}
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 rounded-full p-3">
+                    <Users className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      {team.name}
+                    </h3>
+                    {team.region && (
+                      <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                        {team.region.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
@@ -237,60 +251,39 @@ export default function TeamsPage() {
                 </div>
               </div>
 
-              {/* Team Leader */}
-              {team.leader && (
-                <div className="flex items-center text-sm text-gray-600 mb-3">
-                  <Crown className="h-4 w-4 mr-2 text-yellow-500" />
-                  <span className="font-medium">{team.leader.fullName}</span>
-                </div>
-              )}
-
-              {/* Team Stats */}
-              <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {(team as any)._count?.members || 0}
+              <div className="space-y-2 mb-4">
+                {team.leader && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                    <span className="font-medium">{team.leader.fullName}</span>
                   </div>
-                  <div className="text-xs text-gray-500">Members</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {(team as any)._count?.customers || 0}
-                  </div>
-                  <div className="text-xs text-gray-500">Customers</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {(team as any)._count?.invoices || 0}
-                  </div>
-                  <div className="text-xs text-gray-500">Invoices</div>
-                </div>
-              </div>
-
-              {/* Location Coverage */}
-              {team.locationNames && team.locationNames.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center text-sm text-gray-600 mb-2">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    Locations
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {team.locationNames.slice(0, 3).map((location, index) => (
-                      <span
-                        key={index}
-                        className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
-                      >
-                        {location}
-                      </span>
-                    ))}
-                    {team.locationNames.length > 3 && (
-                      <span className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
-                        +{team.locationNames.length - 3} more
-                      </span>
+                )}
+                {team.locationNames && team.locationNames.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <MapPin className="h-4 w-4" />
+                    <span>{team.locationNames.slice(0, 2).join(", ")}</span>
+                    {team.locationNames.length > 2 && (
+                      <span className="text-gray-400">+{team.locationNames.length - 2} more</span>
                     )}
                   </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    <span>{team._count?.members || 0} members</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Building className="h-4 w-4" />
+                    <span>{team._count?.customers || 0} customers</span>
+                  </div>
                 </div>
-              )}
+                <div className="text-xs text-gray-500">
+                  Created {new Date(team.createdAt).toLocaleDateString()}
+                </div>
+              </div>
             </div>
           ))}
         </div>
