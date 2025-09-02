@@ -303,7 +303,9 @@ router.post("/", async (req, res, next) => {
         });
 
         if (!inventoryItem) {
-          throw new Error(`Inventory item with ID ${item.inventoryItemId} not found`);
+          throw new Error(
+            `Inventory item with ID ${item.inventoryItemId} not found`
+          );
         }
 
         if (inventoryItem.currentQuantity < item.quantity) {
@@ -321,19 +323,23 @@ router.post("/", async (req, res, next) => {
     );
 
     // Calculate totals
-    const subtotal = inventoryChecks.reduce((sum, item) => sum + item.lineTotal, 0);
-    const totalAmount = subtotal + parseFloat(taxAmount) - parseFloat(discountAmount);
+    const subtotal = inventoryChecks.reduce(
+      (sum, item) => sum + item.lineTotal,
+      0
+    );
+    const totalAmount =
+      subtotal + parseFloat(taxAmount) - parseFloat(discountAmount);
 
     // Generate unique invoice number
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+
     // Get the count of invoices today for sequential numbering
     const todayStart = new Date(year, now.getMonth(), now.getDate());
     const todayEnd = new Date(year, now.getMonth(), now.getDate() + 1);
-    
+
     const todayInvoiceCount = await prisma.invoice.count({
       where: {
         createdAt: {
@@ -343,7 +349,7 @@ router.post("/", async (req, res, next) => {
       },
     });
 
-    const invoiceNumber = `INV-${year}${month}${day}-${String(todayInvoiceCount + 1).padStart(3, '0')}`;
+    const invoiceNumber = `INV-${year}${month}${day}-${String(todayInvoiceCount + 1).padStart(3, "0")}`;
 
     // Create invoice with transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
@@ -439,21 +445,24 @@ router.post("/", async (req, res, next) => {
     });
   } catch (error) {
     logger.error("Error creating invoice:", error);
-    
-    if (error instanceof Error && error.message.includes("Insufficient stock")) {
+
+    if (
+      error instanceof Error &&
+      error.message.includes("Insufficient stock")
+    ) {
       return res.status(400).json({
         success: false,
         message: error.message,
       });
     }
-    
+
     if (error instanceof Error && error.message.includes("not found")) {
       return res.status(404).json({
         success: false,
         message: error.message,
       });
     }
-    
+
     next(error);
   }
 });

@@ -75,7 +75,7 @@ export async function seedCustomers() {
   try {
     // Check if customers already exist
     const existingCustomersCount = await prisma.customer.count();
-    
+
     if (existingCustomersCount > 0) {
       console.log("✅ Customers already exist, skipping seed");
       return;
