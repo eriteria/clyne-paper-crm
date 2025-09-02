@@ -1,32 +1,40 @@
 # Form Styling Guidelines
 
 ## Problem Statement
+
 Input fields across the application were appearing with invisible or hard-to-read text due to missing text color classes. This document provides guidelines to ensure consistent, visible form styling.
 
 ## Solution
+
 Use the standardized styling utilities from `@/lib/styles` to ensure all form inputs have proper visibility and consistent appearance.
 
 ## Key Rules
 
 ### 1. Always Include Text Color
+
 **❌ Wrong:**
+
 ```jsx
 <input className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
 ```
 
 **✅ Correct:**
+
 ```jsx
 <input className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" />
 ```
 
 ### 2. Use Standardized Classes
+
 **❌ Inconsistent:**
+
 ```jsx
 <input className="w-full p-2 border rounded text-black" />
 <input className="w-full px-4 py-3 border-2 rounded-md text-gray-800" />
 ```
 
 **✅ Consistent:**
+
 ```jsx
 import { formInputClasses } from '@/lib/styles';
 
@@ -35,19 +43,21 @@ import { formInputClasses } from '@/lib/styles';
 ```
 
 ### 3. Use Reusable Components
+
 **✅ Best Practice:**
+
 ```jsx
 import { Input, Textarea, Select } from '@/lib/styles';
 
-<Input 
-  label="Customer Name" 
+<Input
+  label="Customer Name"
   placeholder="Enter customer name"
   value={name}
   onChange={(e) => setName(e.target.value)}
 />
 
-<Textarea 
-  label="Description" 
+<Textarea
+  label="Description"
   rows={3}
   value={description}
   onChange={(e) => setDescription(e.target.value)}
@@ -67,43 +77,46 @@ import { Input, Textarea, Select } from '@/lib/styles';
 ## Standard Classes Reference
 
 ### Input Fields
+
 ```jsx
 // Regular input
-formInputClasses.input
+formInputClasses.input;
 // Result: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
 
 // Search input (with left padding for icon)
-formInputClasses.searchInput  
+formInputClasses.searchInput;
 // Result: "w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
 
 // Textarea
-formInputClasses.textarea
+formInputClasses.textarea;
 
 // Select dropdown
-formInputClasses.select
+formInputClasses.select;
 
 // Error state
-formInputClasses.inputError
+formInputClasses.inputError;
 
 // Disabled state
-formInputClasses.inputDisabled
+formInputClasses.inputDisabled;
 ```
 
 ### Buttons
+
 ```jsx
-buttonClasses.primary    // Blue button
-buttonClasses.secondary  // Gray outlined button
-buttonClasses.danger     // Red button
-buttonClasses.success    // Green button
+buttonClasses.primary; // Blue button
+buttonClasses.secondary; // Gray outlined button
+buttonClasses.danger; // Red button
+buttonClasses.success; // Green button
 ```
 
 ### Layout
+
 ```jsx
-layoutClasses.modalOverlay
-layoutClasses.modalContent
-layoutClasses.card
-gridClasses.twoColumn
-gridClasses.threeColumn
+layoutClasses.modalOverlay;
+layoutClasses.modalContent;
+layoutClasses.card;
+gridClasses.twoColumn;
+gridClasses.threeColumn;
 ```
 
 ## Migration Guide
@@ -111,15 +124,17 @@ gridClasses.threeColumn
 When creating new forms or fixing existing ones:
 
 1. **Import the utilities:**
+
    ```jsx
-   import { formInputClasses, Input, Textarea, Select } from '@/lib/styles';
+   import { formInputClasses, Input, Textarea, Select } from "@/lib/styles";
    ```
 
 2. **Replace custom input styling:**
+
    ```jsx
    // Before
    <input className="w-full px-3 py-2 border rounded" />
-   
+
    // After
    <input className={formInputClasses.input} />
    ```
@@ -141,7 +156,9 @@ When creating new forms or fixing existing ones:
 - [ ] Form layout uses grid classes for consistency
 
 ## Testing
+
 Always test form visibility in:
+
 - Light mode
 - Dark mode (if applicable)
 - Different browsers
