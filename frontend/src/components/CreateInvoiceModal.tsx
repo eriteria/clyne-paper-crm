@@ -1,0 +1,537 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  X,
+  Plus,
+  Trash2,
+  Calendar,
+  User,
+  Package,
+  DollarSign,
+  FileText,
+  Save,
+  Calculator,
+} from "lucide-react";
+import { apiClient } from "@/lib/api";
+
+interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  companyName?: string;
+  contactPerson?: string;
+}
+
+interface InventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  unit: string;
+  unitPrice: number;
+  currentQuantity: number;
+}
+
+interface InvoiceItem {
+  inventoryItemId: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  inventoryItem?: InventoryItem;
+}
+
+interface CreateInvoiceModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+export default function CreateInvoiceModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateInvoiceModalProps) {
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [taxAmount, setTaxAmount] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [items, setItems] = useState<InvoiceItem[]>([
+    {
+      inventoryItemId: "",
+      quantity: 1,
+      unitPrice: 0,
+      lineTotal: 0,
+    },
+  ]);
+
+  const queryClient = useQueryClient();
+
+  // Fetch customers
+  const { data: customersData } = useQuery({
+    queryKey: ["customers"],
+    queryFn: async () => {
+      const response = await apiClient.get("/customers?limit=100");
+      return response.data;
+    },
+    enabled: isOpen,
+  });
+
+  // Fetch inventory items
+  const { data: inventoryData } = useQuery({
+    queryKey: ["inventory", "available"],
+    queryFn: async () => {
+      const response = await apiClient.get(
+        "/inventory?status=in_stock&limit=100"
+      );
+      return response.data;
+    },
+    enabled: isOpen,
+  });
+
+  // Create invoice mutation
+  const createInvoiceMutation = useMutation({
+    mutationFn: async (invoiceData: {
+      customerId: string;
+      items: { inventoryItemId: string; quantity: number; unitPrice: number }[];
+      notes: string;
+      dueDate: string | null;
+      taxAmount: number;
+      discountAmount: number;
+      billedByUserId: string;
+    }) => {
+      const response = await apiClient.post("/invoices", invoiceData);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      onSuccess?.();
+      handleClose();
+    },
+  });
+
+  const customers = customersData?.data || [];
+  const inventoryItems = inventoryData?.data || [];
+
+  // Calculate totals
+  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+  const total = subtotal + taxAmount - discountAmount;
+
+  const handleClose = () => {
+    // Reset form
+    setSelectedCustomerId("");
+    setInvoiceDate(new Date().toISOString().split("T")[0]);
+    setDueDate("");
+    setNotes("");
+    setTaxAmount(0);
+    setDiscountAmount(0);
+    setItems([
+      {
+        inventoryItemId: "",
+        quantity: 1,
+        unitPrice: 0,
+        lineTotal: 0,
+      },
+    ]);
+    onClose();
+  };
+
+  const addItem = () => {
+    setItems([
+      ...items,
+      {
+        inventoryItemId: "",
+        quantity: 1,
+        unitPrice: 0,
+        lineTotal: 0,
+      },
+    ]);
+  };
+
+  const removeItem = (index: number) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateItem = (
+    index: number,
+    field: keyof InvoiceItem,
+    value: string | number
+  ) => {
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+
+    // If inventory item is selected, update the unit price
+    if (field === "inventoryItemId") {
+      const selectedInventoryItem = inventoryItems.find(
+        (item: InventoryItem) => item.id === value
+      );
+      if (selectedInventoryItem) {
+        updatedItems[index].unitPrice = selectedInventoryItem.unitPrice;
+        updatedItems[index].inventoryItem = selectedInventoryItem;
+      }
+    }
+
+    // Recalculate line total
+    updatedItems[index].lineTotal =
+      updatedItems[index].quantity * updatedItems[index].unitPrice;
+
+    setItems(updatedItems);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedCustomerId) {
+      alert("Please select a customer");
+      return;
+    }
+
+    if (items.some((item) => !item.inventoryItemId || item.quantity <= 0)) {
+      alert("Please complete all item details");
+      return;
+    }
+
+    // Check stock availability
+    const stockErrors = items
+      .map((item, index) => {
+        const inventoryItem = inventoryItems.find(
+          (inv: InventoryItem) => inv.id === item.inventoryItemId
+        );
+        if (inventoryItem && item.quantity > inventoryItem.currentQuantity) {
+          return `Row ${index + 1}: Insufficient stock for ${
+            inventoryItem.name
+          }. Available: ${inventoryItem.currentQuantity}`;
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    if (stockErrors.length > 0) {
+      alert("Stock issues:\\n" + stockErrors.join("\\n"));
+      return;
+    }
+
+    const invoiceData = {
+      customerId: selectedCustomerId,
+      items: items.map((item) => ({
+        inventoryItemId: item.inventoryItemId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+      notes,
+      dueDate: dueDate || null,
+      taxAmount,
+      discountAmount,
+      billedByUserId: "default-user-id", // This should come from auth context
+    };
+
+    createInvoiceMutation.mutate(invoiceData);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <FileText className="w-6 h-6 text-blue-600" />
+            <h2 className="text-xl font-semibold text-gray-900">
+              Create New Invoice
+            </h2>
+          </div>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Invoice Header */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Customer Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <User className="w-4 h-4 inline mr-1" />
+                Customer *
+              </label>
+              <select
+                value={selectedCustomerId}
+                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                required
+              >
+                <option value="">Select a customer</option>
+                {customers.map((customer: Customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                    {customer.companyName && ` (${customer.companyName})`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Invoice Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                Invoice Date *
+              </label>
+              <input
+                type="date"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                required
+              />
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                Due Date
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+              />
+            </div>
+          </div>
+
+          {/* Invoice Items */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                <Package className="w-5 h-5 inline mr-2" />
+                Invoice Items
+              </h3>
+              <button
+                type="button"
+                onClick={addItem}
+                className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Item
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border border-gray-200 rounded-lg">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      S/N
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product Description *
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quantity *
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Unit Price *
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {items.map((item, index) => (
+                    <tr key={index}>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {index + 1}
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={item.inventoryItemId}
+                          onChange={(e) =>
+                            updateItem(index, "inventoryItemId", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black text-sm"
+                          required
+                        >
+                          <option value="">Select product</option>
+                          {inventoryItems.map(
+                            (inventoryItem: InventoryItem) => (
+                              <option
+                                key={inventoryItem.id}
+                                value={inventoryItem.id}
+                              >
+                                {inventoryItem.name} ({inventoryItem.sku}) -
+                                Stock: {inventoryItem.currentQuantity}{" "}
+                                {inventoryItem.unit}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateItem(
+                              index,
+                              "quantity",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black text-sm"
+                          required
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={item.unitPrice}
+                          onChange={(e) =>
+                            updateItem(
+                              index,
+                              "unitPrice",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black text-sm"
+                          required
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        ${item.lineTotal.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeItem(index)}
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Invoice Totals */}
+          <div className="border-t pt-6">
+            <div className="flex justify-end">
+              <div className="w-full max-w-md space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">
+                    Subtotal:
+                  </span>
+                  <span className="text-sm text-gray-900">
+                    ${subtotal.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium text-gray-700">
+                    Tax Amount:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={taxAmount}
+                    onChange={(e) =>
+                      setTaxAmount(parseFloat(e.target.value) || 0)
+                    }
+                    className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black text-sm"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium text-gray-700">
+                    Discount:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={discountAmount}
+                    onChange={(e) =>
+                      setDiscountAmount(parseFloat(e.target.value) || 0)
+                    }
+                    className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black text-sm"
+                  />
+                </div>
+
+                <div className="border-t pt-3 flex justify-between items-center">
+                  <span className="text-lg font-semibold text-gray-900">
+                    <Calculator className="w-5 h-5 inline mr-2" />
+                    Total:
+                  </span>
+                  <span className="text-lg font-bold text-blue-600">
+                    ${total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <FileText className="w-4 h-4 inline mr-1" />
+              Notes
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+              placeholder="Additional notes or terms..."
+            />
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-3 pt-6 border-t">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createInvoiceMutation.isPending}
+              className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {createInvoiceMutation.isPending
+                ? "Creating..."
+                : "Create Invoice"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
