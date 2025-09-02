@@ -24,6 +24,7 @@ router.get("/", async (req, res, next) => {
       search,
       role,
       team,
+      teamId,
       region,
       isActive,
     } = req.query;
@@ -49,6 +50,15 @@ router.get("/", async (req, res, next) => {
 
     if (team) {
       where.team = { name: team as string };
+    }
+
+    // Handle teamId filter - if teamId is "null" string, find users without teams
+    if (teamId !== undefined) {
+      if (teamId === "null") {
+        where.teamId = null;
+      } else {
+        where.teamId = teamId as string;
+      }
     }
 
     if (region) {

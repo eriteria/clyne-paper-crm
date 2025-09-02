@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { apiClient } from "@/lib/api";
@@ -30,7 +30,28 @@ export default function CreateTeamModal({
     locationNames: [],
   });
   const [locationInput, setLocationInput] = useState("");
+  const [leaderSearchTerm, setLeaderSearchTerm] = useState("");
+  const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
+  const [selectedLeaderName, setSelectedLeaderName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const leaderDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        leaderDropdownRef.current &&
+        !leaderDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowLeaderDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Fetch regions
   const { data: regionsData } = useQuery({
@@ -45,7 +66,7 @@ export default function CreateTeamModal({
   const { data: usersData } = useQuery({
     queryKey: ["users", "dropdown"],
     queryFn: async () => {
-      const response = await apiClient.get("/users?dropdown=true");
+      const response = await apiClient.get("/users?limit=1000&isActive=true");
       return response.data;
     },
   });
@@ -140,6 +161,36 @@ export default function CreateTeamModal({
     ? usersData.data.users
     : [];
 
+  // Debug: Log number of users loaded
+  console.log(`Loaded ${users.length} users for team leader selection`);
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(
+    (user: any) =>
+      user.fullName.toLowerCase().includes(leaderSearchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(leaderSearchTerm.toLowerCase()) ||
+      (user.phone &&
+        user.phone.toLowerCase().includes(leaderSearchTerm.toLowerCase())) ||
+      (user.role &&
+        user.role.name &&
+        user.role.name.toLowerCase().includes(leaderSearchTerm.toLowerCase()))
+  );
+
+  // Handle leader selection
+  const handleLeaderSelect = (user: any) => {
+    setFormData({ ...formData, leaderUserId: user.id });
+    setSelectedLeaderName(user.fullName);
+    setLeaderSearchTerm(user.fullName);
+    setShowLeaderDropdown(false);
+  };
+
+  // Handle clearing leader selection
+  const handleClearLeader = () => {
+    setFormData({ ...formData, leaderUserId: "" });
+    setSelectedLeaderName("");
+    setLeaderSearchTerm("");
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -215,24 +266,64 @@ export default function CreateTeamModal({
           </div>
 
           {/* Team Leader */}
-          <div>
+          <div className="relative" ref={leaderDropdownRef}>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Team Leader (Optional)
             </label>
-            <select
-              value={formData.leaderUserId}
-              onChange={(e) =>
-                setFormData({ ...formData, leaderUserId: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-            >
-              <option value="">Select a team leader</option>
-              {users.map((user: any) => (
-                <option key={user.id} value={user.id}>
-                  {user.fullName} ({user.email})
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                value={leaderSearchTerm}
+                onChange={(e) => {
+                  setLeaderSearchTerm(e.target.value);
+                  setShowLeaderDropdown(true);
+                }}
+                onFocus={() => setShowLeaderDropdown(true)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                placeholder="Search for a team leader..."
+              />
+              {formData.leaderUserId && selectedLeaderName && (
+                <button
+                  type="button"
+                  onClick={handleClearLeader}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+
+              {/* Dropdown */}
+              {showLeaderDropdown && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map((user: any) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => handleLeaderSelect(user)}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                      >
+                        <div className="font-medium text-gray-900">
+                          {user.fullName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {user.email}
+                        </div>
+                        {user.role && (
+                          <div className="text-xs text-gray-400">
+                            {user.role.name}
+                          </div>
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-gray-500 text-sm">
+                      No users found matching &quot;{leaderSearchTerm}&quot;
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Location Names */}

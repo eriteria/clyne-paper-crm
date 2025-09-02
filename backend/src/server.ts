@@ -24,6 +24,8 @@ import reportRoutes from "./routes/reports";
 import adminRoutes from "./routes/admin";
 import financialRoutes from "./routes/financial";
 import importRoutes from "./routes/import";
+import productRoutes from "./routes/products";
+import productGroupRoutes from "./routes/productGroups";
 
 // Import utils
 import { logger } from "./utils/logger";
@@ -84,6 +86,8 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/financial", financialRoutes);
 app.use("/api/import", importRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/product-groups", productGroupRoutes);
 
 // Error handling middleware
 app.use(notFound);

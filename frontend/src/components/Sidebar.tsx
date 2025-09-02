@@ -17,6 +17,7 @@ import {
   Menu,
   ChevronLeft,
   UsersIcon,
+  ShoppingCart,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
@@ -24,6 +25,7 @@ import { useSidebar } from "@/hooks/useSidebar";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Customers", href: "/customers", icon: UserCheck },
+  { name: "Products", href: "/products", icon: ShoppingCart },
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Financial", href: "/financial", icon: Calculator },

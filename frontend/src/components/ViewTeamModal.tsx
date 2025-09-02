@@ -1,9 +1,19 @@
 "use client";
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { X, Users, MapPin, Crown, Building, DollarSign } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  X,
+  Users,
+  MapPin,
+  Crown,
+  Building,
+  DollarSign,
+  Plus,
+  UserMinus,
+} from "lucide-react";
 import { apiClient } from "@/lib/api";
+import { User } from "@/types";
 
 interface ViewTeamModalProps {
   isOpen: boolean;
@@ -16,6 +26,11 @@ export default function ViewTeamModal({
   teamId,
   onClose,
 }: ViewTeamModalProps) {
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const queryClient = useQueryClient();
+
   // Fetch team details
   const { data: teamData, isLoading } = useQuery({
     queryKey: ["team", teamId],
@@ -25,6 +40,103 @@ export default function ViewTeamModal({
     },
     enabled: isOpen && !!teamId,
   });
+
+  // Fetch available users for adding to team
+  const { data: availableUsersData } = useQuery({
+    queryKey: ["users", "unassigned"],
+    queryFn: async () => {
+      const response = await apiClient.get(
+        "/users?teamId=null&limit=1000&isActive=true"
+      );
+      return response.data;
+    },
+    enabled: showAddMemberModal,
+  });
+
+  // Debug: Log available users data
+  if (showAddMemberModal && availableUsersData) {
+    console.log("Available users data:", availableUsersData);
+    console.log("Users array:", availableUsersData?.data?.users);
+    console.log("Users count:", availableUsersData?.data?.users?.length || 0);
+  }
+
+  // Filter users based on search term
+  const filteredUsers = useMemo(() => {
+    if (!availableUsersData?.data?.users) return [];
+
+    const users = availableUsersData.data.users;
+    if (!searchTerm.trim()) return users;
+
+    return users.filter(
+      (user: User) =>
+        user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [availableUsersData?.data?.users, searchTerm]);
+
+  // Add members mutation
+  const addMembersMutation = useMutation({
+    mutationFn: async (userIds: string[]) => {
+      const response = await apiClient.post(`/teams/${teamId}/members`, {
+        userIds,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team", teamId] });
+      queryClient.invalidateQueries({ queryKey: ["users", "unassigned"] });
+      setShowAddMemberModal(false);
+    },
+  });
+
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiClient.delete(`/teams/${teamId}/members`, {
+        data: { userIds: [userId] },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team", teamId] });
+      queryClient.invalidateQueries({ queryKey: ["users", "unassigned"] });
+    },
+  });
+
+  // Helper functions for member selection
+  const handleUserToggle = (userId: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleSelectAll = (users: User[]) => {
+    const allUserIds = users.map((user) => user.id);
+    setSelectedUserIds((prev) =>
+      prev.length === allUserIds.length ? [] : allUserIds
+    );
+  };
+
+  const handleAddSelectedMembers = () => {
+    if (selectedUserIds.length > 0) {
+      addMembersMutation.mutate(selectedUserIds);
+      setSelectedUserIds([]);
+    }
+  };
+
+  const resetModal = () => {
+    setShowAddMemberModal(false);
+    setSearchTerm("");
+    setSelectedUserIds([]);
+  };
+
+  const handleRemoveMember = (userId: string) => {
+    if (confirm("Are you sure you want to remove this member from the team?")) {
+      removeMemberMutation.mutate(userId);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -138,10 +250,19 @@ export default function ViewTeamModal({
 
               {/* Team Members */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
-                  Team Members ({team.members?.length || 0})
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Users className="h-5 w-5 mr-2" />
+                    Team Members ({team.members?.length || 0})
+                  </h4>
+                  <button
+                    onClick={() => setShowAddMemberModal(true)}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Members
+                  </button>
+                </div>
                 {team.members && team.members.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {team.members.map((member: any) => (
@@ -162,11 +283,6 @@ export default function ViewTeamModal({
                                 {member.phone}
                               </p>
                             )}
-                          </div>
-                          <div className="text-right">
-                            <span className="inline-block px-2 py-1 bg-gray-100 text-gray-800 rounded-md text-xs">
-                              {member.role?.name || "No Role"}
-                            </span>
                             <div
                               className={`mt-1 text-xs ${
                                 member.isActive
@@ -176,6 +292,19 @@ export default function ViewTeamModal({
                             >
                               {member.isActive ? "Active" : "Inactive"}
                             </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="inline-block px-2 py-1 bg-gray-100 text-gray-800 rounded-md text-xs">
+                              {member.role?.name || "No Role"}
+                            </span>
+                            <button
+                              onClick={() => handleRemoveMember(member.id)}
+                              disabled={removeMemberMutation.isPending}
+                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                              title="Remove from team"
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -303,6 +432,143 @@ export default function ViewTeamModal({
           )}
         </div>
       </div>
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-60">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Add Members to Team
+                </h3>
+                <button
+                  onClick={() => setShowAddMemberModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Search Input */}
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {filteredUsers && filteredUsers.length > 0 ? (
+                <>
+                  {/* Select All Controls */}
+                  <div className="flex items-center justify-between mb-3 p-2 bg-gray-50 rounded">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="selectAll"
+                        checked={
+                          selectedUserIds.length === filteredUsers.length
+                        }
+                        onChange={() => handleSelectAll(filteredUsers)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor="selectAll"
+                        className="ml-2 text-sm text-gray-700"
+                      >
+                        Select All ({filteredUsers.length} users)
+                      </label>
+                    </div>
+                    {selectedUserIds.length > 0 && (
+                      <span className="text-sm text-blue-600 font-medium">
+                        {selectedUserIds.length} selected
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Users List */}
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {filteredUsers.map((user: User) => (
+                      <div
+                        key={user.id}
+                        className="flex items-center p-2 hover:bg-gray-50 rounded border border-gray-200"
+                      >
+                        <input
+                          type="checkbox"
+                          id={`user-${user.id}`}
+                          checked={selectedUserIds.includes(user.id)}
+                          onChange={() => handleUserToggle(user.id)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <div className="ml-3 flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {user.fullName}
+                          </p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="mt-4 flex justify-between">
+                    <button
+                      onClick={resetModal}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddSelectedMembers}
+                      disabled={
+                        selectedUserIds.length === 0 ||
+                        addMembersMutation.isPending
+                      }
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {addMembersMutation.isPending
+                        ? "Adding..."
+                        : `Add Selected (${selectedUserIds.length})`}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-500 text-center py-4">
+                    {searchTerm
+                      ? "No users found matching your search."
+                      : "No available users to add."}
+                  </p>
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      onClick={resetModal}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

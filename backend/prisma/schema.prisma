@@ -86,12 +86,38 @@ model InventoryItem {
   currentQuantity Decimal       @map("current_quantity") @db.Decimal(10, 2)
   minStock        Decimal       @map("min_stock") @db.Decimal(10, 2)
   location        String?
+  productId       String?       @map("product_id") // Link to Product for sales tracking
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
   invoiceItems    InvoiceItem[]
   waybillItems    WaybillItem[]
+  product         Product?      @relation(fields: [productId], references: [id])
 
   @@map("inventory_items")
+}
+
+model ProductGroup {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  products  Product[]
+
+  @@map("product_groups")
+}
+
+model Product {
+  id              String          @id @default(cuid())
+  name            String
+  productGroupId  String          @map("product_group_id")
+  monthlyTarget   Decimal         @default(0) @map("monthly_target") @db.Decimal(12, 2)
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  productGroup    ProductGroup    @relation(fields: [productGroupId], references: [id])
+  inventoryItems  InventoryItem[]
+
+  @@unique([name, productGroupId]) // Prevent duplicate product names within same group
+  @@map("products")
 }
 
 model Waybill {
