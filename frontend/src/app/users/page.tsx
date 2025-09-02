@@ -14,9 +14,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit3,
+  Plus,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import EditUserModal from "@/components/EditUserModal";
+import CreateUserModal from "@/components/CreateUserModal";
 
 interface User {
   id: string;
@@ -51,6 +53,7 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(12); // Number of users per page
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -172,13 +175,24 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-gray-900">Team Members</h1>
           <p className="text-gray-600 mt-1">Manage team members and access</p>
         </div>
-        <button
-          onClick={() => queryClient.invalidateQueries({ queryKey: ["users"] })}
-          className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-          title="Refresh user list"
-        >
-          Refresh
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create User
+          </button>
+          <button
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ["users"] })
+            }
+            className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+            title="Refresh user list"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -413,6 +427,16 @@ export default function UsersPage() {
           onClose={() => setEditingUser(null)}
         />
       )}
+
+      {/* Create User Modal */}
+      <CreateUserModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          // Optionally show a success message
+          console.log("User created successfully!");
+        }}
+      />
     </div>
   );
 }
