@@ -12,6 +12,8 @@ import {
   MapPin,
   Crown,
   Building,
+  AlertTriangle,
+  UserX,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { Team } from "@/types";
@@ -67,6 +69,15 @@ export default function TeamsPage() {
     },
   });
 
+  // Fetch unassigned users count
+  const { data: unassignedUsersData } = useQuery({
+    queryKey: ["unassigned-users"],
+    queryFn: async () => {
+      const response = await apiClient.get("/users?teamId=null&limit=1000");
+      return response.data;
+    },
+  });
+
   // Delete team mutation
   const deleteTeamMutation = useMutation({
     mutationFn: async (teamId: string) => {
@@ -106,6 +117,7 @@ export default function TeamsPage() {
   const teams = teamsData?.teams || [];
   const pagination = teamsData?.pagination;
   const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
+  const unassignedCount = unassignedUsersData?.pagination?.total || 0;
 
   return (
     <div className="space-y-6">
@@ -136,6 +148,32 @@ export default function TeamsPage() {
           </button>
         </div>
       </div>
+
+      {/* Database Status Summary */}
+      {unassignedCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-amber-800">Teams Need Setup</h3>
+              <p className="text-amber-700 text-sm mt-1">
+                You have <strong>{unassignedCount} unassigned users</strong> that need to be added to teams.
+                Most teams currently appear empty because users have not been assigned yet.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                  <UserX className="h-3 w-3 mr-1" />
+                  {unassignedCount} unassigned users
+                </span>
+                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                  <Building className="h-3 w-3 mr-1" />
+                  {teams.length} teams created
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -205,27 +243,42 @@ export default function TeamsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {teams.map((team) => (
-            <div
-              key={team.id}
-              className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 rounded-full p-3">
-                    <Users className="h-6 w-6 text-blue-600" />
+          {teams.map((team) => {
+            const isEmpty = (team._count?.members || 0) === 0;
+            return (
+              <div
+                key={team.id}
+                className={`bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow ${
+                  isEmpty ? 'border-l-4 border-l-amber-500' : ''
+                }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-full p-3 ${
+                      isEmpty ? 'bg-amber-100' : 'bg-blue-100'
+                    }`}>
+                      <Users className={`h-6 w-6 ${
+                        isEmpty ? 'text-amber-600' : 'text-blue-600'
+                      }`} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-900">
+                          {team.name}
+                        </h3>
+                        {isEmpty && (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+                            Needs Setup
+                          </span>
+                        )}
+                      </div>
+                      {team.region && (
+                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                          {team.region.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">
-                      {team.name}
-                    </h3>
-                    {team.region && (
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                        {team.region.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleViewTeam(team)}
@@ -285,7 +338,8 @@ export default function TeamsPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
