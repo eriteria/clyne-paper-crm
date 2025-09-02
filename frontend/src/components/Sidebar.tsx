@@ -50,12 +50,12 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`bg-white shadow-lg h-screen fixed left-0 top-0 z-40 transition-all duration-300 ${
+      className={`bg-white shadow-lg h-screen fixed left-0 top-0 z-40 transition-all duration-300 flex flex-col ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
       {/* Toggle Button */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+      <div className="p-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
             <Building2 className="h-8 w-8 text-blue-600" />
@@ -88,8 +88,12 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className={`mt-6 ${isCollapsed ? "px-2" : "px-3"}`}>
+      {/* Navigation - Scrollable */}
+      <nav
+        className={`flex-1 overflow-y-auto mt-6 ${
+          isCollapsed ? "px-2" : "px-3"
+        } pb-4 sidebar-scroll`}
+      >
         <div className="space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
@@ -171,11 +175,11 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {/* User Profile & Logout */}
+      {/* User Profile & Logout - Fixed at bottom */}
       <div
-        className={`absolute bottom-0 w-full ${
+        className={`border-t border-gray-200 flex-shrink-0 ${
           isCollapsed ? "p-2" : "p-4"
-        } border-t border-gray-200`}
+        }`}
       >
         {!isCollapsed && (
           <div className="flex items-center gap-3 mb-3">
