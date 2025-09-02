@@ -26,12 +26,28 @@ interface LinkResult {
   unmatched: Array<{ customerName: string; managerName: string }>;
 }
 
+interface TeamSetupResult {
+  success: boolean;
+  created: number;
+  existing: number;
+  teams: Array<{ name: string; id: string; locations: string[] }>;
+}
+
+interface AssignmentResult {
+  success: boolean;
+  assigned: number;
+  unassigned: number;
+  errors: Array<{ customerId: string; customerName: string; location: string; error: string }>;
+}
+
 export default function ImportPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [jsonData, setJsonData] = useState<ExcelCustomerRow[]>([]);
   const [clearData, setClearData] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [linkResult, setLinkResult] = useState<LinkResult | null>(null);
+  const [teamSetupResult, setTeamSetupResult] = useState<TeamSetupResult | null>(null);
+  const [assignmentResult, setAssignmentResult] = useState<AssignmentResult | null>(null);
 
   // Clear dummy data mutation
   const clearDummyDataMutation = useMutation({
@@ -64,6 +80,22 @@ export default function ImportPage() {
       const response = await apiClient.post(
         "/import/link-relationship-managers"
       );
+      return response.data;
+    },
+  });
+
+  // Setup location teams mutation
+  const setupTeamsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post("/import/setup-location-teams");
+      return response.data;
+    },
+  });
+
+  // Assign customers to teams mutation
+  const assignTeamsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post("/import/assign-customers-to-teams");
       return response.data;
     },
   });
@@ -138,6 +170,28 @@ export default function ImportPage() {
     } catch (error) {
       alert("Failed to link relationship managers. Please try again.");
       console.error("Link error:", error);
+    }
+  };
+
+  const handleSetupTeams = async () => {
+    try {
+      const result = await setupTeamsMutation.mutateAsync();
+      setTeamSetupResult(result.data);
+      alert("Location teams setup completed successfully!");
+    } catch (error) {
+      alert("Failed to setup location teams. Please try again.");
+      console.error("Setup teams error:", error);
+    }
+  };
+
+  const handleAssignTeams = async () => {
+    try {
+      const result = await assignTeamsMutation.mutateAsync();
+      setAssignmentResult(result.data);
+      alert("Customer team assignment completed!");
+    } catch (error) {
+      alert("Failed to assign customers to teams. Please try again.");
+      console.error("Assign teams error:", error);
     }
   };
 
@@ -289,6 +343,47 @@ export default function ImportPage() {
         </div>
       </div>
 
+      {/* Location-Team Management */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Location-Team Management
+        </h3>
+        <p className="text-gray-600 mb-4">
+          Set up teams for different locations and assign customers to teams based on their location.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            onClick={handleSetupTeams}
+            disabled={setupTeamsMutation.isPending}
+            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {setupTeamsMutation.isPending
+              ? "Setting up..."
+              : "Setup Location Teams"}
+          </button>
+
+          <button
+            onClick={handleAssignTeams}
+            disabled={assignTeamsMutation.isPending}
+            className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {assignTeamsMutation.isPending
+              ? "Assigning..."
+              : "Assign Customers to Teams"}
+          </button>
+        </div>
+
+        <div className="mt-4 text-sm text-gray-600">
+          <p>
+            <strong>Setup Location Teams:</strong> Creates default teams for common locations (Lagos, Abuja, etc.)
+          </p>
+          <p>
+            <strong>Assign Customers:</strong> Automatically assigns existing customers to teams based on their location
+          </p>
+        </div>
+      </div>
+
       {/* Import Results */}
       {importResult && (
         <div className="bg-white shadow rounded-lg p-6">
@@ -372,6 +467,84 @@ export default function ImportPage() {
                 These customers need to be manually assigned to relationship
                 managers.
               </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Team Setup Results */}
+      {teamSetupResult && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Location Teams Setup Results
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="bg-green-50 p-4 rounded-md">
+              <div className="text-2xl font-bold text-green-600">
+                {teamSetupResult.created}
+              </div>
+              <div className="text-sm text-green-700">Teams Created</div>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-md">
+              <div className="text-2xl font-bold text-blue-600">
+                {teamSetupResult.existing}
+              </div>
+              <div className="text-sm text-blue-700">Teams Updated</div>
+            </div>
+          </div>
+
+          {teamSetupResult.teams.length > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+              <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                Teams and Locations:
+              </h4>
+              <div className="max-h-40 overflow-y-auto">
+                {teamSetupResult.teams.map((team, index) => (
+                  <div key={index} className="text-sm text-gray-700 mb-1">
+                    <strong>{team.name}:</strong> {team.locations.join(", ")}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Assignment Results */}
+      {assignmentResult && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Customer Team Assignment Results
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="bg-green-50 p-4 rounded-md">
+              <div className="text-2xl font-bold text-green-600">
+                {assignmentResult.assigned}
+              </div>
+              <div className="text-sm text-green-700">Customers Assigned</div>
+            </div>
+            <div className="bg-yellow-50 p-4 rounded-md">
+              <div className="text-2xl font-bold text-yellow-600">
+                {assignmentResult.unassigned}
+              </div>
+              <div className="text-sm text-yellow-700">Unassigned</div>
+            </div>
+          </div>
+
+          {assignmentResult.errors.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <h4 className="text-sm font-semibold text-yellow-800 mb-2">
+                Assignment Issues:
+              </h4>
+              <div className="max-h-40 overflow-y-auto">
+                {assignmentResult.errors.map((error, index) => (
+                  <div key={index} className="text-sm text-yellow-700 mb-1">
+                    {error.customerName} ({error.location}): {error.error}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

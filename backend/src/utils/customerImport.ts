@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { getTeamForLocation } from "./locationTeamMapping";
 
 const prisma = new PrismaClient();
 
@@ -174,9 +175,23 @@ export async function importCustomers(excelData: ExcelCustomerRow[]): Promise<{
         continue;
       }
 
-      // Create customer (relationship manager will be linked later)
+      // Get team for location if location is provided
+      let teamId: string | null = null;
+      if (customerData.location) {
+        teamId = await getTeamForLocation(customerData.location);
+        if (teamId) {
+          console.log(`🏢 Assigned team for location "${customerData.location}"`);
+        } else {
+          console.log(`⚠️  No team found for location "${customerData.location}"`);
+        }
+      }
+
+      // Create customer with team assignment
       await (prisma.customer as any).create({
-        data: customerData,
+        data: {
+          ...customerData,
+          teamId, // Add team assignment
+        },
       });
 
       imported++;
@@ -376,3 +391,12 @@ export async function fullDataImport(
     throw error;
   }
 }
+
+// Re-export location mapping functions for convenience
+export {
+  createDefaultTeamsForLocations,
+  getTeamForLocation,
+  assignCustomersToTeams,
+  addLocationMapping,
+  getLocationMappings,
+} from "./locationTeamMapping";

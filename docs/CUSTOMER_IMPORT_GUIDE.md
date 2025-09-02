@@ -2,16 +2,22 @@
 
 ## Overview
 
-The CRM system now supports importing customer data from Excel files. The system has been extended to match your existing Excel data structure while preserving the ability to add new fields for future use.
+The CRM system now supports importing customer data from Excel files with **enhanced location-team mapping**. The system automatically assigns customers to teams based on their location, enabling location-based reporting and team management.
 
 ## Database Schema Updates
 
-### New Customer Fields Added:
+### Enhanced Customer Fields:
 
-1. **location** (Text) - Maps to "LOCATION" column from Excel
-2. **onboardingDate** (DateTime) - Maps to "DATE OF ONBOARDING" column from Excel
-3. **lastOrderDate** (DateTime) - Maps to "LAST ORDER DATE" column from Excel
-4. **relationshipManagerName** (Text) - Temporary field to store manager names during import
+1. **location** (Text) - Maps to "LOCATION" column from Excel (preserved for compatibility)
+2. **teamId** (Text) - **NEW**: Automatically assigned based on location
+3. **onboardingDate** (DateTime) - Maps to "DATE OF ONBOARDING" column from Excel
+4. **lastOrderDate** (DateTime) - Maps to "LAST ORDER DATE" column from Excel
+5. **relationshipManagerName** (Text) - Temporary field to store manager names during import
+
+### Enhanced Team Model:
+
+1. **locationNames** (Array) - **NEW**: Locations this team covers
+2. **customers** (Relation) - **NEW**: Direct relationship to customers
 
 ### Existing Fields That Map to Excel:
 
@@ -125,6 +131,82 @@ Links customers to relationship managers by matching names with existing users.
 ### POST /api/import/update-last-order-dates
 
 Updates customer last order dates based on actual invoice data in the system.
+
+## Location-Team Mapping (NEW)
+
+### Overview
+
+The system now automatically assigns customers to teams based on their location during import. This enables:
+- Location-based reporting
+- Team-based customer management
+- Hierarchical team structure with regions
+
+### New API Endpoints
+
+#### POST /api/import/setup-location-teams
+
+Creates default teams for common locations (Lagos, Abuja, Port Harcourt, Kano, Ibadan).
+
+```json
+Response:
+{
+  "success": true,
+  "data": {
+    "created": 5,
+    "existing": 0,
+    "teams": [
+      {"name": "Lagos Sales Team", "id": "...", "locations": ["Lagos"]},
+      {"name": "Abuja Sales Team", "id": "...", "locations": ["Abuja"]}
+    ]
+  }
+}
+```
+
+#### POST /api/import/assign-customers-to-teams
+
+Assigns existing customers to teams based on their location.
+
+```json
+Response:
+{
+  "success": true,
+  "data": {
+    "assigned": 25,
+    "unassigned": 3,
+    "errors": [...]
+  }
+}
+```
+
+#### GET /api/import/location-mappings
+
+Returns current location-to-team mappings and customer counts.
+
+#### POST /api/import/add-location-mapping
+
+Adds a new location to an existing team.
+
+```json
+Request:
+{
+  "location": "New Location",
+  "teamName": "Existing Team Name"
+}
+```
+
+### Import Process with Teams
+
+1. **Setup Teams**: Run setup-location-teams to create default teams
+2. **Import Customers**: Customers are automatically assigned to teams based on location
+3. **Manual Assignment**: Use assign-customers-to-teams for existing customers
+4. **Custom Mappings**: Add new location mappings as needed
+
+### Benefits
+
+- **Automatic Assignment**: New customers are automatically assigned during import
+- **Reporting**: Generate reports by team/location
+- **Team Management**: Team leaders can manage their location's customers
+- **Scalability**: Easy to add new locations and teams
 
 ## Handling Relationship Managers
 

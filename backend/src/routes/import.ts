@@ -5,6 +5,10 @@ import {
   linkRelationshipManagers,
   updateLastOrderDates,
   fullDataImport,
+  createDefaultTeamsForLocations,
+  assignCustomersToTeams,
+  addLocationMapping,
+  getLocationMappings,
 } from "../utils/customerImport";
 
 const router = express.Router();
@@ -154,6 +158,83 @@ router.get("/template", (req, res) => {
     success: true,
     data: template,
   });
+});
+
+/**
+ * POST /api/import/setup-location-teams
+ * Creates default teams for common locations
+ */
+router.post("/setup-location-teams", async (req, res, next) => {
+  try {
+    const result = await createDefaultTeamsForLocations();
+    res.json({
+      success: true,
+      data: result,
+      message: "Default location teams created successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/import/assign-customers-to-teams
+ * Assigns existing customers to teams based on their locations
+ */
+router.post("/assign-customers-to-teams", async (req, res, next) => {
+  try {
+    const result = await assignCustomersToTeams();
+    res.json({
+      success: true,
+      data: result,
+      message: "Customer team assignment completed",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/import/location-mappings
+ * Gets all current location-to-team mappings
+ */
+router.get("/location-mappings", async (req, res, next) => {
+  try {
+    const result = await getLocationMappings();
+    res.json({
+      success: true,
+      data: result.mappings,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/import/add-location-mapping
+ * Adds a new location to an existing team
+ * Body: { location: string, teamName: string }
+ */
+router.post("/add-location-mapping", async (req, res, next) => {
+  try {
+    const { location, teamName } = req.body;
+
+    if (!location || !teamName) {
+      return res.status(400).json({
+        success: false,
+        error: "Both location and teamName are required",
+      });
+    }
+
+    const result = await addLocationMapping(location, teamName);
+    res.json({
+      success: true,
+      data: result,
+      message: result.message,
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

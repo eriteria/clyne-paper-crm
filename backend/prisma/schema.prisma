@@ -38,9 +38,11 @@ model Team {
   name         String    @unique
   leaderUserId String?   @map("leader_user_id")
   regionId     String    @map("region_id")
+  locationNames String[] @map("location_names") // Locations this team covers
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   invoices     Invoice[]
+  customers    Customer[] @relation("TeamCustomers")
   leader       User?     @relation("TeamLeader", fields: [leaderUserId], references: [id])
   region       Region    @relation(fields: [regionId], references: [id])
   members      User[]    @relation("TeamMembers")
@@ -126,10 +128,11 @@ model Customer {
   email                 String?
   phone                 String?
   address               String?
-  location              String?   // For LOCATION from Excel
+  location              String?   // For LOCATION from Excel (kept for compatibility)
   companyName           String?   @map("company_name")
   contactPerson         String?   @map("contact_person")
   relationshipManagerId String?   @map("relationship_manager_id")
+  teamId                String?   @map("team_id") // Team assignment based on location
   onboardingDate        DateTime? @map("onboarding_date") // For DATE OF ONBOARDING from Excel
   lastOrderDate         DateTime? @map("last_order_date") // For LAST ORDER DATE from Excel
   relationshipManagerName String? @map("relationship_manager_name") // Temporary field for import
@@ -137,6 +140,7 @@ model Customer {
   updatedAt             DateTime  @updatedAt @map("updated_at")
   invoices              Invoice[]
   relationshipManager   User?     @relation("CustomerRelationshipManager", fields: [relationshipManagerId], references: [id])
+  team                  Team?     @relation("TeamCustomers", fields: [teamId], references: [id])
 
   @@map("customers")
 }
