@@ -64,20 +64,23 @@ export async function createDefaultTeamsForLocations(): Promise<{
         where: { id: existingTeam.id },
         data: {
           locationNames: {
-            set: [...(existingTeam.locationNames || []), mapping.location].filter(
-              (location, index, arr) => arr.indexOf(location) === index
-            ), // Remove duplicates
+            set: [
+              ...(existingTeam.locationNames || []),
+              mapping.location,
+            ].filter((location, index, arr) => arr.indexOf(location) === index), // Remove duplicates
           },
         },
       });
-      
+
       teams.push({
         name: updatedTeam.name,
         id: updatedTeam.id,
         locations: updatedTeam.locationNames,
       });
       existing++;
-      console.log(`✅ Updated existing team: ${mapping.teamName} with location: ${mapping.location}`);
+      console.log(
+        `✅ Updated existing team: ${mapping.teamName} with location: ${mapping.location}`
+      );
     } else {
       // Create new team
       const newTeam = await prisma.team.create({
@@ -87,18 +90,22 @@ export async function createDefaultTeamsForLocations(): Promise<{
           locationNames: [mapping.location],
         },
       });
-      
+
       teams.push({
         name: newTeam.name,
         id: newTeam.id,
         locations: newTeam.locationNames,
       });
       created++;
-      console.log(`✅ Created new team: ${mapping.teamName} for location: ${mapping.location}`);
+      console.log(
+        `✅ Created new team: ${mapping.teamName} for location: ${mapping.location}`
+      );
     }
   }
 
-  console.log(`🎉 Team setup completed! Created: ${created}, Updated: ${existing}`);
+  console.log(
+    `🎉 Team setup completed! Created: ${created}, Updated: ${existing}`
+  );
 
   return {
     success: true,
@@ -111,7 +118,9 @@ export async function createDefaultTeamsForLocations(): Promise<{
 /**
  * Get team ID for a given location
  */
-export async function getTeamForLocation(location: string): Promise<string | null> {
+export async function getTeamForLocation(
+  location: string
+): Promise<string | null> {
   if (!location?.trim()) return null;
 
   const normalizedLocation = location.trim().toLowerCase();
@@ -149,12 +158,14 @@ export async function getTeamForLocation(location: string): Promise<string | nul
   // If no exact match, try partial match
   for (const team of teams) {
     const hasPartialMatch = team.locationNames.some(
-      (loc) => 
+      (loc) =>
         loc.toLowerCase().includes(normalizedLocation) ||
         normalizedLocation.includes(loc.toLowerCase())
     );
     if (hasPartialMatch) {
-      console.log(`⚠️  Using partial match for location "${location}" -> team with locations: ${team.locationNames.join(", ")}`);
+      console.log(
+        `⚠️  Using partial match for location "${location}" -> team with locations: ${team.locationNames.join(", ")}`
+      );
       return team.id;
     }
   }
@@ -170,7 +181,12 @@ export async function assignCustomersToTeams(): Promise<{
   success: boolean;
   assigned: number;
   unassigned: number;
-  errors: Array<{ customerId: string; customerName: string; location: string; error: string }>;
+  errors: Array<{
+    customerId: string;
+    customerName: string;
+    location: string;
+    error: string;
+  }>;
 }> {
   console.log("🔗 Assigning customers to teams based on their locations...");
 
@@ -190,7 +206,12 @@ export async function assignCustomersToTeams(): Promise<{
 
   let assigned = 0;
   let unassigned = 0;
-  const errors: Array<{ customerId: string; customerName: string; location: string; error: string }> = [];
+  const errors: Array<{
+    customerId: string;
+    customerName: string;
+    location: string;
+    error: string;
+  }> = [];
 
   for (const customer of customers) {
     try {
@@ -207,7 +228,9 @@ export async function assignCustomersToTeams(): Promise<{
           data: { teamId },
         });
         assigned++;
-        console.log(`✅ Assigned ${customer.name} (${customer.location}) to team`);
+        console.log(
+          `✅ Assigned ${customer.name} (${customer.location}) to team`
+        );
       } else {
         unassigned++;
         errors.push({
@@ -228,7 +251,9 @@ export async function assignCustomersToTeams(): Promise<{
     }
   }
 
-  console.log(`🎉 Customer assignment completed! Assigned: ${assigned}, Unassigned: ${unassigned}`);
+  console.log(
+    `🎉 Customer assignment completed! Assigned: ${assigned}, Unassigned: ${unassigned}`
+  );
 
   return {
     success: true,
@@ -241,7 +266,10 @@ export async function assignCustomersToTeams(): Promise<{
 /**
  * Add a new location mapping
  */
-export async function addLocationMapping(location: string, teamName: string): Promise<{
+export async function addLocationMapping(
+  location: string,
+  teamName: string
+): Promise<{
   success: boolean;
   teamId: string;
   message: string;
@@ -283,7 +311,12 @@ export async function addLocationMapping(location: string, teamName: string): Pr
  */
 export async function getLocationMappings(): Promise<{
   success: boolean;
-  mappings: Array<{ teamName: string; teamId: string; locations: string[]; customerCount: number }>;
+  mappings: Array<{
+    teamName: string;
+    teamId: string;
+    locations: string[];
+    customerCount: number;
+  }>;
 }> {
   const teams = await prisma.team.findMany({
     include: {
@@ -300,7 +333,7 @@ export async function getLocationMappings(): Promise<{
     },
   });
 
-  const mappings = teams.map(team => ({
+  const mappings = teams.map((team) => ({
     teamName: team.name,
     teamId: team.id,
     locations: team.locationNames,

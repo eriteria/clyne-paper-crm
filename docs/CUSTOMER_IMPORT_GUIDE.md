@@ -137,6 +137,7 @@ Updates customer last order dates based on actual invoice data in the system.
 ### Overview
 
 The system now automatically assigns customers to teams based on their location during import. This enables:
+
 - Location-based reporting
 - Team-based customer management
 - Hierarchical team structure with regions

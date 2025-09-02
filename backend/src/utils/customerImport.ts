@@ -180,9 +180,13 @@ export async function importCustomers(excelData: ExcelCustomerRow[]): Promise<{
       if (customerData.location) {
         teamId = await getTeamForLocation(customerData.location);
         if (teamId) {
-          console.log(`🏢 Assigned team for location "${customerData.location}"`);
+          console.log(
+            `🏢 Assigned team for location "${customerData.location}"`
+          );
         } else {
-          console.log(`⚠️  No team found for location "${customerData.location}"`);
+          console.log(
+            `⚠️  No team found for location "${customerData.location}"`
+          );
         }
       }
 

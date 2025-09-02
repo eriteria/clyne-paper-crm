@@ -37,7 +37,12 @@ interface AssignmentResult {
   success: boolean;
   assigned: number;
   unassigned: number;
-  errors: Array<{ customerId: string; customerName: string; location: string; error: string }>;
+  errors: Array<{
+    customerId: string;
+    customerName: string;
+    location: string;
+    error: string;
+  }>;
 }
 
 export default function ImportPage() {
@@ -46,8 +51,10 @@ export default function ImportPage() {
   const [clearData, setClearData] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [linkResult, setLinkResult] = useState<LinkResult | null>(null);
-  const [teamSetupResult, setTeamSetupResult] = useState<TeamSetupResult | null>(null);
-  const [assignmentResult, setAssignmentResult] = useState<AssignmentResult | null>(null);
+  const [teamSetupResult, setTeamSetupResult] =
+    useState<TeamSetupResult | null>(null);
+  const [assignmentResult, setAssignmentResult] =
+    useState<AssignmentResult | null>(null);
 
   // Clear dummy data mutation
   const clearDummyDataMutation = useMutation({
@@ -95,7 +102,9 @@ export default function ImportPage() {
   // Assign customers to teams mutation
   const assignTeamsMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post("/import/assign-customers-to-teams");
+      const response = await apiClient.post(
+        "/import/assign-customers-to-teams"
+      );
       return response.data;
     },
   });
@@ -349,7 +358,8 @@ export default function ImportPage() {
           Location-Team Management
         </h3>
         <p className="text-gray-600 mb-4">
-          Set up teams for different locations and assign customers to teams based on their location.
+          Set up teams for different locations and assign customers to teams
+          based on their location.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -376,10 +386,12 @@ export default function ImportPage() {
 
         <div className="mt-4 text-sm text-gray-600">
           <p>
-            <strong>Setup Location Teams:</strong> Creates default teams for common locations (Lagos, Abuja, etc.)
+            <strong>Setup Location Teams:</strong> Creates default teams for
+            common locations (Lagos, Abuja, etc.)
           </p>
           <p>
-            <strong>Assign Customers:</strong> Automatically assigns existing customers to teams based on their location
+            <strong>Assign Customers:</strong> Automatically assigns existing
+            customers to teams based on their location
           </p>
         </div>
       </div>

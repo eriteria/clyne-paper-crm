@@ -3,6 +3,7 @@
 ## Problem Analysis
 
 Currently:
+
 - **Excel Import**: `LOCATION` column maps to customer `location` field (string)
 - **Team Structure**: Existing Team model with leaders, members, regions
 - **Reporting Need**: Generate reports by location/team with team structure
@@ -12,12 +13,14 @@ Currently:
 ### Option 1: Add Location Mapping to Teams (Recommended)
 
 **Pros:**
+
 - No new models needed
 - Leverages existing team structure
 - Maintains team hierarchy for reporting
 - Clean import process
 
 **Implementation:**
+
 1. Add `locationNames` array field to Team model
 2. Map customer locations to teams during import
 3. Use existing team structure for reporting
@@ -25,11 +28,13 @@ Currently:
 ### Option 2: Add teamId to Customer (Alternative)
 
 **Pros:**
+
 - Direct relationship
 - Simple queries
 - Clear data model
 
 **Implementation:**
+
 1. Add `teamId` field to Customer model
 2. Map location to team during import
 3. Direct team-customer relationship
@@ -37,6 +42,7 @@ Currently:
 ## Recommended Implementation Plan
 
 ### Phase 1: Enhance Team Model
+
 ```prisma
 model Team {
   id           String    @id @default(cuid())
@@ -56,11 +62,13 @@ model Customer {
 ```
 
 ### Phase 2: Enhanced Import Logic
+
 - Create location-to-team mapping service
 - Update customer import to assign teams based on location
 - Maintain backward compatibility with location field
 
 ### Phase 3: Reporting Enhancement
+
 - Use team structure for location-based reports
 - Team leaders can generate reports for their locations
 - Regional rollup using existing region hierarchy
@@ -76,6 +84,7 @@ model Customer {
 ## Next Steps
 
 Would you like me to:
+
 1. Implement the enhanced team-location mapping?
 2. Create the migration scripts?
 3. Update the import logic to handle team assignment?
