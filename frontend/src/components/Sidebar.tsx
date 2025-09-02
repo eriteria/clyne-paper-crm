@@ -16,6 +16,7 @@ import {
   Shield,
   Menu,
   ChevronLeft,
+  UsersIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
@@ -27,6 +28,7 @@ const navigation = [
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Financial", href: "/financial", icon: Calculator },
   { name: "Users", href: "/users", icon: Users },
+  { name: "Teams", href: "/teams", icon: UsersIcon },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

@@ -143,6 +143,9 @@ export interface DashboardData {
 export interface Team {
   id: string;
   name: string;
+  regionId: string;
+  leaderUserId?: string;
+  locationNames: string[];
   region?: {
     id: string;
     name: string;
@@ -150,8 +153,14 @@ export interface Team {
   leader?: {
     id: string;
     fullName: string;
+    email?: string;
   };
   members: User[];
+  _count?: {
+    members: number;
+    customers: number;
+    invoices: number;
+  };
   createdAt: string;
   updatedAt: string;
 }
