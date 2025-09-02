@@ -1,0 +1,422 @@
+import express from "express";
+import bcrypt from "bcryptjs";
+import { prisma } from "../server";
+import { logger } from "../utils/logger";
+
+const router = express.Router();
+
+// @desc    Get all users
+// @route   GET /api/users
+// @access  Private (Admin/Manager)
+router.get("/", async (req, res, next) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      role,
+      team,
+      region,
+      isActive,
+    } = req.query;
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build filters
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search as string, mode: "insensitive" } },
+        { email: { contains: search as string, mode: "insensitive" } },
+        { phone: { contains: search as string, mode: "insensitive" } },
+      ];
+    }
+
+    if (role) {
+      where.role = { name: role as string };
+    }
+
+    if (team) {
+      where.team = { name: team as string };
+    }
+
+    if (region) {
+      where.region = { name: region as string };
+    }
+
+    if (isActive !== undefined) {
+      where.isActive = isActive === "true";
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        include: {
+          role: true,
+          team: {
+            include: { region: true },
+          },
+          region: true,
+        },
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    // Remove password hashes from response
+    const sanitizedUsers = users.map(({ passwordHash, ...user }) => user);
+
+    res.json({
+      success: true,
+      data: {
+        users: sanitizedUsers,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error("Error fetching users:", error);
+    next(error);
+  }
+});
+
+// @desc    Get user by ID
+// @route   GET /api/users/:id
+// @access  Private
+router.get("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        role: true,
+        team: {
+          include: { region: true },
+        },
+        region: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+      return;
+    }
+
+    // Remove password hash from response
+    const { passwordHash, ...sanitizedUser } = user;
+
+    res.json({
+      success: true,
+      data: { user: sanitizedUser },
+    });
+  } catch (error) {
+    logger.error("Error fetching user:", error);
+    next(error);
+  }
+});
+
+// @desc    Create new user
+// @route   POST /api/users
+// @access  Private (Admin only)
+router.post("/", async (req, res, next) => {
+  try {
+    const { email, fullName, phone, password, roleId, teamId, regionId } =
+      req.body;
+
+    // Validate required fields
+    if (!email || !fullName || !password || !roleId) {
+      res.status(400).json({
+        success: false,
+        error: "Please provide email, fullName, password, and roleId",
+      });
+      return;
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      res.status(400).json({
+        success: false,
+        error: "User with this email already exists",
+      });
+      return;
+    }
+
+    // Validate role exists
+    const role = await prisma.role.findUnique({
+      where: { id: roleId },
+    });
+
+    if (!role) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid role ID",
+      });
+      return;
+    }
+
+    // Validate team if provided
+    if (teamId) {
+      const team = await prisma.team.findUnique({
+        where: { id: teamId },
+      });
+
+      if (!team) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid team ID",
+        });
+        return;
+      }
+    }
+
+    // Validate region if provided
+    if (regionId) {
+      const region = await prisma.region.findUnique({
+        where: { id: regionId },
+      });
+
+      if (!region) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid region ID",
+        });
+        return;
+      }
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email,
+        fullName,
+        phone,
+        passwordHash,
+        roleId,
+        teamId,
+        regionId,
+      },
+      include: {
+        role: true,
+        team: {
+          include: { region: true },
+        },
+        region: true,
+      },
+    });
+
+    // Remove password hash from response
+    const { passwordHash: _, ...sanitizedUser } = user;
+
+    logger.info(`New user created: ${user.email}`);
+
+    res.status(201).json({
+      success: true,
+      data: { user: sanitizedUser },
+    });
+  } catch (error) {
+    logger.error("Error creating user:", error);
+    next(error);
+  }
+});
+
+// @desc    Update user
+// @route   PUT /api/users/:id
+// @access  Private (Admin/Manager or own profile)
+router.put("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { email, fullName, phone, roleId, teamId, regionId, isActive } =
+      req.body;
+
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!existingUser) {
+      res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+      return;
+    }
+
+    // Check if email is taken by another user
+    if (email && email !== existingUser.email) {
+      const emailTaken = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (emailTaken) {
+        res.status(400).json({
+          success: false,
+          error: "Email is already taken",
+        });
+        return;
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+
+    if (email) updateData.email = email;
+    if (fullName) updateData.fullName = fullName;
+    if (phone !== undefined) updateData.phone = phone;
+    if (roleId) updateData.roleId = roleId;
+    if (teamId !== undefined) updateData.teamId = teamId;
+    if (regionId !== undefined) updateData.regionId = regionId;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    // Update user
+    const user = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      include: {
+        role: true,
+        team: {
+          include: { region: true },
+        },
+        region: true,
+      },
+    });
+
+    // Remove password hash from response
+    const { passwordHash, ...sanitizedUser } = user;
+
+    logger.info(`User updated: ${user.email}`);
+
+    res.json({
+      success: true,
+      data: { user: sanitizedUser },
+    });
+  } catch (error) {
+    logger.error("Error updating user:", error);
+    next(error);
+  }
+});
+
+// @desc    Update user password
+// @route   PUT /api/users/:id/password
+// @access  Private (Admin or own profile)
+router.put("/:id/password", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!newPassword) {
+      res.status(400).json({
+        success: false,
+        error: "Please provide new password",
+      });
+      return;
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+      return;
+    }
+
+    // If current password is provided, validate it
+    if (currentPassword) {
+      const isCurrentPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.passwordHash
+      );
+
+      if (!isCurrentPasswordValid) {
+        res.status(400).json({
+          success: false,
+          error: "Current password is incorrect",
+        });
+        return;
+      }
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    // Update password
+    await prisma.user.update({
+      where: { id },
+      data: { passwordHash },
+    });
+
+    logger.info(`Password updated for user: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    logger.error("Error updating password:", error);
+    next(error);
+  }
+});
+
+// @desc    Delete user
+// @route   DELETE /api/users/:id
+// @access  Private (Admin only)
+router.delete("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+      return;
+    }
+
+    // Soft delete by setting isActive to false
+    await prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    logger.info(`User soft deleted: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    logger.error("Error deleting user:", error);
+    next(error);
+  }
+});
+
+export default router;
