@@ -129,8 +129,15 @@ router.get("/:id", async (req, res, next) => {
 // @access  Private
 router.post("/", async (req, res, next) => {
   try {
-    const { name, email, phone, address, companyName, contactPerson, relationshipManagerId } =
-      req.body;
+    const {
+      name,
+      email,
+      phone,
+      address,
+      companyName,
+      contactPerson,
+      relationshipManagerId,
+    } = req.body;
 
     // Validation
     if (!name) {
@@ -193,8 +200,15 @@ router.post("/", async (req, res, next) => {
 router.put("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, address, companyName, contactPerson, relationshipManagerId } =
-      req.body;
+    const {
+      name,
+      email,
+      phone,
+      address,
+      companyName,
+      contactPerson,
+      relationshipManagerId,
+    } = req.body;
 
     // Check if customer exists
     const existingCustomer = await prisma.customer.findUnique({
