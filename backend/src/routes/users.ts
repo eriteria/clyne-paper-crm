@@ -2,6 +2,14 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
+import {
+  clearDummyUsers,
+  importUsers,
+  normalizeZohoUserData,
+  fullUserImport,
+  getUserImportTemplate,
+  ZohoUserRow,
+} from "../utils/userImport";
 
 const router = express.Router();
 
@@ -415,6 +423,105 @@ router.delete("/:id", async (req, res, next) => {
     });
   } catch (error) {
     logger.error("Error deleting user:", error);
+    next(error);
+  }
+});
+
+// User Import Routes (Admin Only)
+
+// @desc    Clear dummy user data
+// @route   POST /api/users/clear-dummy-data
+// @access  Private (Admin)
+router.post("/clear-dummy-data", async (req, res, next) => {
+  try {
+    const result = await clearDummyUsers();
+    res.json({
+      success: true,
+      message: result.message,
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Import users from CSV data
+// @route   POST /api/users/import
+// @access  Private (Admin)
+router.post("/import", async (req, res, next) => {
+  try {
+    const { data, defaultPassword, clearData = false } = req.body;
+
+    if (!data || !Array.isArray(data)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid data format. Expected array of user objects.",
+      });
+    }
+
+    if (
+      !defaultPassword ||
+      typeof defaultPassword !== "string" ||
+      defaultPassword.length < 6
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Default password is required and must be at least 6 characters long.",
+      });
+    }
+
+    const result = await fullUserImport(
+      data as ZohoUserRow[],
+      defaultPassword,
+      clearData
+    );
+
+    return res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Get user import template
+// @route   GET /api/users/import/template
+// @access  Private (Admin)
+router.get("/import/template", async (req, res, next) => {
+  try {
+    const template = getUserImportTemplate();
+
+    res.json({
+      success: true,
+      template,
+      message:
+        "User import template with sample data. The 'Role' and 'Last login time' fields will be ignored during import.",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Get all roles
+// @route   GET /api/users/roles
+// @access  Private
+router.get("/roles", async (req, res, next) => {
+  try {
+    const roles = await prisma.role.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: { name: "asc" },
+    });
+
+    res.json({
+      success: true,
+      data: { roles },
+    });
+  } catch (error) {
     next(error);
   }
 });

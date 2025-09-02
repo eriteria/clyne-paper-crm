@@ -4,16 +4,15 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users,
-  Plus,
   Search,
-  Filter,
-  Edit,
   Trash2,
   UserCheck,
   UserX,
   Mail,
   Phone,
   Building2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 
@@ -45,25 +44,48 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage] = useState(12); // Number of users per page
 
   const queryClient = useQueryClient();
 
-  // Fetch users
+  // Fetch users with pagination
   const {
     data: usersData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["users", searchTerm, filterRole, filterStatus],
+    queryKey: [
+      "users",
+      searchTerm,
+      filterRole,
+      filterStatus,
+      currentPage,
+      usersPerPage,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
       if (filterRole) params.append("role", filterRole);
       if (filterStatus) params.append("status", filterStatus);
+      params.append("page", currentPage.toString());
+      params.append("limit", usersPerPage.toString());
 
       const response = await apiClient.get(`/users?${params}`);
+      return response.data;
+    },
+  });
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterRole, filterStatus]);
+
+  // Fetch all roles for filter dropdown
+  const { data: rolesData } = useQuery({
+    queryKey: ["roles"],
+    queryFn: async () => {
+      const response = await apiClient.get("/users/roles");
       return response.data;
     },
   });
@@ -95,25 +117,25 @@ export default function UsersPage() {
       Sales: "bg-green-100 text-green-800",
       Inventory: "bg-yellow-100 text-yellow-800",
       Warehouse: "bg-gray-100 text-gray-800",
+      Accountant: "bg-indigo-100 text-indigo-800",
+      Employee: "bg-teal-100 text-teal-800",
     };
     return colors[role] || "bg-gray-100 text-gray-800";
   };
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="text-center mt-4">Loading users...</p>
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Loading users...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="text-red-600 text-center">
-          <p>Error loading users: {error.message}</p>
-        </div>
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        Error loading users. Please try again.
       </div>
     );
   }
@@ -121,50 +143,48 @@ export default function UsersPage() {
   const users = Array.isArray(usersData?.data?.users)
     ? usersData.data.users
     : [];
-  const roles: string[] =
-    users.length > 0
-      ? ([...new Set(users.map((user: User) => user.role))] as string[])
-      : [];
 
-  const filteredUsers = users.filter((user: User) => {
-    const matchesSearch =
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = !filterRole || user.role.name === filterRole;
-    const matchesStatus =
-      !filterStatus ||
-      (filterStatus === "active" && user.isActive) ||
-      (filterStatus === "inactive" && !user.isActive);
+  const pagination = usersData?.data?.pagination || {
+    page: 1,
+    limit: usersPerPage,
+    total: 0,
+    pages: 1,
+  };
 
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  // Get roles from separate roles endpoint
+  const roles: string[] = Array.isArray(rolesData?.data?.roles)
+    ? rolesData.data.roles.map((role: { name: string }) => role.name)
+    : [];
+
+  // Since backend handles filtering, we don't need client-side filtering
+  const filteredUsers = users;
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Team Members</h1>
           <p className="text-gray-600 mt-1">Manage team members and access</p>
         </div>
         <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["users"] })}
+          className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+          title="Refresh user list"
         >
-          <Plus className="h-4 w-4" />
-          Add User
+          Refresh
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+      {/* Search and Filters */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <input
               type="text"
               placeholder="Search users..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -195,7 +215,10 @@ export default function UsersPage() {
 
           <div className="text-sm text-gray-600 flex items-center">
             <Users className="h-4 w-4 mr-2" />
-            {filteredUsers.length} users
+            Showing {(pagination.page - 1) * pagination.limit + 1}-
+            {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+            {pagination.total} users
+            {searchTerm || filterRole || filterStatus ? " (filtered)" : ""}
           </div>
         </div>
       </div>
@@ -280,13 +303,6 @@ export default function UsersPage() {
                   )}
                 </button>
                 <button
-                  onClick={() => setEditingUser(user)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                  title="Edit user"
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button
                   onClick={() => deleteMutation.mutate(user.id)}
                   className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                   title="Delete user"
@@ -306,8 +322,74 @@ export default function UsersPage() {
             No users found
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            Get started by adding a new team member.
+            {searchTerm || filterRole || filterStatus
+              ? "Try adjusting your search criteria."
+              : "Get started by adding a new team member."}
           </p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination.pages > 1 && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Page {pagination.page} of {pagination.pages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+
+              <div className="flex items-center space-x-1">
+                {Array.from(
+                  { length: Math.min(5, pagination.pages) },
+                  (_, i) => {
+                    let pageNum;
+                    if (pagination.pages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= pagination.pages - 2) {
+                      pageNum = pagination.pages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-2 text-sm font-medium rounded-md ${
+                          pageNum === currentPage
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+
+              <button
+                onClick={() =>
+                  setCurrentPage(Math.min(pagination.pages, currentPage + 1))
+                }
+                disabled={currentPage === pagination.pages}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

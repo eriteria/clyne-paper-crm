@@ -37,7 +37,7 @@ export default function AdminPage() {
 
         {/* User Management */}
         <Link
-          href="/users"
+          href="/admin/users"
           className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200"
         >
           <div className="flex items-center">
@@ -51,7 +51,7 @@ export default function AdminPage() {
                 User Management
               </h3>
               <p className="text-sm text-gray-500">
-                Manage users, roles, and permissions
+                Import users from Zoho and manage user data
               </p>
             </div>
           </div>

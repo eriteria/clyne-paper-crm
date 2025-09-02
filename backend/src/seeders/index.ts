@@ -118,6 +118,39 @@ async function main() {
     },
   });
 
+  const employeeRole = await prisma.role.upsert({
+    where: { name: "Employee" },
+    update: {},
+    create: {
+      name: "Employee",
+      permissions: JSON.stringify({
+        inventory: ["read"],
+        invoices: ["read"],
+        reports: ["read"],
+      }),
+    },
+  });
+
+  // Example: Adding a Supervisor role
+  // Uncomment below to add when needed
+  /*
+  const supervisorRole = await prisma.role.upsert({
+    where: { name: "Supervisor" },
+    update: {},
+    create: {
+      name: "Supervisor",
+      permissions: JSON.stringify({
+        users: ["read"],
+        teams: ["read", "update"],
+        inventory: ["read", "update"],
+        invoices: ["read", "update"],
+        reports: ["read"],
+        waybills: ["read", "update"],
+      }),
+    },
+  });
+  */
+
   // Create Regions (Nigerian states)
   const regions = [
     { name: "Abuja - FCT" },
@@ -299,7 +332,7 @@ async function main() {
 
   console.log("\n📋 Created:");
   console.log(
-    "- 6 Roles (Admin, Manager, TeamLeader, Sales, Warehouse, Viewer)"
+    "- 8 Roles (Admin, Manager, TeamLeader, Sales, Warehouse, Viewer, Accountant, Employee)"
   );
   console.log("- 10 Regions (Nigerian states)");
   console.log("- 2 Teams");
