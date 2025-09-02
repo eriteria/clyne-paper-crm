@@ -22,6 +22,7 @@ import customerRoutes from "./routes/customers";
 import reportRoutes from "./routes/reports";
 import adminRoutes from "./routes/admin";
 import financialRoutes from "./routes/financial";
+import importRoutes from "./routes/import";
 
 // Import utils
 import { logger } from "./utils/logger";
@@ -80,6 +81,7 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/financial", financialRoutes);
+app.use("/api/import", importRoutes);
 
 // Error handling middleware
 app.use(notFound);

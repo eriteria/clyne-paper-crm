@@ -126,9 +126,13 @@ model Customer {
   email                 String?
   phone                 String?
   address               String?
+  location              String?   // For LOCATION from Excel
   companyName           String?   @map("company_name")
   contactPerson         String?   @map("contact_person")
   relationshipManagerId String?   @map("relationship_manager_id")
+  onboardingDate        DateTime? @map("onboarding_date") // For DATE OF ONBOARDING from Excel
+  lastOrderDate         DateTime? @map("last_order_date") // For LAST ORDER DATE from Excel
+  relationshipManagerName String? @map("relationship_manager_name") // Temporary field for import
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   invoices              Invoice[]

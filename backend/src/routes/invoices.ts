@@ -82,7 +82,7 @@ router.get("/", async (req, res, next) => {
       prisma.invoice.findMany({
         where,
         include: {
-          billedByUser: {
+          billedBy: {
             select: {
               id: true,
               fullName: true,
@@ -151,7 +151,7 @@ router.get("/:id", async (req, res, next) => {
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: {
-        billedByUser: {
+        billedBy: {
           select: {
             id: true,
             fullName: true,
@@ -222,7 +222,7 @@ router.patch("/:id", async (req, res, next) => {
       where: { id },
       data: { status },
       include: {
-        billedByUser: {
+        billedBy: {
           select: {
             id: true,
             fullName: true,
