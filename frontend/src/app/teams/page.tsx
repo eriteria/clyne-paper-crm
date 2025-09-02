@@ -157,8 +157,9 @@ export default function TeamsPage() {
             <div>
               <h3 className="font-medium text-amber-800">Teams Need Setup</h3>
               <p className="text-amber-700 text-sm mt-1">
-                You have <strong>{unassignedCount} unassigned users</strong> that need to be added to teams.
-                Most teams currently appear empty because users have not been assigned yet.
+                You have <strong>{unassignedCount} unassigned users</strong>{" "}
+                that need to be added to teams. Most teams currently appear
+                empty because users have not been assigned yet.
               </p>
               <div className="mt-2 flex gap-2">
                 <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
@@ -204,9 +205,12 @@ export default function TeamsPage() {
 
           <div className="text-sm text-gray-600 flex items-center">
             <Users className="h-4 w-4 mr-2" />
-            Showing {pagination ? (pagination.page - 1) * pagination.limit + 1 : 1}-
-            {pagination ? Math.min(pagination.page * pagination.limit, pagination.total) : teams.length} of{" "}
-            {pagination?.total || teams.length} teams
+            Showing{" "}
+            {pagination ? (pagination.page - 1) * pagination.limit + 1 : 1}-
+            {pagination
+              ? Math.min(pagination.page * pagination.limit, pagination.total)
+              : teams.length}{" "}
+            of {pagination?.total || teams.length} teams
             {searchTerm || selectedRegion ? " (filtered)" : ""}
           </div>
         </div>
@@ -249,17 +253,21 @@ export default function TeamsPage() {
               <div
                 key={team.id}
                 className={`bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow ${
-                  isEmpty ? 'border-l-4 border-l-amber-500' : ''
+                  isEmpty ? "border-l-4 border-l-amber-500" : ""
                 }`}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`rounded-full p-3 ${
-                      isEmpty ? 'bg-amber-100' : 'bg-blue-100'
-                    }`}>
-                      <Users className={`h-6 w-6 ${
-                        isEmpty ? 'text-amber-600' : 'text-blue-600'
-                      }`} />
+                    <div
+                      className={`rounded-full p-3 ${
+                        isEmpty ? "bg-amber-100" : "bg-blue-100"
+                      }`}
+                    >
+                      <Users
+                        className={`h-6 w-6 ${
+                          isEmpty ? "text-amber-600" : "text-blue-600"
+                        }`}
+                      />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -279,65 +287,69 @@ export default function TeamsPage() {
                       )}
                     </div>
                   </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleViewTeam(team)}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                    title="View details"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleEditTeam(team)}
-                    className="p-2 text-gray-400 hover:text-orange-600 transition-colors"
-                    title="Edit team"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTeam(team)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                    title="Delete team"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                {team.leader && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Crown className="h-4 w-4 text-yellow-500" />
-                    <span className="font-medium">{team.leader.fullName}</span>
-                  </div>
-                )}
-                {team.locationNames && team.locationNames.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin className="h-4 w-4" />
-                    <span>{team.locationNames.slice(0, 2).join(", ")}</span>
-                    {team.locationNames.length > 2 && (
-                      <span className="text-gray-400">+{team.locationNames.length - 2} more</span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                <div className="flex items-center gap-4 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    <span>{team._count?.members || 0} members</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Building className="h-4 w-4" />
-                    <span>{team._count?.customers || 0} customers</span>
+                    <button
+                      onClick={() => handleViewTeam(team)}
+                      className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                      title="View details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleEditTeam(team)}
+                      className="p-2 text-gray-400 hover:text-orange-600 transition-colors"
+                      title="Edit team"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTeam(team)}
+                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                      title="Delete team"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-                <div className="text-xs text-gray-500">
-                  Created {new Date(team.createdAt).toLocaleDateString()}
+
+                <div className="space-y-2 mb-4">
+                  {team.leader && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Crown className="h-4 w-4 text-yellow-500" />
+                      <span className="font-medium">
+                        {team.leader.fullName}
+                      </span>
+                    </div>
+                  )}
+                  {team.locationNames && team.locationNames.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <MapPin className="h-4 w-4" />
+                      <span>{team.locationNames.slice(0, 2).join(", ")}</span>
+                      {team.locationNames.length > 2 && (
+                        <span className="text-gray-400">
+                          +{team.locationNames.length - 2} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span>{team._count?.members || 0} members</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Building className="h-4 w-4" />
+                      <span>{team._count?.customers || 0} customers</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Created {new Date(team.createdAt).toLocaleDateString()}
+                  </div>
                 </div>
               </div>
-            </div>
             );
           })}
         </div>
