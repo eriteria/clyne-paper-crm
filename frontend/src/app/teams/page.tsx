@@ -56,7 +56,7 @@ export default function TeamsPage() {
       });
 
       const response = await apiClient.get(`/teams?${params}`);
-      return response.data as TeamsResponse;
+      return response.data.data as TeamsResponse;
     },
   });
 
