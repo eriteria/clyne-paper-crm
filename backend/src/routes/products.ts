@@ -1,6 +1,7 @@
 import express from "express";
 import { Request, Response } from "express";
 import { prisma } from "../server";
+import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 
 const router = express.Router();
 
@@ -253,6 +254,9 @@ router.post("/", async (req: Request, res: Response) => {
       },
     });
 
+    // Log product creation
+    await logCreate((req as any).user?.id, "PRODUCT", product.id, product);
+
     res.status(201).json({
       success: true,
       data: product,
@@ -281,6 +285,19 @@ router.put("/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, productGroupId, monthlyTarget } = req.body;
 
+    // Get the original product for audit logging
+    const originalProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { productGroup: true },
+    });
+
+    if (!originalProduct) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
     const updateData: any = {};
 
     if (name !== undefined) updateData.name = name;
@@ -296,6 +313,9 @@ router.put("/:id", async (req: Request, res: Response) => {
         productGroup: true,
       },
     });
+
+    // Log product update
+    await logUpdate((req as any).user?.id, "PRODUCT", product.id, originalProduct, product);
 
     res.json({
       success: true,
@@ -331,6 +351,19 @@ router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    // Get the product for audit logging before deletion
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { productGroup: true },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
     // Check if product has associated inventory items
     const inventoryCount = await prisma.inventoryItem.count({
       where: { productId: id },
@@ -346,6 +379,9 @@ router.delete("/:id", async (req: Request, res: Response) => {
     await prisma.product.delete({
       where: { id },
     });
+
+    // Log product deletion
+    await logDelete((req as any).user?.id, "PRODUCT", id, product);
 
     res.json({
       success: true,

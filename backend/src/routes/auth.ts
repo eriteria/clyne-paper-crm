@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
+import { logLogin } from "../utils/auditLogger";
 
 const router = express.Router();
 
@@ -79,6 +80,14 @@ router.post("/login", async (req, res, next) => {
     );
 
     logger.info(`User ${user.email} logged in successfully`);
+
+    // Log the login action
+    await logLogin(user.id, {
+      email: user.email,
+      role: user.role.name,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
 
     res.json({
       success: true,

@@ -26,6 +26,7 @@ import financialRoutes from "./routes/financial";
 import importRoutes from "./routes/import";
 import productRoutes from "./routes/products";
 import productGroupRoutes from "./routes/productGroups";
+import auditLogRoutes from "./routes/auditLogs";
 
 // Import utils
 import { logger } from "./utils/logger";
@@ -88,6 +89,7 @@ app.use("/api/financial", financialRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/product-groups", productGroupRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
 
 // Error handling middleware
 app.use(notFound);

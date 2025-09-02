@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
+import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 
 const router = express.Router();
 
@@ -257,6 +258,9 @@ router.post("/", async (req, res, next) => {
         },
       },
     });
+
+    // Log team creation
+    await logCreate((req as any).user?.id, "TEAM", team.id, team);
 
     logger.info(`Team created: ${team.name} by user`);
 

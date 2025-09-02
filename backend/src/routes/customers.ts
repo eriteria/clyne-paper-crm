@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
+import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 
 const router = express.Router();
 
@@ -181,6 +182,13 @@ router.post("/", async (req, res, next) => {
           },
         },
       },
+    });
+
+    // Log customer creation action
+    await logCreate("temp-admin-id", "CUSTOMER", customer.id, {
+      name: customer.name,
+      email: customer.email,
+      companyName: customer.companyName,
     });
 
     res.status(201).json({

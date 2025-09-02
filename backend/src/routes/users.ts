@@ -2,6 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
+import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 import {
   clearDummyUsers,
   importUsers,
@@ -247,6 +248,13 @@ router.post("/", async (req, res, next) => {
 
     logger.info(`New user created: ${user.email}`);
 
+    // Log user creation action
+    await logCreate("temp-admin-id", "USER", user.id, {
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role.name,
+    });
+
     res.status(201).json({
       success: true,
       data: { user: sanitizedUser },
@@ -322,6 +330,14 @@ router.put("/:id", async (req, res, next) => {
     const { passwordHash, ...sanitizedUser } = user;
 
     logger.info(`User updated: ${user.email}`);
+
+    // Log user update action
+    await logUpdate("temp-admin-id", "USER", user.id, existingUser, {
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role.name,
+      isActive: user.isActive,
+    });
 
     res.json({
       success: true,
