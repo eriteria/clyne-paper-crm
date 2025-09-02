@@ -178,7 +178,7 @@ export default function CreateTeamModal({
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 ${
                 errors.name ? "border-red-300 bg-red-50" : "border-gray-300"
               }`}
               placeholder="Enter team name"
@@ -198,7 +198,7 @@ export default function CreateTeamModal({
               onChange={(e) =>
                 setFormData({ ...formData, regionId: e.target.value })
               }
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
                 errors.regionId ? "border-red-300 bg-red-50" : "border-gray-300"
               }`}
             >
@@ -224,7 +224,7 @@ export default function CreateTeamModal({
               onChange={(e) =>
                 setFormData({ ...formData, leaderUserId: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
             >
               <option value="">Select a team leader</option>
               {users.map((user: any) => (
@@ -246,7 +246,7 @@ export default function CreateTeamModal({
                 value={locationInput}
                 onChange={(e) => setLocationInput(e.target.value)}
                 onKeyPress={handleLocationInputKeyPress}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                 placeholder="Enter location name"
               />
               <button
