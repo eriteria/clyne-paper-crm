@@ -315,7 +315,13 @@ router.put("/:id", async (req: Request, res: Response) => {
     });
 
     // Log product update
-    await logUpdate((req as any).user?.id, "PRODUCT", product.id, originalProduct, product);
+    await logUpdate(
+      (req as any).user?.id,
+      "PRODUCT",
+      product.id,
+      originalProduct,
+      product
+    );
 
     res.json({
       success: true,

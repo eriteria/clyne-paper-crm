@@ -59,7 +59,7 @@ export default function AuditLogsPage() {
       const params = new URLSearchParams();
       params.append("page", page.toString());
       params.append("limit", limit.toString());
-      
+
       if (filters.actionType) params.append("actionType", filters.actionType);
       if (filters.entityType) params.append("entityType", filters.entityType);
       if (filters.userId) params.append("userId", filters.userId);
@@ -201,7 +201,9 @@ export default function AuditLogsPage() {
               </label>
               <select
                 value={filters.actionType}
-                onChange={(e) => handleFilterChange("actionType", e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange("actionType", e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               >
                 <option value="">All Actions</option>
@@ -222,7 +224,9 @@ export default function AuditLogsPage() {
               </label>
               <select
                 value={filters.entityType}
-                onChange={(e) => handleFilterChange("entityType", e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange("entityType", e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               >
                 <option value="">All Entities</option>
@@ -242,7 +246,9 @@ export default function AuditLogsPage() {
               <input
                 type="date"
                 value={filters.startDate}
-                onChange={(e) => handleFilterChange("startDate", e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange("startDate", e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               />
             </div>
@@ -322,7 +328,11 @@ export default function AuditLogsPage() {
                   <tr key={log.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getActionColor(log.actionType)}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getActionColor(
+                            log.actionType
+                          )}`}
+                        >
                           {log.actionType}
                         </span>
                       </div>
@@ -390,8 +400,9 @@ export default function AuditLogsPage() {
         {pagination.pages > 1 && (
           <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, pagination.total)} of{" "}
-              {pagination.total} results
+              Showing {(page - 1) * limit + 1} to{" "}
+              {Math.min(page * limit, pagination.total)} of {pagination.total}{" "}
+              results
             </div>
             <div className="flex items-center space-x-2">
               <button
@@ -489,7 +500,11 @@ export default function AuditLogsPage() {
                       Previous Value
                     </label>
                     <pre className="mt-1 text-sm text-gray-900 bg-gray-100 p-2 rounded overflow-auto max-h-32">
-                      {JSON.stringify(JSON.parse(selectedLog.previousValue), null, 2)}
+                      {JSON.stringify(
+                        JSON.parse(selectedLog.previousValue),
+                        null,
+                        2
+                      )}
                     </pre>
                   </div>
                 )}
@@ -500,7 +515,11 @@ export default function AuditLogsPage() {
                       Current Value
                     </label>
                     <pre className="mt-1 text-sm text-gray-900 bg-gray-100 p-2 rounded overflow-auto max-h-32">
-                      {JSON.stringify(JSON.parse(selectedLog.currentValue), null, 2)}
+                      {JSON.stringify(
+                        JSON.parse(selectedLog.currentValue),
+                        null,
+                        2
+                      )}
                     </pre>
                   </div>
                 )}

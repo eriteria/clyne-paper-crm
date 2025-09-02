@@ -440,7 +440,12 @@ router.post("/", async (req, res, next) => {
     });
 
     // Log invoice creation
-    await logCreate((req as any).user?.id, "INVOICE", result.invoice.id, completeInvoice);
+    await logCreate(
+      (req as any).user?.id,
+      "INVOICE",
+      result.invoice.id,
+      completeInvoice
+    );
 
     res.status(201).json({
       success: true,

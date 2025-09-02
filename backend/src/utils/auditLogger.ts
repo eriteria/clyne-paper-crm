@@ -3,7 +3,15 @@ import { logger } from "./logger";
 
 export interface AuditLogData {
   userId: string;
-  actionType: "CREATE" | "UPDATE" | "DELETE" | "VIEW" | "LOGIN" | "LOGOUT" | "EXPORT" | "IMPORT";
+  actionType:
+    | "CREATE"
+    | "UPDATE"
+    | "DELETE"
+    | "VIEW"
+    | "LOGIN"
+    | "LOGOUT"
+    | "EXPORT"
+    | "IMPORT";
   entityType: string;
   entityId: string;
   previousValue?: any;
@@ -21,12 +29,18 @@ export async function createAuditLog(data: AuditLogData): Promise<void> {
         actionType: data.actionType,
         entityType: data.entityType,
         entityId: data.entityId,
-        previousValue: data.previousValue ? JSON.stringify(data.previousValue) : null,
-        currentValue: data.currentValue ? JSON.stringify(data.currentValue) : null,
+        previousValue: data.previousValue
+          ? JSON.stringify(data.previousValue)
+          : null,
+        currentValue: data.currentValue
+          ? JSON.stringify(data.currentValue)
+          : null,
       },
     });
 
-    logger.info(`Audit log created: ${data.actionType} on ${data.entityType} ${data.entityId} by user ${data.userId}`);
+    logger.info(
+      `Audit log created: ${data.actionType} on ${data.entityType} ${data.entityId} by user ${data.userId}`
+    );
   } catch (error) {
     logger.error("Failed to create audit log:", error);
     // Don't throw error - audit logging should not break the main functionality
@@ -108,7 +122,10 @@ export async function logView(
 /**
  * Convenience function for logging LOGIN actions
  */
-export async function logLogin(userId: string, additionalData?: any): Promise<void> {
+export async function logLogin(
+  userId: string,
+  additionalData?: any
+): Promise<void> {
   await createAuditLog({
     userId,
     actionType: "LOGIN",

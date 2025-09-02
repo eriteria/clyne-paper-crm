@@ -86,7 +86,7 @@ router.post("/login", async (req, res, next) => {
       email: user.email,
       role: user.role.name,
       ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
+      userAgent: req.get("User-Agent"),
     });
 
     res.json({
