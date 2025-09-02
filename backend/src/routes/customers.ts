@@ -37,6 +37,14 @@ router.get("/", async (req, res, next) => {
         skip,
         take: limitNum,
         include: {
+          relationshipManager: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phone: true,
+            },
+          },
           _count: {
             select: {
               invoices: true,
@@ -77,6 +85,14 @@ router.get("/:id", async (req, res, next) => {
     const customer = await prisma.customer.findUnique({
       where: { id },
       include: {
+        relationshipManager: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
         invoices: {
           orderBy: {
             createdAt: "desc",
@@ -113,7 +129,7 @@ router.get("/:id", async (req, res, next) => {
 // @access  Private
 router.post("/", async (req, res, next) => {
   try {
-    const { name, email, phone, address, companyName, contactPerson } =
+    const { name, email, phone, address, companyName, contactPerson, relationshipManagerId } =
       req.body;
 
     // Validation
@@ -146,6 +162,17 @@ router.post("/", async (req, res, next) => {
         address,
         companyName,
         contactPerson,
+        relationshipManagerId,
+      },
+      include: {
+        relationshipManager: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
       },
     });
 
@@ -166,7 +193,7 @@ router.post("/", async (req, res, next) => {
 router.put("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, address, companyName, contactPerson } =
+    const { name, email, phone, address, companyName, contactPerson, relationshipManagerId } =
       req.body;
 
     // Check if customer exists
@@ -204,6 +231,17 @@ router.put("/:id", async (req, res, next) => {
         address,
         companyName,
         contactPerson,
+        relationshipManagerId,
+      },
+      include: {
+        relationshipManager: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
       },
     });
 
