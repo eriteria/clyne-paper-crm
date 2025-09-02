@@ -101,6 +101,23 @@ async function main() {
     },
   });
 
+  const accountantRole = await prisma.role.upsert({
+    where: { name: "Accountant" },
+    update: {},
+    create: {
+      name: "Accountant",
+      permissions: JSON.stringify({
+        invoices: ["read", "export"],
+        customers: ["read"],
+        financial: ["read", "export"],
+        reports: ["read", "export"],
+        quickbooks: ["export"],
+        payments: ["read", "update"],
+        taxReports: ["read", "generate"],
+      }),
+    },
+  });
+
   // Create Regions (Nigerian states)
   const regions = [
     { name: "Abuja - FCT" },
