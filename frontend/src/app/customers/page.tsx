@@ -2,8 +2,11 @@
 
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { UserCheck, Plus } from "lucide-react";
+import { UserCheck, Plus, CreditCard, Receipt, FileText } from "lucide-react";
 import CreateCustomerModal from "@/components/CreateCustomerModal";
+import RecordPaymentModal from "@/components/RecordPaymentModal";
+import CustomerLedgerModal from "@/components/CustomerLedgerModal";
+import CreditManagementModal from "@/components/CreditManagementModal";
 import SearchBar from "@/components/SearchBar";
 import CustomersList from "@/components/CustomersList";
 import { Customer } from "@/types";
@@ -13,6 +16,13 @@ export default function CustomersPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+
+  // Payment management states
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showLedgerModal, setShowLedgerModal] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [selectedCustomerForPayment, setSelectedCustomerForPayment] =
+    useState<Customer | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -48,6 +58,13 @@ export default function CustomersPage() {
           </p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => setShowPaymentModal(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+          >
+            <Receipt className="h-4 w-4" />
+            Record Payment
+          </button>
           <button
             onClick={() => setShowCreateModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
@@ -176,25 +193,109 @@ export default function CustomersPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setViewingCustomer(null);
-                  setEditingCustomer(viewingCustomer);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => setViewingCustomer(null)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-              >
-                Close
-              </button>
+            <div className="p-6 border-t border-gray-200">
+              {/* Payment Management Actions */}
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Payment Management
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedCustomerForPayment(viewingCustomer);
+                      setShowPaymentModal(true);
+                    }}
+                    className="flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Receipt className="h-4 w-4 mr-2" />
+                    Record Payment
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedCustomerForPayment(viewingCustomer);
+                      setShowLedgerModal(true);
+                    }}
+                    className="flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Ledger
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedCustomerForPayment(viewingCustomer);
+                      setShowCreditModal(true);
+                    }}
+                    className="flex items-center px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Manage Credits
+                  </button>
+                </div>
+              </div>
+
+              {/* Customer Actions */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setViewingCustomer(null);
+                    setEditingCustomer(viewingCustomer);
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Edit Customer
+                </button>
+                <button
+                  onClick={() => setViewingCustomer(null)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Payment Management Modals */}
+      {showPaymentModal && selectedCustomerForPayment && (
+        <RecordPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedCustomerForPayment(null);
+          }}
+          customer={selectedCustomerForPayment}
+          onPaymentRecorded={() => {
+            queryClient.invalidateQueries({ queryKey: ["customers"] });
+            setShowPaymentModal(false);
+            setSelectedCustomerForPayment(null);
+          }}
+        />
+      )}
+
+      {showLedgerModal && selectedCustomerForPayment && (
+        <CustomerLedgerModal
+          isOpen={showLedgerModal}
+          onClose={() => {
+            setShowLedgerModal(false);
+            setSelectedCustomerForPayment(null);
+          }}
+          customer={selectedCustomerForPayment}
+        />
+      )}
+
+      {showCreditModal && selectedCustomerForPayment && (
+        <CreditManagementModal
+          isOpen={showCreditModal}
+          onClose={() => {
+            setShowCreditModal(false);
+            setSelectedCustomerForPayment(null);
+          }}
+          customer={selectedCustomerForPayment}
+          onCreditApplied={() => {
+            queryClient.invalidateQueries({ queryKey: ["customers"] });
+          }}
+        />
       )}
     </div>
   );

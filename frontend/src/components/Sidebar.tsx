@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   UsersIcon,
   ShoppingCart,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Products", href: "/products", icon: ShoppingCart },
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Invoices", href: "/invoices", icon: FileText },
+  { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Financial", href: "/financial", icon: Calculator },
   { name: "Users", href: "/users", icon: Users },
   { name: "Teams", href: "/teams", icon: UsersIcon },

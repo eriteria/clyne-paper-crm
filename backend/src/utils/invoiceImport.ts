@@ -509,6 +509,7 @@ async function importSingleInvoice(
         teamId: customer.teamId || null,
         regionId: null, // Set to null for imported invoices for now
         totalAmount: invoiceData.totalAmount,
+        balance: invoiceData.totalAmount, // Initialize balance to total amount
         status: "COMPLETED", // Imported invoices are completed
         items: {
           create: processedItems,

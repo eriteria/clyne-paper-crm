@@ -544,6 +544,7 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
           teamId: req.user!.teamId,
           regionId: req.user!.regionId,
           totalAmount,
+          balance: totalAmount, // Initialize balance to total amount
           taxAmount: parseFloat(taxAmount),
           discountAmount: parseFloat(discountAmount),
           notes,
