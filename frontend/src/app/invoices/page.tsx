@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText,
@@ -15,30 +15,42 @@ import {
   User,
   Building,
   UserPlus,
+  Upload,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import CreateInvoiceModal from "@/components/CreateInvoiceModal";
 import CreateCustomerModal from "@/components/CreateCustomerModal";
 import { Invoice } from "@/types";
+import { useRouter } from "next/navigation";
 
 export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateRange, setFilterDateRange] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Fetch invoices
   const { data: invoicesData, isLoading } = useQuery({
-    queryKey: ["invoices", searchTerm, filterStatus, filterDateRange],
+    queryKey: [
+      "invoices",
+      searchTerm,
+      filterStatus,
+      filterDateRange,
+      currentPage,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
       if (filterStatus) params.append("status", filterStatus);
       if (filterDateRange) params.append("dateRange", filterDateRange);
+      params.append("page", currentPage.toString());
+      params.append("limit", "50");
 
       const response = await apiClient.get(`/invoices?${params}`);
       return response.data;
@@ -66,15 +78,20 @@ export default function InvoicesPage() {
   });
 
   const invoices = invoicesData?.data || [];
+  const pagination = invoicesData?.pagination || {
+    total: 0,
+    page: 1,
+    limit: 50,
+    totalPages: 1,
+  };
 
-  const filteredInvoices = invoices.filter((invoice: Invoice) => {
-    const matchesSearch =
-      invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !filterStatus || invoice.status === filterStatus;
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterDateRange]);
 
-    return matchesSearch && matchesStatus;
-  });
+  // Since backend handles filtering, use invoices directly
+  const filteredInvoices = invoices;
 
   const getStatusBadge = (status: string) => {
     const badges: { [key: string]: string } = {
@@ -127,6 +144,13 @@ export default function InvoicesPage() {
             Add Customer
           </button>
           <button
+            onClick={() => router.push("/invoices/import")}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Import Invoices
+          </button>
+          <button
             onClick={() => setShowCreateInvoiceModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
           >
@@ -146,7 +170,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-sm text-gray-600">Total Invoices</p>
               <p className="text-2xl font-bold text-gray-900">
-                {filteredInvoices.length}
+                {pagination.total}
               </p>
             </div>
           </div>
@@ -245,7 +269,7 @@ export default function InvoicesPage() {
 
           <div className="text-sm text-gray-600 flex items-center">
             <FileText className="h-4 w-4 mr-2" />
-            {filteredInvoices.length} invoices
+            {pagination.total} invoices
           </div>
         </div>
       </div>
@@ -360,6 +384,42 @@ export default function InvoicesPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+                of {pagination.total} results
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700"
+                >
+                  Previous
+                </button>
+                <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded">
+                  {currentPage} of {pagination.totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage(
+                      Math.min(pagination.totalPages, currentPage + 1)
+                    )
+                  }
+                  disabled={currentPage === pagination.totalPages}
+                  className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {filteredInvoices.length === 0 && (
           <div className="text-center py-12">

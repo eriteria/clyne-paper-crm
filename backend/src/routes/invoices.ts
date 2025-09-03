@@ -2,17 +2,71 @@ import express from "express";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
 import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
+import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  importInvoices,
+  importJsonInvoices,
+  importFlexibleJsonInvoices,
+  getInvoiceImportTemplate,
+  getJsonInvoiceImportTemplate,
+  getImportStatistics,
+  fixDuplicateInvoiceNumbers,
+  ExcelInvoiceRow,
+  JsonInvoiceRow,
+} from "../utils/invoiceImport";
 
 const router = express.Router();
+
+// @desc    Get next invoice number
+// @route   GET /api/invoices/next-number
+// @access  Private
+router.get(
+  "/next-number",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      // Generate simple sequential invoice number
+      const lastInvoice = await prisma.invoice.findFirst({
+        orderBy: {
+          invoiceNumber: "desc",
+        },
+        select: {
+          invoiceNumber: true,
+        },
+      });
+
+      let nextInvoiceNumber = "1000"; // Starting number
+      if (lastInvoice && lastInvoice.invoiceNumber) {
+        // Extract number from existing invoice number
+        const lastNumber = parseInt(
+          lastInvoice.invoiceNumber.replace(/\D/g, "")
+        );
+        if (!isNaN(lastNumber)) {
+          nextInvoiceNumber = String(lastNumber + 1);
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          nextInvoiceNumber,
+        },
+      });
+    } catch (error) {
+      logger.error("Error getting next invoice number:", error);
+      next(error);
+    }
+  }
+);
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
 // @access  Private
-router.get("/", async (req, res, next) => {
+router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const {
       page = 1,
-      limit = 10,
+      limit = 50,
       search,
       status,
       dateRange,
@@ -145,120 +199,134 @@ router.get("/", async (req, res, next) => {
 // @desc    Get single invoice
 // @route   GET /api/invoices/:id
 // @access  Private
-router.get("/:id", async (req, res, next) => {
-  try {
-    const { id } = req.params;
+router.get(
+  "/:id",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { id } = req.params;
 
-    const invoice = await prisma.invoice.findUnique({
-      where: { id },
-      include: {
-        billedBy: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
+      const invoice = await prisma.invoice.findUnique({
+        where: { id },
+        include: {
+          billedBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
           },
-        },
-        team: {
-          select: {
-            id: true,
-            name: true,
+          team: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
-        },
-        region: {
-          select: {
-            id: true,
-            name: true,
+          region: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
-        },
-        items: {
-          include: {
-            inventoryItem: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                unitPrice: true,
+          items: {
+            include: {
+              inventoryItem: {
+                select: {
+                  id: true,
+                  name: true,
+                  sku: true,
+                  unitPrice: true,
+                },
               },
             },
           },
         },
-      },
-    });
-
-    if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        message: "Invoice not found",
       });
-    }
 
-    res.json({
-      success: true,
-      data: invoice,
-    });
-  } catch (error) {
-    logger.error("Error fetching invoice:", error);
-    next(error);
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: "Invoice not found",
+        });
+      }
+
+      res.json({
+        success: true,
+        data: invoice,
+      });
+    } catch (error) {
+      logger.error("Error fetching invoice:", error);
+      next(error);
+    }
   }
-});
+);
 
 // @desc    Update invoice status
 // @route   PATCH /api/invoices/:id
 // @access  Private
-router.patch("/:id", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
+router.patch(
+  "/:id",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
 
-    const validStatuses = ["draft", "pending", "paid", "overdue", "cancelled"];
-    if (status && !validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid status value",
+      const validStatuses = [
+        "draft",
+        "pending",
+        "paid",
+        "overdue",
+        "cancelled",
+      ];
+      if (status && !validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid status value",
+        });
+      }
+
+      const invoice = await prisma.invoice.update({
+        where: { id },
+        data: { status },
+        include: {
+          billedBy: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+          team: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          region: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       });
+
+      res.json({
+        success: true,
+        data: invoice,
+        message: "Invoice updated successfully",
+      });
+    } catch (error) {
+      logger.error("Error updating invoice:", error);
+      next(error);
     }
-
-    const invoice = await prisma.invoice.update({
-      where: { id },
-      data: { status },
-      include: {
-        billedBy: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        team: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        region: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    res.json({
-      success: true,
-      data: invoice,
-      message: "Invoice updated successfully",
-    });
-  } catch (error) {
-    logger.error("Error updating invoice:", error);
-    next(error);
   }
-});
+);
 
 // @desc    Create new invoice
 // @route   POST /api/invoices
 // @access  Private
-router.post("/", async (req, res, next) => {
+router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const {
       customerId,
@@ -296,7 +364,7 @@ router.post("/", async (req, res, next) => {
       });
     }
 
-    // Validate inventory items and check stock
+    // Validate inventory items (no stock check - allows selling out of stock items)
     const inventoryChecks = await Promise.all(
       items.map(async (item: any) => {
         const inventoryItem = await prisma.inventoryItem.findUnique({
@@ -309,11 +377,7 @@ router.post("/", async (req, res, next) => {
           );
         }
 
-        if (inventoryItem.currentQuantity < item.quantity) {
-          throw new Error(
-            `Insufficient stock for ${inventoryItem.name}. Available: ${inventoryItem.currentQuantity}, Requested: ${item.quantity}`
-          );
-        }
+        // Note: Removed stock quantity validation to allow selling out of stock items
 
         return {
           ...item,
@@ -331,37 +395,29 @@ router.post("/", async (req, res, next) => {
     const totalAmount =
       subtotal + parseFloat(taxAmount) - parseFloat(discountAmount);
 
-    // Generate unique invoice number
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-
-    // Get the count of invoices today for sequential numbering
-    const todayStart = new Date(year, now.getMonth(), now.getDate());
-    const todayEnd = new Date(year, now.getMonth(), now.getDate() + 1);
-
-    const todayInvoiceCount = await prisma.invoice.count({
-      where: {
-        createdAt: {
-          gte: todayStart,
-          lt: todayEnd,
-        },
+    // Generate simple sequential invoice number
+    const lastInvoice = await prisma.invoice.findFirst({
+      orderBy: {
+        invoiceNumber: "desc",
+      },
+      select: {
+        invoiceNumber: true,
       },
     });
 
-    const invoiceNumber = `INV-${year}${month}${day}-${String(todayInvoiceCount + 1).padStart(3, "0")}`;
+    let invoiceNumber = "1000"; // Starting number
+    if (lastInvoice && lastInvoice.invoiceNumber) {
+      // Extract number from existing invoice number
+      const lastNumber = parseInt(lastInvoice.invoiceNumber.replace(/\D/g, ""));
+      if (!isNaN(lastNumber)) {
+        invoiceNumber = String(lastNumber + 1);
+      }
+    }
 
     // Create invoice with transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
-      // Get the first user as billed by user (temporary solution)
-      const defaultUser = await tx.user.findFirst({
-        where: { role: { name: "Admin" } },
-      });
-
-      if (!defaultUser) {
-        throw new Error("No admin user found for billing");
-      }
+      // Use the authenticated user as billed by user
+      const billedByUserId = req.user!.id;
 
       // Create the invoice
       const invoice = await tx.invoice.create({
@@ -371,7 +427,9 @@ router.post("/", async (req, res, next) => {
           customerId,
           customerName: customer.name, // For backward compatibility
           customerContact: customer.phone || customer.email, // For backward compatibility
-          billedByUserId: defaultUser.id,
+          billedByUserId,
+          teamId: req.user!.teamId,
+          regionId: req.user!.regionId,
           totalAmount,
           taxAmount: parseFloat(taxAmount),
           discountAmount: parseFloat(discountAmount),
@@ -381,7 +439,7 @@ router.post("/", async (req, res, next) => {
         },
       });
 
-      // Create invoice items and update inventory
+      // Create invoice items, update inventory, and track monthly targets
       const invoiceItems = await Promise.all(
         inventoryChecks.map(async (item) => {
           // Create invoice item
@@ -404,6 +462,49 @@ router.post("/", async (req, res, next) => {
               },
             },
           });
+
+          // Track monthly target progress for the product
+          const inventoryItem = item.inventoryItem;
+          if (inventoryItem.productId) {
+            // TODO: Fix monthlySalesTarget property name issue
+            /*
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1; // JavaScript months are 0-based
+
+            // Update or create monthly sales target record for this user and product
+            await tx.monthlySalesTarget.upsert({
+              where: {
+                monthly_sales_targets_product_user_year_month_key: {
+                  productId: inventoryItem.productId,
+                  userId: req.user!.id,
+                  year,
+                  month,
+                },
+              },
+              update: {
+                achievedQuantity: {
+                  increment: item.quantity,
+                },
+                achievedAmount: {
+                  increment: item.lineTotal,
+                },
+              },
+              create: {
+                productId: inventoryItem.productId,
+                userId: req.user!.id,
+                year,
+                month,
+                achievedQuantity: item.quantity,
+                achievedAmount: item.lineTotal,
+              },
+            });
+
+            logger.info(
+              `Monthly sales target updated for user ${req.user!.id}, product ${inventoryItem.productId}: +${item.quantity} units, +$${item.lineTotal}`
+            );
+            */
+          }
 
           return invoiceItem;
         })
@@ -441,7 +542,7 @@ router.post("/", async (req, res, next) => {
 
     // Log invoice creation
     await logCreate(
-      (req as any).user?.id,
+      req.user!.id,
       "INVOICE",
       result.invoice.id,
       completeInvoice
@@ -455,15 +556,7 @@ router.post("/", async (req, res, next) => {
   } catch (error) {
     logger.error("Error creating invoice:", error);
 
-    if (
-      error instanceof Error &&
-      error.message.includes("Insufficient stock")
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
+    // Note: Removed insufficient stock error handling since we now allow out-of-stock sales
 
     if (error instanceof Error && error.message.includes("not found")) {
       return res.status(404).json({
@@ -479,28 +572,244 @@ router.post("/", async (req, res, next) => {
 // @desc    Delete invoice
 // @route   DELETE /api/invoices/:id
 // @access  Private
-router.delete("/:id", async (req, res, next) => {
-  try {
-    const { id } = req.params;
+router.delete(
+  "/:id",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { id } = req.params;
 
-    // First delete related invoice items
-    await prisma.invoiceItem.deleteMany({
-      where: { invoiceId: id },
-    });
+      // First delete related invoice items
+      await prisma.invoiceItem.deleteMany({
+        where: { invoiceId: id },
+      });
 
-    // Then delete the invoice
-    await prisma.invoice.delete({
-      where: { id },
-    });
+      // Then delete the invoice
+      await prisma.invoice.delete({
+        where: { id },
+      });
 
-    res.json({
-      success: true,
-      message: "Invoice deleted successfully",
-    });
-  } catch (error) {
-    logger.error("Error deleting invoice:", error);
-    next(error);
+      res.json({
+        success: true,
+        message: "Invoice deleted successfully",
+      });
+    } catch (error) {
+      logger.error("Error deleting invoice:", error);
+      next(error);
+    }
   }
-});
+);
+
+// Invoice Import Routes
+
+// @desc    Import invoices from Excel data
+// @route   POST /api/invoices/import
+// @access  Private
+router.post(
+  "/import",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { data } = req.body;
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Excel data is required",
+        });
+      }
+
+      // Validate data structure
+      const requiredHeaders = [
+        "Invoice No",
+        "Date",
+        "Customer",
+        "Product",
+        "Quantity",
+        "Item Unit Price",
+        "Item Total Price",
+        "Invoice Total",
+      ];
+
+      const firstRow = data[0];
+      const missingHeaders = requiredHeaders.filter(
+        (header) => !(header in firstRow)
+      );
+
+      if (missingHeaders.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Missing required headers: ${missingHeaders.join(", ")}`,
+        });
+      }
+
+      // Import invoices
+      const result = await importInvoices(data as ExcelInvoiceRow[]);
+
+      // Log import activity
+      await logCreate(req.user!.id, "IMPORT", "INVOICE", {
+        totalRows: data.length,
+        result: result.results,
+      });
+
+      res.json({
+        success: true,
+        data: result.results,
+        message: result.message,
+      });
+    } catch (error) {
+      logger.error("Error importing invoices:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to import invoices",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+// @desc    Import invoices from JSON data (better currency handling)
+// @route   POST /api/invoices/import/json
+// @access  Private
+router.post(
+  "/import/json",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { data } = req.body;
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "JSON data is required",
+        });
+      }
+
+      // Import invoices using flexible JSON parser (auto-detects format)
+      const result = await importFlexibleJsonInvoices(data);
+
+      // Log import activity
+      await logCreate(req.user!.id, "IMPORT", "INVOICE_JSON", {
+        totalRows: data.length,
+        result: result.results,
+      });
+
+      res.json({
+        success: true,
+        data: result.results,
+        message: result.message,
+      });
+    } catch (error) {
+      logger.error("Error importing JSON invoices:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to import JSON invoices",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+// @desc    Get invoice import template
+// @route   GET /api/invoices/import/template
+// @access  Private
+router.get(
+  "/import/template",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const template = getInvoiceImportTemplate();
+
+      res.json({
+        success: true,
+        data: template,
+        message:
+          "Invoice import template with sample data. All columns are required.",
+      });
+    } catch (error) {
+      logger.error("Error getting import template:", error);
+      next(error);
+    }
+  }
+);
+
+// @desc    Get JSON invoice import template (with currency formatting)
+// @route   GET /api/invoices/import/json/template
+// @access  Private
+router.get(
+  "/import/json/template",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const template = getJsonInvoiceImportTemplate();
+
+      res.json({
+        success: true,
+        data: template,
+        message:
+          "JSON invoice import template with sample data. Supports currency formatting with commas. All fields are required.",
+      });
+    } catch (error) {
+      logger.error("Error getting JSON import template:", error);
+      next(error);
+    }
+  }
+);
+
+// @desc    Get import statistics
+// @route   GET /api/invoices/import/statistics
+// @access  Private
+router.get(
+  "/import/statistics",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const stats = await getImportStatistics();
+
+      res.json({
+        success: true,
+        data: stats,
+        message: "Import statistics retrieved successfully",
+      });
+    } catch (error) {
+      logger.error("Error getting import statistics:", error);
+      next(error);
+    }
+  }
+);
+
+// @desc    Fix duplicate invoice numbers
+// @route   POST /api/invoices/fix-duplicates
+// @access  Private (Admin only)
+router.post(
+  "/fix-duplicates",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      // Note: Consider adding role-based access control here
+      // For now, any authenticated user can run this cleanup
+
+      const result = await fixDuplicateInvoiceNumbers();
+
+      // Log the cleanup activity
+      await logCreate(req.user!.id, "CLEANUP", "INVOICE_DUPLICATES", {
+        result,
+      });
+
+      res.json({
+        success: true,
+        data: result,
+        message: "Invoice cleanup completed successfully",
+      });
+    } catch (error) {
+      logger.error("Error running invoice cleanup:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to run invoice cleanup",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
 
 export default router;
