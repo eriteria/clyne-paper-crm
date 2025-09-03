@@ -9,12 +9,12 @@ import {
   Calendar,
   User,
   Package,
-  DollarSign,
   FileText,
   Save,
   Calculator,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 
 interface Customer {
   id: string;
@@ -32,6 +32,15 @@ interface InventoryItem {
   unit: string;
   unitPrice: number;
   currentQuantity: number;
+  location?: string;
+  product?: {
+    id: string;
+    name: string;
+    monthlyTarget: number;
+    productGroup: {
+      name: string;
+    };
+  };
 }
 
 interface InvoiceItem {
@@ -61,6 +70,7 @@ export default function CreateInvoiceModal({
   const [notes, setNotes] = useState("");
   const [taxAmount, setTaxAmount] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [expectedInvoiceNumber, setExpectedInvoiceNumber] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([
     {
       inventoryItemId: "",
@@ -82,17 +92,47 @@ export default function CreateInvoiceModal({
     enabled: isOpen,
   });
 
-  // Fetch inventory items
+  // Fetch inventory items for invoicing
   const { data: inventoryData } = useQuery({
-    queryKey: ["inventory", "available"],
+    queryKey: ["inventory", "for-invoicing"],
     queryFn: async () => {
-      const response = await apiClient.get(
-        "/inventory?status=in_stock&limit=100"
-      );
+      const response = await apiClient.get("/inventory/for-invoicing");
       return response.data;
     },
     enabled: isOpen,
   });
+
+  // Fetch next invoice number
+  const { data: nextInvoiceData } = useQuery({
+    queryKey: ["invoices", "next-number"],
+    queryFn: async () => {
+      const response = await apiClient.get("/invoices/next-number");
+      return response.data;
+    },
+    enabled: isOpen,
+  });
+
+  // Update expected invoice number when data is fetched
+  useEffect(() => {
+    if (nextInvoiceData?.data?.nextInvoiceNumber) {
+      setExpectedInvoiceNumber(nextInvoiceData.data.nextInvoiceNumber);
+    }
+  }, [nextInvoiceData]);
+
+  // Validate and adjust due date when invoice date changes
+  useEffect(() => {
+    if (dueDate && invoiceDate) {
+      const dueDateObj = new Date(dueDate);
+      const invoiceDateObj = new Date(invoiceDate);
+      const maxDueDateObj = new Date(invoiceDate);
+      maxDueDateObj.setDate(maxDueDateObj.getDate() + 30);
+
+      // If current due date is beyond the 30-day limit or before invoice date, reset it
+      if (dueDateObj > maxDueDateObj || dueDateObj < invoiceDateObj) {
+        setDueDate("");
+      }
+    }
+  }, [invoiceDate, dueDate]);
 
   // Create invoice mutation
   const createInvoiceMutation = useMutation({
@@ -103,12 +143,22 @@ export default function CreateInvoiceModal({
       dueDate: string | null;
       taxAmount: number;
       discountAmount: number;
-      billedByUserId: string;
     }) => {
       const response = await apiClient.post("/invoices", invoiceData);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Check if actual invoice number differs from expected
+      const actualInvoiceNumber = data.data.invoiceNumber;
+      if (
+        expectedInvoiceNumber &&
+        actualInvoiceNumber !== expectedInvoiceNumber
+      ) {
+        alert(
+          `Note: Invoice number changed from expected ${expectedInvoiceNumber} to ${actualInvoiceNumber} due to concurrent invoice creation.`
+        );
+      }
+
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       onSuccess?.();
@@ -123,6 +173,11 @@ export default function CreateInvoiceModal({
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const total = subtotal + taxAmount - discountAmount;
 
+  // Calculate maximum due date (30 days from invoice date)
+  const maxDueDate = new Date(invoiceDate);
+  maxDueDate.setDate(maxDueDate.getDate() + 30);
+  const maxDueDateString = maxDueDate.toISOString().split("T")[0];
+
   const handleClose = () => {
     // Reset form
     setSelectedCustomerId("");
@@ -131,6 +186,7 @@ export default function CreateInvoiceModal({
     setNotes("");
     setTaxAmount(0);
     setDiscountAmount(0);
+    setExpectedInvoiceNumber("");
     setItems([
       {
         inventoryItemId: "",
@@ -199,25 +255,32 @@ export default function CreateInvoiceModal({
       return;
     }
 
-    // Check stock availability
-    const stockErrors = items
-      .map((item, index) => {
-        const inventoryItem = inventoryItems.find(
-          (inv: InventoryItem) => inv.id === item.inventoryItemId
-        );
-        if (inventoryItem && item.quantity > inventoryItem.currentQuantity) {
-          return `Row ${index + 1}: Insufficient stock for ${
-            inventoryItem.name
-          }. Available: ${inventoryItem.currentQuantity}`;
-        }
-        return null;
-      })
-      .filter(Boolean);
+    // Validate due date is not more than 30 days from invoice date
+    if (dueDate) {
+      const dueDateObj = new Date(dueDate);
+      const invoiceDateObj = new Date(invoiceDate);
+      const maxDueDateObj = new Date(invoiceDate);
+      maxDueDateObj.setDate(maxDueDateObj.getDate() + 30);
 
-    if (stockErrors.length > 0) {
-      alert("Stock issues:\\n" + stockErrors.join("\\n"));
-      return;
+      // Normalize times for accurate comparison
+      dueDateObj.setHours(0, 0, 0, 0);
+      invoiceDateObj.setHours(0, 0, 0, 0);
+      maxDueDateObj.setHours(0, 0, 0, 0);
+
+      if (dueDateObj > maxDueDateObj) {
+        alert(
+          `Due date cannot be more than 30 days from the invoice date. Maximum allowed date is ${maxDueDateObj.toLocaleDateString()}`
+        );
+        return;
+      }
+
+      if (dueDateObj < invoiceDateObj) {
+        alert("Due date cannot be before the invoice date");
+        return;
+      }
     }
+
+    // Note: Stock validation removed - allowing sales of out-of-stock items
 
     const invoiceData = {
       customerId: selectedCustomerId,
@@ -230,7 +293,6 @@ export default function CreateInvoiceModal({
       dueDate: dueDate || null,
       taxAmount,
       discountAmount,
-      billedByUserId: "default-user-id", // This should come from auth context
     };
 
     createInvoiceMutation.mutate(invoiceData);
@@ -239,7 +301,7 @@ export default function CreateInvoiceModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -258,7 +320,21 @@ export default function CreateInvoiceModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Invoice Header */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Invoice Number Display */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <FileText className="w-4 h-4 inline mr-1" />
+                Invoice Number
+              </label>
+              <input
+                type="text"
+                value={expectedInvoiceNumber || "Loading..."}
+                readOnly
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+              />
+            </div>
+
             {/* Customer Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -291,6 +367,7 @@ export default function CreateInvoiceModal({
                 type="date"
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                 required
               />
@@ -306,8 +383,14 @@ export default function CreateInvoiceModal({
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+                min={invoiceDate}
+                max={maxDueDateString}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Optional. Maximum 30 days from invoice date (
+                {new Date(maxDueDateString).toLocaleDateString()})
+              </p>
             </div>
           </div>
 
@@ -326,6 +409,15 @@ export default function CreateInvoiceModal({
                 <Plus className="w-4 h-4 mr-1" />
                 Add Item
               </button>
+            </div>
+
+            {/* Inventory Info Notice */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                <span className="font-medium">ℹ️ Note:</span> You can create
+                invoices even if products are out of stock. Available quantities
+                are shown for reference only.
+              </p>
             </div>
 
             <div className="overflow-x-auto">
@@ -374,8 +466,14 @@ export default function CreateInvoiceModal({
                                 key={inventoryItem.id}
                                 value={inventoryItem.id}
                               >
-                                {inventoryItem.name} ({inventoryItem.sku}) -
-                                Stock: {inventoryItem.currentQuantity}{" "}
+                                {inventoryItem.product?.productGroup?.name &&
+                                  `[${inventoryItem.product.productGroup.name}] `}
+                                {inventoryItem.product?.name ||
+                                  inventoryItem.name}{" "}
+                                ({inventoryItem.sku})
+                                {inventoryItem.location &&
+                                  ` - ${inventoryItem.location}`}{" "}
+                                - Available: {inventoryItem.currentQuantity}{" "}
                                 {inventoryItem.unit}
                               </option>
                             )
@@ -417,7 +515,7 @@ export default function CreateInvoiceModal({
                         />
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        ${item.lineTotal.toFixed(2)}
+                        {formatCurrency(item.lineTotal)}
                       </td>
                       <td className="px-4 py-3">
                         {items.length > 1 && (
@@ -446,7 +544,7 @@ export default function CreateInvoiceModal({
                     Subtotal:
                   </span>
                   <span className="text-sm text-gray-900">
-                    ${subtotal.toFixed(2)}
+                    {formatCurrency(subtotal)}
                   </span>
                 </div>
 
@@ -488,7 +586,7 @@ export default function CreateInvoiceModal({
                     Total:
                   </span>
                   <span className="text-lg font-bold text-blue-600">
-                    ${total.toFixed(2)}
+                    {formatCurrency(total)}
                   </span>
                 </div>
               </div>

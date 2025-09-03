@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import { InventoryItem } from "@/types";
+import { formatCurrency } from "@/lib/utils";
 
 // Color scheme for charts
 const COLORS = ["#2563eb", "#16a34a", "#eab308", "#dc2626", "#7c3aed"];
@@ -176,7 +177,7 @@ export default function DashboardPage() {
           <KPICard
             icon={<DollarSign className="h-6 w-6 text-green-600" />}
             label="Total Inventory Value"
-            value={`₦${(overview.totalInventoryValue || 0).toLocaleString()}`}
+            value={formatCurrency(overview.totalInventoryValue || 0)}
             change="+12.5%"
             changeType="positive"
           />

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { User } from "@/types";
+import { formatCurrency } from "@/lib/utils";
 
 interface ViewTeamModalProps {
   isOpen: boolean;
@@ -143,7 +144,7 @@ export default function ViewTeamModal({
   const team = teamData?.data;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
@@ -389,7 +390,7 @@ export default function ViewTeamModal({
                                 {invoice.invoiceNumber}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ₦{invoice.totalAmount?.toLocaleString() || "0"}
+                                {formatCurrency(invoice.totalAmount || 0)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span
@@ -435,7 +436,7 @@ export default function ViewTeamModal({
 
       {/* Add Member Modal */}
       {showAddMemberModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-60">
+        <div className="fixed inset-0 bg-white/20 backdrop-blur-sm overflow-y-auto h-full w-full z-60">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">

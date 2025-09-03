@@ -22,6 +22,7 @@ import CreateInvoiceModal from "@/components/CreateInvoiceModal";
 import CreateCustomerModal from "@/components/CreateCustomerModal";
 import { Invoice } from "@/types";
 import { useRouter } from "next/navigation";
+import { formatCurrency } from "@/lib/utils";
 
 export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,6 +55,15 @@ export default function InvoicesPage() {
 
       const response = await apiClient.get(`/invoices?${params}`);
       return response.data;
+    },
+  });
+
+  // Fetch invoice statistics
+  const { data: invoiceStats } = useQuery({
+    queryKey: ["invoice-stats"],
+    queryFn: async () => {
+      const response = await apiClient.get("/invoices/stats");
+      return response.data.data;
     },
   });
 
@@ -96,8 +106,10 @@ export default function InvoicesPage() {
   const getStatusBadge = (status: string) => {
     const badges: { [key: string]: string } = {
       draft: "bg-gray-100 text-gray-800",
+      DRAFT: "bg-gray-100 text-gray-800",
       pending: "bg-yellow-100 text-yellow-800",
       paid: "bg-green-100 text-green-800",
+      COMPLETED: "bg-green-100 text-green-800",
       overdue: "bg-red-100 text-red-800",
       cancelled: "bg-red-100 text-red-800",
     };
@@ -106,13 +118,13 @@ export default function InvoicesPage() {
 
   const getTotalRevenue = () => {
     return filteredInvoices
-      .filter((inv: Invoice) => inv.status === "PAID")
+      .filter((inv: Invoice) => inv.status === "COMPLETED")
       .reduce((sum: number, inv: Invoice) => sum + inv.totalAmount, 0);
   };
 
   const getPendingAmount = () => {
     return filteredInvoices
-      .filter((inv: Invoice) => inv.status === "PENDING")
+      .filter((inv: Invoice) => inv.status === "DRAFT")
       .reduce((sum: number, inv: Invoice) => sum + inv.totalAmount, 0);
   };
 
@@ -170,7 +182,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-sm text-gray-600">Total Invoices</p>
               <p className="text-2xl font-bold text-gray-900">
-                {pagination.total}
+                {invoiceStats?.totalInvoices || pagination.total}
               </p>
             </div>
           </div>
@@ -184,7 +196,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-sm text-gray-600">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
-                ₦{getTotalRevenue().toLocaleString()}
+                {formatCurrency(invoiceStats?.paidAmount || getTotalRevenue())}
               </p>
             </div>
           </div>
@@ -198,7 +210,9 @@ export default function InvoicesPage() {
             <div>
               <p className="text-sm text-gray-600">Pending Amount</p>
               <p className="text-2xl font-bold text-gray-900">
-                ₦{getPendingAmount().toLocaleString()}
+                {formatCurrency(
+                  invoiceStats?.pendingAmount || getPendingAmount()
+                )}
               </p>
             </div>
           </div>
@@ -212,16 +226,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-sm text-gray-600">This Month</p>
               <p className="text-2xl font-bold text-gray-900">
-                {
-                  filteredInvoices.filter((inv: Invoice) => {
-                    const invoiceDate = new Date(inv.createdAt);
-                    const now = new Date();
-                    return (
-                      invoiceDate.getMonth() === now.getMonth() &&
-                      invoiceDate.getFullYear() === now.getFullYear()
-                    );
-                  }).length
-                }
+                {invoiceStats?.monthlyInvoices || 0}
               </p>
             </div>
           </div>
@@ -324,7 +329,7 @@ export default function InvoicesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ₦{invoice.totalAmount.toLocaleString()}
+                    {formatCurrency(invoice.totalAmount)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span

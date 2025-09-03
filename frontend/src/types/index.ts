@@ -100,7 +100,7 @@ export interface Invoice {
   discountAmount: number;
   notes?: string;
   dueDate?: string;
-  status: "DRAFT" | "PENDING" | "PAID" | "OVERDUE" | "CANCELLED";
+  status: "DRAFT" | "COMPLETED" | "PENDING" | "PAID" | "OVERDUE" | "CANCELLED";
   createdAt: string;
   updatedAt: string;
   customer?: Customer;

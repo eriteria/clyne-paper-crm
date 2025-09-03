@@ -17,6 +17,92 @@ import {
 
 const router = express.Router();
 
+// @desc    Get invoice statistics
+// @route   GET /api/invoices/stats
+// @access  Private
+router.get(
+  "/stats",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+      const [
+        totalInvoices,
+        monthlyInvoices,
+        yearlyInvoices,
+        pendingInvoices,
+        completedInvoices,
+        totalAmount,
+        monthlyAmount,
+        completedAmount,
+        draftAmount,
+      ] = await Promise.all([
+        prisma.invoice.count(),
+        prisma.invoice.count({
+          where: {
+            createdAt: {
+              gte: startOfMonth,
+            },
+          },
+        }),
+        prisma.invoice.count({
+          where: {
+            createdAt: {
+              gte: startOfYear,
+            },
+          },
+        }),
+        prisma.invoice.count({
+          where: { status: "DRAFT" },
+        }),
+        prisma.invoice.count({
+          where: { status: "COMPLETED" },
+        }),
+        prisma.invoice.aggregate({
+          _sum: { totalAmount: true },
+        }),
+        prisma.invoice.aggregate({
+          where: {
+            createdAt: {
+              gte: startOfMonth,
+            },
+          },
+          _sum: { totalAmount: true },
+        }),
+        prisma.invoice.aggregate({
+          where: { status: "COMPLETED" },
+          _sum: { totalAmount: true },
+        }),
+        prisma.invoice.aggregate({
+          where: { status: "DRAFT" },
+          _sum: { totalAmount: true },
+        }),
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          totalInvoices,
+          monthlyInvoices,
+          yearlyInvoices,
+          pendingInvoices,
+          completedInvoices,
+          totalAmount: totalAmount._sum.totalAmount || 0,
+          monthlyAmount: monthlyAmount._sum.totalAmount || 0,
+          paidAmount: completedAmount._sum.totalAmount || 0, // Use completed as paid for frontend compatibility
+          pendingAmount: draftAmount._sum.totalAmount || 0, // Use draft as pending for frontend compatibility
+        },
+      });
+    } catch (error) {
+      logger.error("Error fetching invoice statistics:", error);
+      next(error);
+    }
+  }
+);
+
 // @desc    Get next invoice number
 // @route   GET /api/invoices/next-number
 // @access  Private
@@ -273,6 +359,8 @@ router.patch(
       const { status } = req.body;
 
       const validStatuses = [
+        "DRAFT",
+        "COMPLETED",
         "draft",
         "pending",
         "paid",
@@ -362,6 +450,31 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
         success: false,
         message: "Customer not found",
       });
+    }
+
+    // Validate due date is not more than 30 days from today
+    if (dueDate) {
+      const dueDateObj = new Date(dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+      dueDateObj.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+
+      const maxDueDate = new Date(today);
+      maxDueDate.setDate(today.getDate() + 30);
+
+      if (dueDateObj > maxDueDate) {
+        return res.status(400).json({
+          success: false,
+          message: "Due date cannot be more than 30 days from today",
+        });
+      }
+
+      if (dueDateObj < today) {
+        return res.status(400).json({
+          success: false,
+          message: "Due date cannot be in the past",
+        });
+      }
     }
 
     // Validate inventory items (no stock check - allows selling out of stock items)

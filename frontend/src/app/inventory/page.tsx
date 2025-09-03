@@ -14,6 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
+import { formatCurrency } from "@/lib/utils";
 
 interface InventoryItem {
   id: string;
@@ -235,7 +236,7 @@ export default function InventoryPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ₦{item.unitPrice.toLocaleString()}
+                      {formatCurrency(item.unitPrice)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span

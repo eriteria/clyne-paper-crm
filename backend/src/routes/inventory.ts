@@ -1,38 +1,43 @@
 import express from "express";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
+import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 
 const router = express.Router();
 
 // @desc    Get low stock items
 // @route   GET /api/inventory/low-stock
 // @access  Private
-router.get("/low-stock", async (req, res, next) => {
-  try {
-    // Use raw SQL for the comparison since Prisma doesn't support field-to-field comparison
-    const lowStockItems = await prisma.$queryRaw`
+router.get(
+  "/low-stock",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      // Use raw SQL for the comparison since Prisma doesn't support field-to-field comparison
+      const lowStockItems = await prisma.$queryRaw`
       SELECT * FROM inventory_items 
       WHERE current_quantity <= min_stock 
       ORDER BY current_quantity ASC, name ASC
     `;
 
-    res.json({
-      success: true,
-      data: {
-        items: lowStockItems,
-        count: (lowStockItems as any[]).length,
-      },
-    });
-  } catch (error) {
-    logger.error("Error fetching low stock items:", error);
-    next(error);
+      res.json({
+        success: true,
+        data: {
+          items: lowStockItems,
+          count: (lowStockItems as any[]).length,
+        },
+      });
+    } catch (error) {
+      logger.error("Error fetching low stock items:", error);
+      next(error);
+    }
   }
-});
+);
 
 // @desc    Get all inventory items
 // @route   GET /api/inventory
 // @access  Private
-router.get("/", async (req, res, next) => {
+router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
     const { page = 1, limit = 10, search, inStock, lowStock } = req.query;
 
@@ -73,6 +78,19 @@ router.get("/", async (req, res, next) => {
     const [items, total] = await Promise.all([
       prisma.inventoryItem.findMany({
         where,
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              productGroup: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
         skip,
         take: limitNum,
         orderBy: { createdAt: "desc" },
@@ -97,6 +115,56 @@ router.get("/", async (req, res, next) => {
     next(error);
   }
 });
+
+// @desc    Get inventory items for invoicing (only items linked to products)
+// @route   GET /api/inventory/for-invoicing
+// @access  Private
+router.get(
+  "/for-invoicing",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { location } = req.query;
+
+      // Build filters
+      const where: any = {
+        productId: { not: null }, // Only items linked to products
+        currentQuantity: { gt: 0 }, // Only items in stock
+      };
+
+      if (location) {
+        where.location = { contains: location as string, mode: "insensitive" };
+      }
+
+      const items = await prisma.inventoryItem.findMany({
+        where,
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              monthlyTarget: true,
+              productGroup: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ product: { name: "asc" } }, { location: "asc" }],
+      });
+
+      res.json({
+        success: true,
+        data: items,
+      });
+    } catch (error) {
+      logger.error("Error fetching inventory items for invoicing:", error);
+      next(error);
+    }
+  }
+);
 
 // @desc    Get inventory item by ID
 // @route   GET /api/inventory/:id

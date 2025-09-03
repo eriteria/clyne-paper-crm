@@ -50,7 +50,7 @@ export const buttonClasses = {
 // Common layout classes
 export const layoutClasses = {
   modalOverlay:
-    "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4",
+    "fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-4",
   modalContent: "bg-white rounded-lg shadow-xl w-full max-w-2xl",
   modalHeader: "flex items-center justify-between p-6 border-b border-gray-200",
   modalBody: "p-6 space-y-6",

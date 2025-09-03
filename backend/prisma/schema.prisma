@@ -51,26 +51,27 @@ model Team {
 }
 
 model User {
-  id                  String              @id @default(cuid())
-  fullName            String              @map("full_name")
-  email               String              @unique
+  id                  String                @id @default(cuid())
+  fullName            String                @map("full_name")
+  email               String                @unique
   phone               String?
-  passwordHash        String              @map("password_hash")
-  roleId              String              @map("role_id")
-  teamId              String?             @map("team_id")
-  regionId            String?             @map("region_id")
-  isActive            Boolean             @default(true) @map("is_active")
-  createdAt           DateTime            @default(now()) @map("created_at")
-  updatedAt           DateTime            @updatedAt @map("updated_at")
+  passwordHash        String                @map("password_hash")
+  roleId              String                @map("role_id")
+  teamId              String?               @map("team_id")
+  regionId            String?               @map("region_id")
+  isActive            Boolean               @default(true) @map("is_active")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
   auditLogs           AuditLog[]
   invoices            Invoice[]
-  ledTeams            Team[]              @relation("TeamLeader")
-  managedCustomers    Customer[]          @relation("CustomerRelationshipManager")
-  recordedPayments    Payment[]           @relation("PaymentRecordedBy")
-  quickbooksExports   QuickBooksExport[]  @relation("QuickBooksExportUser")
-  region              Region?             @relation(fields: [regionId], references: [id])
-  role                Role                @relation(fields: [roleId], references: [id])
-  team                Team?               @relation("TeamMembers", fields: [teamId], references: [id])
+  ledTeams            Team[]                @relation("TeamLeader")
+  managedCustomers    Customer[]            @relation("CustomerRelationshipManager")
+  monthlySalesTargets MonthlySalesTarget[]
+  recordedPayments    Payment[]             @relation("PaymentRecordedBy")
+  quickbooksExports   QuickBooksExport[]    @relation("QuickBooksExportUser")
+  region              Region?               @relation(fields: [regionId], references: [id])
+  role                Role                  @relation(fields: [roleId], references: [id])
+  team                Team?                 @relation("TeamMembers", fields: [teamId], references: [id])
   waybills            Waybill[]
 
   @@map("users")
@@ -107,14 +108,15 @@ model ProductGroup {
 }
 
 model Product {
-  id              String          @id @default(cuid())
-  name            String
-  productGroupId  String          @map("product_group_id")
-  monthlyTarget   Decimal         @default(0) @map("monthly_target") @db.Decimal(12, 2)
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
-  productGroup    ProductGroup    @relation(fields: [productGroupId], references: [id])
-  inventoryItems  InventoryItem[]
+  id                  String                @id @default(cuid())
+  name                String
+  productGroupId      String                @map("product_group_id")
+  monthlyTarget       Decimal               @default(0) @map("monthly_target") @db.Decimal(12, 2)
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+  inventoryItems      InventoryItem[]
+  monthlySalesTargets MonthlySalesTarget[]
+  productGroup        ProductGroup          @relation(fields: [productGroupId], references: [id])
 
   @@unique([name, productGroupId]) // Prevent duplicate product names within same group
   @@map("products")
@@ -280,4 +282,23 @@ model ReportsCache {
   expiresAt DateTime @map("expires_at")
 
   @@map("reports_cache")
+}
+
+model MonthlySalesTarget {
+  id                String   @id @default(cuid())
+  productId         String   @map("product_id")
+  userId            String   @map("user_id")
+  year              Int
+  month             Int
+  targetQuantity    Decimal  @default(0) @map("target_quantity") @db.Decimal(10, 2)
+  achievedQuantity  Decimal  @default(0) @map("achieved_quantity") @db.Decimal(10, 2)
+  targetAmount      Decimal  @default(0) @map("target_amount") @db.Decimal(12, 2)
+  achievedAmount    Decimal  @default(0) @map("achieved_amount") @db.Decimal(12, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId, year, month], name: "monthly_sales_targets_product_user_year_month_key")
+  @@map("monthly_sales_targets")
 }
