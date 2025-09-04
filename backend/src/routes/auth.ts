@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
 import { logLogin } from "../utils/auditLogger";
+import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -169,6 +170,203 @@ router.post("/refresh", async (req, res, next) => {
     next(error);
   }
 });
+
+// @desc    Get user profile
+// @route   GET /api/auth/profile
+// @access  Private
+router.get("/profile", authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: {
+          select: { id: true, name: true, permissions: true },
+        },
+        team: {
+          include: {
+            region: {
+              select: { id: true, name: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        isActive: user.isActive,
+        role: user.role,
+        team: user.team,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    logger.error("Error fetching user profile:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch user profile",
+    });
+  }
+});
+
+// @desc    Update user profile
+// @route   PATCH /api/auth/profile
+// @access  Private
+router.patch(
+  "/profile",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { fullName, email, phone } = req.body;
+
+      // Check if email is already taken by another user
+      if (email) {
+        const existingUser = await prisma.user.findFirst({
+          where: {
+            email,
+            NOT: { id: userId },
+          },
+        });
+
+        if (existingUser) {
+          res.status(400).json({
+            success: false,
+            error: "Email is already in use by another user",
+          });
+          return;
+        }
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(fullName && { fullName }),
+          ...(email && { email }),
+          ...(phone && { phone }),
+        },
+        include: {
+          role: {
+            select: { id: true, name: true, permissions: true },
+          },
+          team: {
+            include: {
+              region: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+        },
+      });
+
+      res.json({
+        success: true,
+        data: {
+          id: updatedUser.id,
+          fullName: updatedUser.fullName,
+          email: updatedUser.email,
+          phone: updatedUser.phone,
+          isActive: updatedUser.isActive,
+          role: updatedUser.role,
+          team: updatedUser.team,
+          createdAt: updatedUser.createdAt,
+          updatedAt: updatedUser.updatedAt,
+        },
+      });
+    } catch (error) {
+      logger.error("Error updating user profile:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to update user profile",
+      });
+    }
+  }
+);
+
+// @desc    Change user password
+// @route   PATCH /api/auth/change-password
+// @access  Private
+router.patch(
+  "/change-password",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        res.status(400).json({
+          success: false,
+          error: "Current password and new password are required",
+        });
+        return;
+      }
+
+      // Get user with password
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: "User not found",
+        });
+        return;
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.passwordHash
+      );
+      if (!isCurrentPasswordValid) {
+        res.status(400).json({
+          success: false,
+          error: "Current password is incorrect",
+        });
+        return;
+      }
+
+      // Hash new password
+      const saltRounds = 10;
+      const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // Update password
+      await prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: hashedNewPassword },
+      });
+
+      res.json({
+        success: true,
+        message: "Password updated successfully",
+      });
+    } catch (error) {
+      logger.error("Error changing password:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to change password",
+      });
+    }
+  }
+);
 
 // @desc    Logout user
 // @route   POST /api/auth/logout

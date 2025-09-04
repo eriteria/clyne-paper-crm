@@ -29,6 +29,9 @@ import productGroupRoutes from "./routes/productGroups";
 import auditLogRoutes from "./routes/auditLogs";
 import salesTargetRoutes from "./routes/salesTargets";
 import paymentRoutes from "./routes/payments";
+import notificationRoutes from "./routes/notifications";
+import dataManagementRoutes from "./routes/dataManagement";
+import settingsRoutes from "./routes/settings";
 
 // Import utils
 import { logger } from "./utils/logger";
@@ -94,6 +97,9 @@ app.use("/api/product-groups", productGroupRoutes);
 app.use("/api/audit-logs", auditLogRoutes);
 app.use("/api/sales-targets", salesTargetRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/data-management", dataManagementRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // Error handling middleware
 app.use(notFound);

@@ -306,7 +306,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                     );
                     setSelectedCustomer(customer || null);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   required
                 >
                   <option value="">Select a customer</option>
@@ -429,7 +429,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                   onChange={(e) =>
                     setFormData({ ...formData, amount: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                   placeholder="0.00"
                   required
                 />
@@ -444,7 +444,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                   onChange={(e) =>
                     setFormData({ ...formData, paymentMethod: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   required
                 >
                   {paymentMethods.map((method) => (
@@ -465,7 +465,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                   onChange={(e) =>
                     setFormData({ ...formData, paymentDate: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   required
                 />
               </div>
@@ -483,7 +483,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                       referenceNumber: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                   placeholder="Transaction reference, check number, etc."
                 />
               </div>
@@ -499,7 +499,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                   setFormData({ ...formData, notes: e.target.value })
                 }
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                 placeholder="Additional notes about this payment..."
               />
             </div>

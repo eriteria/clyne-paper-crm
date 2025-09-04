@@ -157,7 +157,7 @@ export default function PaymentsPage() {
       <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-900 font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -266,7 +266,7 @@ export default function PaymentsPage() {
                 placeholder="Search payments, customers, or references..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder-gray-500"
               />
             </div>
           </div>
@@ -275,7 +275,7 @@ export default function PaymentsPage() {
             <select
               value={filterMethod}
               onChange={(e) => setFilterMethod(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
             >
               <option value="ALL">All Methods</option>
               <option value="CASH">Cash</option>
