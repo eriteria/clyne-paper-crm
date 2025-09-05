@@ -27,7 +27,6 @@ model Region {
   invoices       Invoice[]
   parentRegion   Region?   @relation("RegionHierarchy", fields: [parentRegionId], references: [id])
   childRegions   Region[]  @relation("RegionHierarchy")
-  teams          Team[]
   users          User[]
 
   @@map("regions")
@@ -37,14 +36,14 @@ model Team {
   id           String    @id @default(cuid())
   name         String    @unique
   leaderUserId String?   @map("leader_user_id")
-  regionId     String    @map("region_id")
-  locationNames String[] @map("location_names") // Locations this team covers
+  locationId   String    @map("location_id")
+  description  String?
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   invoices     Invoice[]
   customers    Customer[] @relation("TeamCustomers")
   leader       User?     @relation("TeamLeader", fields: [leaderUserId], references: [id])
-  region       Region    @relation(fields: [regionId], references: [id])
+  location     Location  @relation(fields: [locationId], references: [id])
   members      User[]    @relation("TeamMembers")
 
   @@map("teams")
@@ -160,6 +159,7 @@ model Customer {
   phone                 String?
   address               String?
   location              String?   // For LOCATION from Excel (kept for compatibility)
+  locationId            String?   @map("location_id") // Foreign key to Location table
   companyName           String?   @map("company_name")
   contactPerson         String?   @map("contact_person")
   relationshipManagerId String?   @map("relationship_manager_id")
@@ -172,6 +172,7 @@ model Customer {
   invoices              Invoice[]
   payments              CustomerPayment[]
   credits               Credit[]
+  locationRef           Location? @relation(fields: [locationId], references: [id])
   relationshipManager   User?     @relation("CustomerRelationshipManager", fields: [relationshipManagerId], references: [id])
   team                  Team?     @relation("TeamCustomers", fields: [teamId], references: [id])
 
@@ -362,6 +363,19 @@ model ReportsCache {
   expiresAt DateTime @map("expires_at")
 
   @@map("reports_cache")
+}
+
+model Location {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  isActive    Boolean    @default(true) @map("is_active")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  customers   Customer[]
+  teams       Team[]
+
+  @@map("locations")
 }
 
 model MonthlySalesTarget {

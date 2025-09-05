@@ -14,7 +14,7 @@ router.get("/", async (req, res, next) => {
       page = 1,
       limit = 10,
       search,
-      region,
+      location,
       includeInactive = false,
     } = req.query;
 
@@ -36,15 +36,15 @@ router.get("/", async (req, res, next) => {
       ];
     }
 
-    if (region) {
-      where.regionId = region as string;
+    if (location) {
+      where.locationId = location as string;
     }
 
     // For dropdown usage, return all teams without pagination
     if (req.query.dropdown === "true") {
       const teams = await prisma.team.findMany({
         include: {
-          region: true,
+          location: true,
           _count: {
             select: { members: true },
           },
@@ -63,7 +63,7 @@ router.get("/", async (req, res, next) => {
       prisma.team.findMany({
         where,
         include: {
-          region: true,
+          location: true,
           leader: {
             select: {
               id: true,
@@ -116,7 +116,7 @@ router.get("/:id", async (req, res, next) => {
     const team = await prisma.team.findUnique({
       where: { id },
       include: {
-        region: true,
+        location: true,
         leader: {
           select: {
             id: true,
@@ -181,7 +181,7 @@ router.get("/:id", async (req, res, next) => {
 // @access  Private (Admin/Manager)
 router.post("/", async (req, res, next) => {
   try {
-    const { name, regionId, leaderUserId, locationNames = [] } = req.body;
+    const { name, locationId, leaderUserId } = req.body;
 
     // Validation
     if (!name) {
@@ -191,10 +191,10 @@ router.post("/", async (req, res, next) => {
       });
     }
 
-    if (!regionId) {
+    if (!locationId) {
       return res.status(400).json({
         success: false,
-        error: "Region is required",
+        error: "Location is required",
       });
     }
 
@@ -210,15 +210,15 @@ router.post("/", async (req, res, next) => {
       });
     }
 
-    // Validate region exists
-    const region = await prisma.region.findUnique({
-      where: { id: regionId },
+    // Validate location exists
+    const location = await prisma.location.findUnique({
+      where: { id: locationId },
     });
 
-    if (!region) {
+    if (!location) {
       return res.status(400).json({
         success: false,
-        error: "Invalid region ID",
+        error: "Invalid location ID",
       });
     }
 
@@ -240,12 +240,11 @@ router.post("/", async (req, res, next) => {
     const team = await prisma.team.create({
       data: {
         name,
-        regionId,
+        locationId,
         leaderUserId,
-        locationNames: Array.isArray(locationNames) ? locationNames : [],
       },
       include: {
-        region: true,
+        location: true,
         leader: {
           select: {
             id: true,
@@ -281,7 +280,7 @@ router.post("/", async (req, res, next) => {
 router.put("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, regionId, leaderUserId, locationNames } = req.body;
+    const { name, locationId, leaderUserId } = req.body;
 
     // Check if team exists
     const existingTeam = await prisma.team.findUnique({
@@ -309,16 +308,16 @@ router.put("/:id", async (req, res, next) => {
       }
     }
 
-    // Validate region if provided
-    if (regionId) {
-      const region = await prisma.region.findUnique({
-        where: { id: regionId },
+    // Validate location if provided
+    if (locationId) {
+      const location = await prisma.location.findUnique({
+        where: { id: locationId },
       });
 
-      if (!region) {
+      if (!location) {
         return res.status(400).json({
           success: false,
-          error: "Invalid region ID",
+          error: "Invalid location ID",
         });
       }
     }
@@ -342,14 +341,11 @@ router.put("/:id", async (req, res, next) => {
       where: { id },
       data: {
         ...(name && { name }),
-        ...(regionId && { regionId }),
+        ...(locationId && { locationId }),
         ...(leaderUserId !== undefined && { leaderUserId }),
-        ...(locationNames && {
-          locationNames: Array.isArray(locationNames) ? locationNames : [],
-        }),
       },
       include: {
-        region: true,
+        location: true,
         leader: {
           select: {
             id: true,

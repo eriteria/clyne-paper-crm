@@ -114,6 +114,50 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Role Management */}
+        <Link
+          href="/admin/roles"
+          className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
+                <span className="text-purple-600 text-lg">🛡️</span>
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Role Management
+              </h3>
+              <p className="text-sm text-gray-500">
+                Create and manage user roles and permissions
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        {/* Location Management */}
+        <Link
+          href="/admin/locations"
+          className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-indigo-100 rounded-md flex items-center justify-center">
+                <span className="text-indigo-600 text-lg">📍</span>
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Location Management
+              </h3>
+              <p className="text-sm text-gray-500">
+                Manage regions and locations for teams and users
+              </p>
+            </div>
+          </div>
+        </Link>
+
         {/* Customer Import */}
         <Link
           href="/admin/import"

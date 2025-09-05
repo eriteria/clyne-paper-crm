@@ -76,7 +76,7 @@ router.get("/", async (req, res, next) => {
         include: {
           role: true,
           team: {
-            include: { region: true },
+            include: { location: true },
           },
           region: true,
         },
@@ -120,7 +120,7 @@ router.get("/:id", async (req, res, next) => {
       include: {
         role: true,
         team: {
-          include: { region: true },
+          include: { location: true },
         },
         region: true,
       },
@@ -237,7 +237,7 @@ router.post("/", async (req, res, next) => {
       include: {
         role: true,
         team: {
-          include: { region: true },
+          include: { location: true },
         },
         region: true,
       },
@@ -320,7 +320,7 @@ router.put("/:id", async (req, res, next) => {
       include: {
         role: true,
         team: {
-          include: { region: true },
+          include: { location: true },
         },
         region: true,
       },

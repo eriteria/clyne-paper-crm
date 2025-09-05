@@ -36,7 +36,7 @@ interface TeamsResponse {
 export default function TeamsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -46,13 +46,13 @@ export default function TeamsPage() {
 
   // Fetch teams
   const { data: teamsData, isLoading } = useQuery({
-    queryKey: ["teams", currentPage, searchTerm, selectedRegion],
+    queryKey: ["teams", currentPage, searchTerm, selectedLocation],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: "10",
         ...(searchTerm && { search: searchTerm }),
-        ...(selectedRegion && { region: selectedRegion }),
+        ...(selectedLocation && { location: selectedLocation }),
       });
 
       const response = await apiClient.get(`/teams?${params}`);
@@ -60,11 +60,11 @@ export default function TeamsPage() {
     },
   });
 
-  // Fetch regions for filter
-  const { data: regionsData } = useQuery({
-    queryKey: ["regions"],
+  // Fetch locations for filter
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations"],
     queryFn: async () => {
-      const response = await apiClient.get("/regions");
+      const response = await apiClient.get("/admin/locations");
       return response.data;
     },
   });
@@ -116,7 +116,9 @@ export default function TeamsPage() {
 
   const teams = teamsData?.teams || [];
   const pagination = teamsData?.pagination;
-  const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
+  const locations = Array.isArray(locationsData?.data)
+    ? locationsData.data
+    : [];
   const unassignedCount = unassignedUsersData?.pagination?.total || 0;
 
   return (
@@ -191,14 +193,14 @@ export default function TeamsPage() {
           </div>
 
           <select
-            value={selectedRegion}
-            onChange={(e) => setSelectedRegion(e.target.value)}
+            value={selectedLocation}
+            onChange={(e) => setSelectedLocation(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
           >
-            <option value="">All Regions</option>
-            {regions.map((region: any) => (
-              <option key={region.id} value={region.id}>
-                {region.name}
+            <option value="">All Locations</option>
+            {locations.map((location: any) => (
+              <option key={location.id} value={location.id}>
+                {location.name}
               </option>
             ))}
           </select>
@@ -211,7 +213,7 @@ export default function TeamsPage() {
               ? Math.min(pagination.page * pagination.limit, pagination.total)
               : teams.length}{" "}
             of {pagination?.total || teams.length} teams
-            {searchTerm || selectedRegion ? " (filtered)" : ""}
+            {searchTerm || selectedLocation ? " (filtered)" : ""}
           </div>
         </div>
       </div>
@@ -229,11 +231,11 @@ export default function TeamsPage() {
             No teams found
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            {searchTerm || selectedRegion
+            {searchTerm || selectedLocation
               ? "No teams match your search criteria."
               : "Get started by creating your first team."}
           </p>
-          {!searchTerm && !selectedRegion && (
+          {!searchTerm && !selectedLocation && (
             <div className="mt-6">
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -280,9 +282,9 @@ export default function TeamsPage() {
                           </span>
                         )}
                       </div>
-                      {team.region && (
+                      {team.location && (
                         <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                          {team.region.name}
+                          {team.location.name}
                         </span>
                       )}
                     </div>

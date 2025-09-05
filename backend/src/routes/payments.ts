@@ -225,7 +225,7 @@ router.get(
 
       const invoices = await prisma.invoice.findMany({
         where,
-        orderBy: [{ dueDate: "asc" }, { invoiceDate: "asc" }],
+        orderBy: [{ dueDate: "asc" }, { date: "asc" }],
         take: limit,
         skip: offset,
         select: {

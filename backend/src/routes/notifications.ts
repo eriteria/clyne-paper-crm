@@ -41,20 +41,43 @@ router.get("/counts", authenticate, async (req: AuthenticatedRequest, res) => {
       },
     });
 
-    // Count pending customer approvals - using customers created recently without invoices
-    const oneWeekAgo = new Date(today);
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    // Count pending customer approvals - customers that genuinely need attention
+    // Use intelligent logic to exclude bulk imports and focus on individual signups
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    const pendingCustomers = await prisma.customer.count({
+    // Get all recent customers (last 3 days)
+    const recentCustomers = await prisma.customer.findMany({
       where: {
         createdAt: {
-          gte: oneWeekAgo,
+          gte: threeDaysAgo,
         },
         invoices: {
-          none: {}, // Customers with no invoices yet (might need approval)
+          none: {}, // No invoices yet
         },
       },
+      select: {
+        id: true,
+        createdAt: true,
+      },
     });
+
+    // Group customers by creation date
+    const customersByDate = new Map<string, number>();
+    recentCustomers.forEach((customer) => {
+      const dateKey = customer.createdAt.toISOString().split("T")[0];
+      customersByDate.set(dateKey, (customersByDate.get(dateKey) || 0) + 1);
+    });
+
+    // Only count customers from days with fewer than 10 creations (not bulk imports)
+    let pendingCustomers = 0;
+    const bulkImportThreshold = 10;
+
+    for (const [date, count] of customersByDate) {
+      if (count < bulkImportThreshold) {
+        pendingCustomers += count;
+      }
+    }
 
     // Count recent payments needing review (payments from today)
     const recentPayments = await prisma.customerPayment.count({

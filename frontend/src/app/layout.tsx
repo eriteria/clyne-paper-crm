@@ -5,6 +5,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SidebarProvider } from "@/hooks/useSidebar";
+import { LoadingProvider } from "@/hooks/useLoading";
+import ProgressBar from "@/components/ProgressBar";
+import LoadingIndicator from "@/components/LoadingIndicator";
 import "./globals.css";
 import { useState } from "react";
 
@@ -40,10 +43,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ProgressBar />
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <SidebarProvider>{children}</SidebarProvider>
-          </AuthProvider>
+          <LoadingProvider>
+            <AuthProvider>
+              <SidebarProvider>
+                {children}
+                <LoadingIndicator />
+              </SidebarProvider>
+            </AuthProvider>
+          </LoadingProvider>
         </QueryClientProvider>
       </body>
     </html>

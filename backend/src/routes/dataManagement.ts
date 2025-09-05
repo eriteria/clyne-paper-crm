@@ -423,4 +423,71 @@ router.post("/backup", authenticate, async (req: AuthenticatedRequest, res) => {
   }
 });
 
+/**
+ * GET /data-management/statistics - Get system statistics
+ */
+router.get(
+  "/statistics",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+
+      // Check if user has appropriate permissions
+      if (userRole !== "Admin" && userRole !== "ADMIN") {
+        return res.status(403).json({
+          error:
+            "Insufficient permissions. Only administrators can view system statistics.",
+        });
+      }
+
+      // Get counts from database
+      const [
+        customerCount,
+        productCount,
+        invoiceCount,
+        userCount,
+        totalRevenue,
+      ] = await Promise.all([
+        prisma.customer.count({ where: { status: "ACTIVE" } }),
+        prisma.product.count({ where: { status: "ACTIVE" } }),
+        prisma.invoice.count(),
+        prisma.user.count({ where: { isActive: true } }),
+        prisma.invoice.aggregate({
+          _sum: { totalAmount: true },
+          where: { paymentStatus: "PAID" },
+        }),
+      ]);
+
+      // Format revenue
+      const revenue = totalRevenue._sum.totalAmount || 0;
+      const formattedRevenue = new Intl.NumberFormat("en-NG", {
+        style: "currency",
+        currency: "NGN",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(revenue);
+
+      res.json({
+        success: true,
+        data: {
+          customers: customerCount,
+          products: productCount,
+          invoices: invoiceCount,
+          users: userCount,
+          revenue: formattedRevenue,
+          lastUpdated: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      res.status(500).json({
+        error: "Failed to fetch system statistics",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
 export default router;

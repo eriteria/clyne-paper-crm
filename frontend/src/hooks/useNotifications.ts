@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api";
+import { useAuth } from "./useAuth";
 
 interface NotificationCounts {
   dashboard: number;
@@ -26,6 +27,7 @@ interface NotificationMeta {
 }
 
 export const useNotifications = (refreshInterval: number = 60000) => {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [counts, setCounts] = useState<NotificationCounts>({
     dashboard: 0,
     customers: 0,
@@ -51,7 +53,12 @@ export const useNotifications = (refreshInterval: number = 60000) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchNotificationCounts = async () => {
+  const fetchNotificationCounts = useCallback(async () => {
+    // Only fetch if user is authenticated
+    if (!isAuthenticated || authLoading) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -68,16 +75,21 @@ export const useNotifications = (refreshInterval: number = 60000) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, authLoading]);
 
   useEffect(() => {
+    // Only start fetching when user is authenticated
+    if (!isAuthenticated || authLoading) {
+      return;
+    }
+
     fetchNotificationCounts();
 
     // Set up polling interval
     const interval = setInterval(fetchNotificationCounts, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [refreshInterval]);
+  }, [refreshInterval, isAuthenticated, authLoading, fetchNotificationCounts]);
 
   // Manual refresh function
   const refresh = () => {

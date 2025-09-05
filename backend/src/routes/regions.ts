@@ -13,7 +13,6 @@ router.get("/", async (req, res, next) => {
       include: {
         _count: {
           select: {
-            teams: true,
             users: true,
           },
         },
@@ -41,13 +40,6 @@ router.get("/:id", async (req, res, next) => {
     const region = await prisma.region.findUnique({
       where: { id },
       include: {
-        teams: {
-          include: {
-            _count: {
-              select: { members: true },
-            },
-          },
-        },
         users: true,
       },
     });

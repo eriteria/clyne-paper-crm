@@ -30,7 +30,7 @@ router.post("/login", async (req, res, next) => {
       include: {
         role: true,
         team: {
-          include: { region: true },
+          include: { location: true },
         },
         region: true,
       },
@@ -105,7 +105,7 @@ router.post("/login", async (req, res, next) => {
             ? {
                 id: user.team.id,
                 name: user.team.name,
-                region: user.team.region,
+                location: user.team.location,
               }
             : null,
           region: user.region,
@@ -186,7 +186,7 @@ router.get("/profile", authenticate, async (req: AuthenticatedRequest, res) => {
         },
         team: {
           include: {
-            region: {
+            location: {
               select: { id: true, name: true },
             },
           },
@@ -267,7 +267,7 @@ router.patch(
           },
           team: {
             include: {
-              region: {
+              location: {
                 select: { id: true, name: true },
               },
             },

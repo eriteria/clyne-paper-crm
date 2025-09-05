@@ -82,6 +82,20 @@ export default function SettingsPage() {
   });
   const [hasProfileChanges, setHasProfileChanges] = useState(false);
 
+  // Import state
+  const [importType, setImportType] = useState<
+    "customers" | "users" | "invoices"
+  >("customers");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [clearDataBeforeImport, setClearDataBeforeImport] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResults, setImportResults] = useState<{
+    total: number;
+    successful: number;
+    failed: number;
+    errors?: string[];
+  } | null>(null);
+
   const queryClient = useQueryClient();
   const { counts, meta, refresh: refreshNotifications } = useNotifications();
 
@@ -101,6 +115,16 @@ export default function SettingsPage() {
       const response = await apiClient.get("/settings");
       return response.data;
     },
+  });
+
+  // Fetch system statistics
+  const { data: statisticsData, isLoading: statisticsLoading } = useQuery({
+    queryKey: ["system-statistics"],
+    queryFn: async () => {
+      const response = await apiClient.get("/data-management/statistics");
+      return response.data.data;
+    },
+    enabled: activeTab === "data", // Only fetch when on data management tab
   });
 
   // Update profile mutation
@@ -205,6 +229,73 @@ export default function SettingsPage() {
     value: string | number | boolean
   ) => {
     updateSettingsMutation.mutate({ [field]: value });
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+
+    setIsImporting(true);
+    setImportResults(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", importFile);
+
+      if (importType === "customers") {
+        // For customers, use the existing endpoint format
+        const csvText = await importFile.text();
+        const lines = csvText.split("\n");
+        const headers = lines[0]
+          .split(",")
+          .map((h) => h.trim().replace(/"/g, ""));
+        const data = lines
+          .slice(1)
+          .filter((line) => line.trim())
+          .map((line) => {
+            const values = line
+              .split(",")
+              .map((v) => v.trim().replace(/"/g, ""));
+            const row: Record<string, string> = {};
+            headers.forEach((header, index) => {
+              row[header] = values[index] || "";
+            });
+            return row;
+          });
+
+        const response = await apiClient.post("/import/customers", {
+          data,
+          clearData: clearDataBeforeImport,
+        });
+
+        setImportResults({
+          total: data.length,
+          successful: response.data.data.imported || 0,
+          failed: data.length - (response.data.data.imported || 0),
+          errors: response.data.data.errors || [],
+        });
+      } else {
+        // For users and invoices, we'd need to implement CSV upload endpoints
+        // For now, show a message
+        setImportResults({
+          total: 0,
+          successful: 0,
+          failed: 1,
+          errors: [
+            `${importType} import via CSV not yet implemented. Use the existing customer import format.`,
+          ],
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Import error:", error);
+      setImportResults({
+        total: 0,
+        successful: 0,
+        failed: 1,
+        errors: [error instanceof Error ? error.message : "Import failed"],
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   if (profileLoading || settingsLoading) {
@@ -1006,44 +1097,167 @@ export default function SettingsPage() {
                       </h3>
                     </div>
                     <p className="text-sm text-gray-600 mb-4">
-                      Import data from a previously exported file. The system
-                      will validate the data format and structure.
+                      Import customers, users, and invoices from CSV files. Each
+                      import type has its own format requirements.
                     </p>
+
+                    {/* Import Type Selector */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Import Type
+                      </label>
+                      <select
+                        value={importType}
+                        onChange={(e) =>
+                          setImportType(
+                            e.target.value as "customers" | "users" | "invoices"
+                          )
+                        }
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                      >
+                        <option value="customers" className="text-gray-900">
+                          Customers
+                        </option>
+                        <option value="users" className="text-gray-900">
+                          Users
+                        </option>
+                        <option value="invoices" className="text-gray-900">
+                          Invoices
+                        </option>
+                      </select>
+                    </div>
+
+                    {/* Template Download */}
+                    <div className="mb-4">
+                      <button
+                        onClick={() => {
+                          // Download template for selected import type
+                          const link = document.createElement("a");
+                          link.href = `/api/import/template?type=${importType}`;
+                          link.download = `${importType}_template.csv`;
+                          link.click();
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download {importType} Template
+                      </button>
+                    </div>
+
+                    {/* Required Fields Info */}
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">
+                        Required Fields for {importType}:
+                      </h4>
+                      <div className="text-xs text-gray-600">
+                        {importType === "customers" &&
+                          "CUSTOMER NAME, RELATIONSHIP MANAGER, LOCATION, ADDRESS, DATE OF ONBOARDING"}
+                        {importType === "users" &&
+                          "first_name, last_name, email, role, region"}
+                        {importType === "invoices" &&
+                          "invoice_number, customer_id, date, due_date, total_amount"}
+                      </div>
+                    </div>
 
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Select Import File
+                          Select CSV File
                         </label>
                         <input
                           type="file"
-                          accept=".json"
-                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          accept=".csv"
+                          onChange={(e) =>
+                            setImportFile(e.target.files?.[0] || null)
+                          }
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                         />
                       </div>
 
                       <div className="flex items-center gap-2">
                         <input
                           type="checkbox"
-                          id="allowDuplicates"
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          id="clearData"
+                          checked={clearDataBeforeImport}
+                          onChange={(e) =>
+                            setClearDataBeforeImport(e.target.checked)
+                          }
+                          className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                         />
                         <label
-                          htmlFor="allowDuplicates"
+                          htmlFor="clearData"
                           className="text-sm text-gray-700"
                         >
-                          Allow duplicate records (skip duplicate checking)
+                          Clear existing data before import (use with caution)
                         </label>
                       </div>
 
                       <button
+                        onClick={handleImport}
+                        disabled={!importFile || isImporting}
                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled
                       >
-                        <Upload className="h-4 w-4" />
-                        Import Data
+                        {isImporting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Importing...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4" />
+                            Import {importType}
+                          </>
+                        )}
                       </button>
                     </div>
+
+                    {/* Import Results */}
+                    {importResults && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">
+                          Import Results:
+                        </h4>
+                        <div className="grid grid-cols-3 gap-4 text-center text-sm">
+                          <div>
+                            <div className="font-medium text-blue-600">
+                              {importResults.total}
+                            </div>
+                            <div className="text-gray-600">Total</div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-green-600">
+                              {importResults.successful}
+                            </div>
+                            <div className="text-gray-600">Success</div>
+                          </div>
+                          <div>
+                            <div className="font-medium text-red-600">
+                              {importResults.failed}
+                            </div>
+                            <div className="text-gray-600">Failed</div>
+                          </div>
+                        </div>
+                        {importResults.errors &&
+                          importResults.errors.length > 0 && (
+                            <div className="mt-3 p-2 bg-red-50 rounded text-xs text-red-700">
+                              <strong>Errors:</strong>
+                              <ul className="mt-1 list-disc list-inside">
+                                {importResults.errors
+                                  .slice(0, 5)
+                                  .map((error, index) => (
+                                    <li key={index}>{error}</li>
+                                  ))}
+                                {importResults.errors.length > 5 && (
+                                  <li>
+                                    ... and {importResults.errors.length - 5}{" "}
+                                    more
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Backup & Maintenance Section */}
@@ -1128,39 +1342,58 @@ export default function SettingsPage() {
 
                   {/* System Statistics */}
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      System Statistics
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">
-                          1,234
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          Total Customers
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">
-                          456
-                        </div>
-                        <div className="text-sm text-gray-600">Products</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-purple-600">
-                          7,890
-                        </div>
-                        <div className="text-sm text-gray-600">Invoices</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-orange-600">
-                          ₦2.1M
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          Total Revenue
-                        </div>
-                      </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        System Statistics
+                      </h3>
+                      {statisticsLoading && (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      )}
                     </div>
+                    {statisticsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="text-sm text-gray-600">
+                          Loading statistics...
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">
+                            {statisticsData?.customers?.toLocaleString() || "0"}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total Customers
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {statisticsData?.products?.toLocaleString() || "0"}
+                          </div>
+                          <div className="text-sm text-gray-600">Products</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {statisticsData?.invoices?.toLocaleString() || "0"}
+                          </div>
+                          <div className="text-sm text-gray-600">Invoices</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-orange-600">
+                            {statisticsData?.revenue || "₦0"}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total Revenue
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {statisticsData?.lastUpdated && (
+                      <div className="mt-4 text-xs text-gray-500 text-center">
+                        Last updated:{" "}
+                        {new Date(statisticsData.lastUpdated).toLocaleString()}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

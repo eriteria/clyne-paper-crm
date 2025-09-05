@@ -38,7 +38,7 @@ router.get("/dashboard", async (req, res, next) => {
     // Get teams with member counts
     const teamsWithCounts = await prisma.team.findMany({
       include: {
-        region: true,
+        location: true,
         _count: {
           select: { members: true },
         },
@@ -70,7 +70,7 @@ router.get("/dashboard", async (req, res, next) => {
         teams: teamsWithCounts.map((team: any) => ({
           id: team.id,
           name: team.name,
-          region: team.region?.name,
+          location: team.location?.name,
           memberCount: team._count.members,
         })),
         lowStockItems,
@@ -279,7 +279,7 @@ router.get("/teams", async (req, res, next) => {
     // Get teams with member counts and sales data
     const teams = await prisma.team.findMany({
       include: {
-        region: true,
+        location: true,
         leader: {
           select: { fullName: true, email: true },
         },
@@ -310,7 +310,7 @@ router.get("/teams", async (req, res, next) => {
       return {
         id: team.id,
         name: team.name,
-        region: team.region?.name || "No Region",
+        location: team.location?.name || "No Location",
         leader: team.leader?.fullName || "No Leader",
         memberCount: team.members.length,
         activeMemberCount: activeMembers,
