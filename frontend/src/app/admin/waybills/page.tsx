@@ -72,11 +72,11 @@ export default function WaybillsPage() {
     switch (viewMode) {
       case "create":
       case "edit":
-        return <Plus className="h-6 w-6" />;
+        return <Plus className="h-6 w-6 text-blue-600" />;
       case "approval":
-        return <CheckSquare className="h-6 w-6" />;
+        return <CheckSquare className="h-6 w-6 text-green-600" />;
       default:
-        return <FileText className="h-6 w-6" />;
+        return <FileText className="h-6 w-6 text-gray-700" />;
     }
   };
 

@@ -124,16 +124,16 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Filter className="w-5 h-5 mr-2" />
+            <Filter className="w-5 h-5 mr-2 text-gray-700" />
             Filters
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Supplier</label>
+              <label className="text-sm font-medium mb-2 block text-gray-700">Supplier</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
                 <Input
                   placeholder="Search supplier..."
                   className="pl-10"
@@ -146,7 +146,7 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Status</label>
+              <label className="text-sm font-medium mb-2 block text-gray-700">Status</label>
               <Select
                 value={filters.status}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
@@ -162,7 +162,7 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Location</label>
+              <label className="text-sm font-medium mb-2 block text-gray-700">Location</label>
               <Select
                 value={filters.locationId}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
