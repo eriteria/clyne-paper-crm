@@ -16,7 +16,7 @@ import {
   UserX,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
-import { Team } from "@/types";
+import { Team, Location } from "@/types";
 import CreateTeamModal from "@/components/CreateTeamModal";
 import EditTeamModal from "@/components/EditTeamModal";
 import ViewTeamModal from "@/components/ViewTeamModal";
@@ -98,8 +98,10 @@ export default function TeamsPage() {
       try {
         await deleteTeamMutation.mutateAsync(team.id);
         alert("Team deleted successfully!");
-      } catch (error: any) {
-        alert(error.response?.data?.error || "Failed to delete team");
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to delete team";
+        alert(errorMessage);
       }
     }
   };
@@ -198,7 +200,7 @@ export default function TeamsPage() {
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
           >
             <option value="">All Locations</option>
-            {locations.map((location: any) => (
+            {locations.map((location: Location) => (
               <option key={location.id} value={location.id}>
                 {location.name}
               </option>
@@ -323,15 +325,10 @@ export default function TeamsPage() {
                       </span>
                     </div>
                   )}
-                  {team.locationNames && team.locationNames.length > 0 && (
+                  {team.location && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <MapPin className="h-4 w-4" />
-                      <span>{team.locationNames.slice(0, 2).join(", ")}</span>
-                      {team.locationNames.length > 2 && (
-                        <span className="text-gray-400">
-                          +{team.locationNames.length - 2} more
-                        </span>
-                      )}
+                      <span>{team.location.name}</span>
                     </div>
                   )}
                 </div>

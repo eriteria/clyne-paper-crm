@@ -158,6 +158,28 @@ export default function AdminPage() {
           </div>
         </Link>
 
+        {/* Waybill Management */}
+        <Link
+          href="/admin/waybills"
+          className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
+                <span className="text-purple-600 text-lg">📋</span>
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Waybill Management
+              </h3>
+              <p className="text-sm text-gray-500">
+                Process waybills and manage location-based inventory
+              </p>
+            </div>
+          </div>
+        </Link>
+
         {/* Customer Import */}
         <Link
           href="/admin/import"

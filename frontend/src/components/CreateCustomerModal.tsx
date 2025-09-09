@@ -26,6 +26,7 @@ export default function CreateCustomerModal({
     companyName: "",
     contactPerson: "",
     relationshipManagerId: "",
+    locationId: "",
   });
 
   const queryClient = useQueryClient();
@@ -39,7 +40,17 @@ export default function CreateCustomerModal({
     },
   });
 
+  // Fetch locations for location dropdown
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await apiClient.get("/admin/locations");
+      return response.data;
+    },
+  });
+
   const users = usersData?.data?.users || [];
+  const locations = locationsData?.data || [];
 
   // Create customer mutation
   const createCustomerMutation = useMutation({
@@ -51,6 +62,7 @@ export default function CreateCustomerModal({
       companyName: string;
       contactPerson: string;
       relationshipManagerId: string;
+      locationId: string;
     }) => {
       const response = await apiClient.post("/customers", customerData);
       return response.data;
@@ -71,6 +83,7 @@ export default function CreateCustomerModal({
       companyName: "",
       contactPerson: "",
       relationshipManagerId: "",
+      locationId: "",
     });
     onClose();
   };
@@ -80,6 +93,11 @@ export default function CreateCustomerModal({
 
     if (!formData.name.trim()) {
       alert("Customer name is required");
+      return;
+    }
+
+    if (!formData.locationId) {
+      alert("Location is required");
       return;
     }
 
@@ -214,6 +232,35 @@ export default function CreateCustomerModal({
                     {user.fullName}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <MapPin className="w-4 h-4 inline mr-1" />
+                Location *
+              </label>
+              <select
+                value={formData.locationId}
+                onChange={(e) =>
+                  handleInputChange("locationId", e.target.value)
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                required
+              >
+                <option value="">Select a location</option>
+                {locations.map(
+                  (location: {
+                    id: string;
+                    name: string;
+                    description?: string;
+                  }) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  )
+                )}
               </select>
             </div>
 

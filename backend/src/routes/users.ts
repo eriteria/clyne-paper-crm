@@ -76,7 +76,13 @@ router.get("/", async (req, res, next) => {
         include: {
           role: true,
           team: {
-            include: { location: true },
+            include: {
+              locations: {
+                include: {
+                  location: true,
+                },
+              },
+            },
           },
           region: true,
         },

@@ -800,7 +800,11 @@ router.get("/teams", authenticate, async (req: AuthenticatedRequest, res) => {
 
     const teams = await prisma.team.findMany({
       include: {
-        location: true,
+        locations: {
+          include: {
+            location: true,
+          },
+        },
         leader: {
           select: {
             id: true,
@@ -887,7 +891,11 @@ router.post("/teams", authenticate, async (req: AuthenticatedRequest, res) => {
         leaderUserId,
       },
       include: {
-        location: true,
+        locations: {
+          include: {
+            location: true,
+          },
+        },
         leader: {
           select: {
             id: true,
@@ -946,7 +954,13 @@ router.patch(
       // Verify team exists
       const existingTeam = await prisma.team.findUnique({
         where: { id: teamId },
-        include: { location: true },
+        include: {
+          locations: {
+            include: {
+              location: true,
+            },
+          },
+        },
       });
 
       if (!existingTeam) {
@@ -992,7 +1006,11 @@ router.patch(
         where: { id: teamId },
         data: updateData,
         include: {
-          location: true,
+          locations: {
+            include: {
+              location: true,
+            },
+          },
           leader: {
             select: {
               id: true,
@@ -1135,7 +1153,11 @@ router.get(
               email: true,
             },
           },
-          location: true,
+          locations: {
+            include: {
+              location: true,
+            },
+          },
         },
       });
 
@@ -1152,7 +1174,7 @@ router.get(
             id: team.id,
             name: team.name,
             description: team.description,
-            location: team.location,
+            locations: team.locations,
             leader: team.leader,
           },
           members: team.members,

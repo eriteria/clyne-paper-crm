@@ -37,14 +37,22 @@ router.get("/", async (req, res, next) => {
     }
 
     if (location) {
-      where.locationId = location as string;
+      where.locations = {
+        some: {
+          locationId: location as string,
+        },
+      };
     }
 
     // For dropdown usage, return all teams without pagination
     if (req.query.dropdown === "true") {
       const teams = await prisma.team.findMany({
         include: {
-          location: true,
+          locations: {
+            include: {
+              location: true,
+            },
+          },
           _count: {
             select: { members: true },
           },
@@ -63,7 +71,11 @@ router.get("/", async (req, res, next) => {
       prisma.team.findMany({
         where,
         include: {
-          location: true,
+          locations: {
+            include: {
+              location: true,
+            },
+          },
           leader: {
             select: {
               id: true,
@@ -116,7 +128,11 @@ router.get("/:id", async (req, res, next) => {
     const team = await prisma.team.findUnique({
       where: { id },
       include: {
-        location: true,
+        locations: {
+          include: {
+            location: true,
+          },
+        },
         leader: {
           select: {
             id: true,
@@ -140,7 +156,12 @@ router.get("/:id", async (req, res, next) => {
           select: {
             id: true,
             name: true,
-            location: true,
+            locationRef: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
           orderBy: { name: "asc" },
         },
@@ -181,7 +202,7 @@ router.get("/:id", async (req, res, next) => {
 // @access  Private (Admin/Manager)
 router.post("/", async (req, res, next) => {
   try {
-    const { name, locationId, leaderUserId } = req.body;
+    const { name, locationIds, leaderUserId } = req.body;
 
     // Validation
     if (!name) {
@@ -191,10 +212,14 @@ router.post("/", async (req, res, next) => {
       });
     }
 
-    if (!locationId) {
+    if (
+      !locationIds ||
+      !Array.isArray(locationIds) ||
+      locationIds.length === 0
+    ) {
       return res.status(400).json({
         success: false,
-        error: "Location is required",
+        error: "At least one location is required",
       });
     }
 
@@ -210,15 +235,18 @@ router.post("/", async (req, res, next) => {
       });
     }
 
-    // Validate location exists
-    const location = await prisma.location.findUnique({
-      where: { id: locationId },
+    // Validate all locations exist
+    const locations = await prisma.location.findMany({
+      where: {
+        id: { in: locationIds },
+        isActive: true,
+      },
     });
 
-    if (!location) {
+    if (locations.length !== locationIds.length) {
       return res.status(400).json({
         success: false,
-        error: "Invalid location ID",
+        error: "One or more invalid location IDs",
       });
     }
 
@@ -236,15 +264,23 @@ router.post("/", async (req, res, next) => {
       }
     }
 
-    // Create team
+    // Create team with locations
     const team = await prisma.team.create({
       data: {
         name,
-        locationId,
         leaderUserId,
+        locations: {
+          create: locationIds.map((locationId: string) => ({
+            locationId: locationId,
+          })),
+        },
       },
       include: {
-        location: true,
+        locations: {
+          include: {
+            location: true,
+          },
+        },
         leader: {
           select: {
             id: true,
@@ -280,7 +316,7 @@ router.post("/", async (req, res, next) => {
 router.put("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, locationId, leaderUserId } = req.body;
+    const { name, locationIds, leaderUserId } = req.body;
 
     // Check if team exists
     const existingTeam = await prisma.team.findUnique({
@@ -308,13 +344,16 @@ router.put("/:id", async (req, res, next) => {
       }
     }
 
-    // Validate location if provided
-    if (locationId) {
-      const location = await prisma.location.findUnique({
-        where: { id: locationId },
+    // Validate locations if provided
+    if (locationIds && Array.isArray(locationIds)) {
+      const locations = await prisma.location.findMany({
+        where: {
+          id: { in: locationIds },
+          isActive: true,
+        },
       });
 
-      if (!location) {
+      if (locations.length !== locationIds.length) {
         return res.status(400).json({
           success: false,
           error: "Invalid location ID",
@@ -336,27 +375,54 @@ router.put("/:id", async (req, res, next) => {
       }
     }
 
-    // Update team
-    const updatedTeam = await prisma.team.update({
-      where: { id },
-      data: {
-        ...(name && { name }),
-        ...(locationId && { locationId }),
-        ...(leaderUserId !== undefined && { leaderUserId }),
-      },
-      include: {
-        location: true,
-        leader: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
+    // Update team using transaction to handle location assignments
+    const updatedTeam = await prisma.$transaction(async (tx) => {
+      // Update basic team info
+      const team = await tx.team.update({
+        where: { id },
+        data: {
+          ...(name && { name }),
+          ...(leaderUserId !== undefined && { leaderUserId }),
+        },
+      });
+
+      // Update locations if provided
+      if (locationIds && Array.isArray(locationIds)) {
+        // Remove existing location assignments
+        await tx.teamLocation.deleteMany({
+          where: { teamId: id },
+        });
+
+        // Add new location assignments
+        await tx.teamLocation.createMany({
+          data: locationIds.map((locationId: string) => ({
+            teamId: id,
+            locationId: locationId,
+          })),
+        });
+      }
+
+      // Return team with updated relations
+      return tx.team.findUnique({
+        where: { id },
+        include: {
+          locations: {
+            include: {
+              location: true,
+            },
+          },
+          leader: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          _count: {
+            select: { members: true },
           },
         },
-        _count: {
-          select: { members: true },
-        },
-      },
+      });
     });
 
     logger.info(`Team updated: ${updatedTeam.name}`);

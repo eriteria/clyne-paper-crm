@@ -14,11 +14,11 @@ interface CreateUserModalProps {
 interface CreateUserData {
   email: string;
   fullName: string;
-  phone: string;
+  phone?: string;
   password: string;
   roleId: string;
-  teamId: string;
-  regionId: string;
+  teamId?: string;
+  regionId?: string;
 }
 
 export default function CreateUserModal({
@@ -132,7 +132,7 @@ export default function CreateUserModal({
     // Clean up data - remove empty optional fields
     const cleanedData = {
       ...formData,
-      phone: formData.phone.trim() || undefined,
+      phone: formData.phone?.trim() || undefined,
       teamId: formData.teamId || undefined,
       regionId: formData.regionId || undefined,
     };

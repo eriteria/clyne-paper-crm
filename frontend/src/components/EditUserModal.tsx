@@ -105,7 +105,7 @@ export default function EditUserModal({
   const { data: teamsData } = useQuery({
     queryKey: ["teams"],
     queryFn: async () => {
-      const response = await apiClient.get("/teams");
+      const response = await apiClient.get("/teams?dropdown=true");
       return response.data;
     },
   });
@@ -238,7 +238,7 @@ export default function EditUserModal({
   if (!isOpen) return null;
 
   const roles: Role[] = rolesData?.data || [];
-  const teams: Team[] = teamsData?.data || [];
+  const teams: Team[] = Array.isArray(teamsData?.data) ? teamsData.data : [];
   const regions: Region[] = regionsData?.data || [];
 
   return (

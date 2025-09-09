@@ -36,17 +36,27 @@ model Team {
   id           String    @id @default(cuid())
   name         String    @unique
   leaderUserId String?   @map("leader_user_id")
-  locationId   String    @map("location_id")
   description  String?
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   invoices     Invoice[]
   customers    Customer[] @relation("TeamCustomers")
   leader       User?     @relation("TeamLeader", fields: [leaderUserId], references: [id])
-  location     Location  @relation(fields: [locationId], references: [id])
   members      User[]    @relation("TeamMembers")
+  locations    TeamLocation[]
 
   @@map("teams")
+}
+
+model TeamLocation {
+  teamId     String
+  locationId String
+  team       Team     @relation(fields: [teamId], references: [id])
+  location   Location @relation(fields: [locationId], references: [id])
+  assignedAt DateTime @default(now())
+
+  @@id([teamId, locationId])
+  @@map("team_locations")
 }
 
 model User {
@@ -88,14 +98,16 @@ model InventoryItem {
   unitPrice       Decimal       @map("unit_price") @db.Decimal(10, 2)
   currentQuantity Decimal       @map("current_quantity") @db.Decimal(10, 2)
   minStock        Decimal       @map("min_stock") @db.Decimal(10, 2)
-  location        String?
+  locationId      String        @map("location_id") // Reference to Location
   productId       String?       @map("product_id") // Link to Product for sales tracking
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
   invoiceItems    InvoiceItem[]
   waybillItems    WaybillItem[]
+  location        Location      @relation(fields: [locationId], references: [id])
   product         Product?      @relation(fields: [productId], references: [id])
 
+  @@unique([sku, locationId]) // Same SKU can exist in multiple locations
   @@map("inventory_items")
 }
 
@@ -129,25 +141,36 @@ model Waybill {
   waybillNumber    String        @unique @map("waybill_number")
   date             DateTime
   supplier         String
+  locationId       String        @map("location_id") // Destination location
+  status           WaybillStatus @default(PENDING)
+  processedAt      DateTime?     @map("processed_at")
+  processedBy      String?       @map("processed_by") // User ID
   receivedByUserId String        @map("received_by_user_id")
   notes            String?
   createdAt        DateTime      @default(now()) @map("created_at")
   items            WaybillItem[]
+  location         Location      @relation(fields: [locationId], references: [id])
   receivedBy       User          @relation(fields: [receivedByUserId], references: [id])
 
   @@map("waybills")
 }
 
 model WaybillItem {
-  id               String        @id @default(cuid())
-  waybillId        String        @map("waybill_id")
-  inventoryItemId  String        @map("inventory_item_id")
-  quantityReceived Decimal       @map("quantity_received") @db.Decimal(10, 2)
-  unitCost         Decimal       @map("unit_cost") @db.Decimal(10, 2)
-  batchNo          String?       @map("batch_no")
-  expiryDate       DateTime?     @map("expiry_date")
-  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id])
-  waybill          Waybill       @relation(fields: [waybillId], references: [id], onDelete: Cascade)
+  id               String            @id @default(cuid())
+  waybillId        String            @map("waybill_id")
+  sku              String
+  name             String
+  description      String?
+  unit             String
+  quantityReceived Decimal           @map("quantity_received") @db.Decimal(10, 2)
+  unitCost         Decimal           @map("unit_cost") @db.Decimal(10, 2)
+  batchNo          String?           @map("batch_no")
+  expiryDate       DateTime?         @map("expiry_date")
+  inventoryItemId  String?           @map("inventory_item_id") // Null if needs review
+  status           WaybillItemStatus @default(PENDING)
+  processedAt      DateTime?         @map("processed_at")
+  inventoryItem    InventoryItem?    @relation(fields: [inventoryItemId], references: [id])
+  waybill          Waybill           @relation(fields: [waybillId], references: [id], onDelete: Cascade)
 
   @@map("waybill_items")
 }
@@ -158,8 +181,7 @@ model Customer {
   email                 String?
   phone                 String?
   address               String?
-  location              String?   // For LOCATION from Excel (kept for compatibility)
-  locationId            String?   @map("location_id") // Foreign key to Location table
+  locationId            String    @map("location_id") // Required foreign key to Location table
   companyName           String?   @map("company_name")
   contactPerson         String?   @map("contact_person")
   relationshipManagerId String?   @map("relationship_manager_id")
@@ -172,7 +194,7 @@ model Customer {
   invoices              Invoice[]
   payments              CustomerPayment[]
   credits               Credit[]
-  locationRef           Location? @relation(fields: [locationId], references: [id])
+  locationRef           Location  @relation(fields: [locationId], references: [id])
   relationshipManager   User?     @relation("CustomerRelationshipManager", fields: [relationshipManagerId], references: [id])
   team                  Team?     @relation("TeamCustomers", fields: [teamId], references: [id])
 
@@ -366,14 +388,16 @@ model ReportsCache {
 }
 
 model Location {
-  id          String     @id @default(cuid())
-  name        String     @unique
-  description String?
-  isActive    Boolean    @default(true) @map("is_active")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-  customers   Customer[]
-  teams       Team[]
+  id           String          @id @default(cuid())
+  name         String          @unique
+  description  String?
+  isActive     Boolean         @default(true) @map("is_active")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  customers    Customer[]
+  teams        TeamLocation[]
+  inventory    InventoryItem[]
+  waybills     Waybill[]
 
   @@map("locations")
 }
@@ -395,4 +419,18 @@ model MonthlySalesTarget {
 
   @@unique([productId, userId, year, month], name: "monthly_sales_targets_product_user_year_month_key")
   @@map("monthly_sales_targets")
+}
+
+enum WaybillStatus {
+  PENDING     // Received but not processed
+  PROCESSING  // Being processed
+  COMPLETED   // All items processed
+  REVIEW      // Has items requiring review
+}
+
+enum WaybillItemStatus {
+  PENDING     // Not processed
+  MATCHED     // Matched to existing inventory
+  NEW_PRODUCT // Needs admin review for new product
+  PROCESSED   // Added to inventory
 }

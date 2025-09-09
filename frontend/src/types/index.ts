@@ -29,6 +29,13 @@ export interface Customer {
   address?: string;
   companyName?: string;
   contactPerson?: string;
+  locationId: string;
+  locationRef?: {
+    id: string;
+    name: string;
+    description?: string;
+    isActive: boolean;
+  };
   relationshipManagerId?: string;
   relationshipManager?: {
     id: string;
@@ -143,12 +150,18 @@ export interface DashboardData {
 export interface Team {
   id: string;
   name: string;
-  locationId: string;
+  regionId: string;
   leaderUserId?: string;
-  location?: {
+  region?: {
     id: string;
     name: string;
   };
+  locations?: {
+    location: {
+      id: string;
+      name: string;
+    };
+  }[];
   leader?: {
     id: string;
     fullName: string;
@@ -170,4 +183,17 @@ export interface Region {
   parentRegionId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Location {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  _count?: {
+    customers: number;
+    teams: number;
+  };
+  teams?: Team[];
+  createdAt: string;
 }

@@ -65,9 +65,11 @@ export default function ProductsPage() {
   const { data: productGroupsData, isLoading: groupsLoading } = useQuery({
     queryKey: ["product-groups"],
     queryFn: async () => {
+      console.log("Fetching product groups...");
       const response = await apiClient.get(
         "/product-groups?includeAnalytics=true"
       );
+      console.log("Product groups response:", response.data);
       return response.data;
     },
   });

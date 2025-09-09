@@ -38,19 +38,30 @@ router.get("/dashboard", async (req, res, next) => {
     // Get teams with member counts
     const teamsWithCounts = await prisma.team.findMany({
       include: {
-        location: true,
+        locations: {
+          include: {
+            location: true,
+          },
+        },
         _count: {
           select: { members: true },
         },
       },
     });
 
-    // Get recent low stock items
+    // Get recent low stock items - using raw SQL with proper join
     const lowStockItems = await prisma.$queryRaw`
-      SELECT id, name, sku, current_quantity, min_stock, location 
-      FROM inventory_items 
-      WHERE current_quantity <= min_stock 
-      ORDER BY current_quantity ASC 
+      SELECT 
+        i.id, 
+        i.name, 
+        i.sku, 
+        i.current_quantity, 
+        i.min_stock,
+        l.name as location_name
+      FROM inventory_items i
+      JOIN locations l ON i.location_id = l.id
+      WHERE i.current_quantity <= i.min_stock 
+      ORDER BY i.current_quantity ASC 
       LIMIT 5
     `;
 
@@ -103,33 +114,48 @@ router.get("/inventory", async (req, res, next) => {
 
     // Get inventory by location
     const inventoryByLocation = await prisma.inventoryItem.groupBy({
-      by: ["location"],
+      by: ["locationId"],
       _count: { id: true },
       _sum: { currentQuantity: true, unitPrice: true },
       orderBy: { _count: { id: "desc" } },
     });
 
-    // Get top items by quantity
-    const topItemsByQuantity = await prisma.inventoryItem.findMany({
-      select: {
-        name: true,
-        sku: true,
-        currentQuantity: true,
-        unit: true,
-        location: true,
-      },
-      orderBy: { currentQuantity: "desc" },
-      take: 10,
-    });
+    // Get top items by quantity - using raw SQL for consistency
+    const topItemsByQuantity = await prisma.$queryRaw`
+      SELECT 
+        i.name, 
+        i.sku, 
+        i.current_quantity, 
+        i.unit,
+        l.name as location_name
+      FROM inventory_items i
+      JOIN locations l ON i.location_id = l.id
+      ORDER BY i.current_quantity DESC 
+      LIMIT 10
+    `;
 
-    // Get items needing reorder
+    // Get items needing reorder - using raw SQL with proper join
     const itemsNeedingReorder = await prisma.$queryRaw`
-      SELECT name, sku, current_quantity, min_stock, location,
-             (min_stock - current_quantity) as shortage
-      FROM inventory_items 
-      WHERE current_quantity <= min_stock 
+      SELECT 
+        i.name, 
+        i.sku, 
+        i.current_quantity, 
+        i.min_stock, 
+        l.name as location_name,
+        (i.min_stock - i.current_quantity) as shortage
+      FROM inventory_items i
+      JOIN locations l ON i.location_id = l.id
+      WHERE i.current_quantity <= i.min_stock 
       ORDER BY shortage DESC
     `;
+
+    // Get location details for mapping
+    const locationIds = inventoryByLocation.map((item: any) => item.locationId);
+    const locations = await prisma.location.findMany({
+      where: { id: { in: locationIds } },
+      select: { id: true, name: true },
+    });
+    const locationMap = new Map(locations.map((loc) => [loc.id, loc.name]));
 
     res.json({
       success: true,
@@ -143,7 +169,7 @@ router.get("/inventory", async (req, res, next) => {
           lowStockCount: (lowStockItems as any[])[0]?.count || 0,
         },
         byLocation: inventoryByLocation.map((location: any) => ({
-          location: location.location || "Unspecified",
+          location: locationMap.get(location.locationId) || "Unknown Location",
           itemCount: location._count.id,
           totalQuantity: location._sum.currentQuantity || 0,
           totalValue: location._sum.unitPrice || 0,
@@ -180,13 +206,13 @@ router.get("/sales", async (req, res, next) => {
       where.createdAt = dateFilter;
     }
     if (userId) {
-      where.createdBy = userId;
+      where.billedByUserId = userId;
     }
     if (teamId) {
-      where.createdByUser = { teamId };
+      where.billedBy = { teamId };
     }
     if (regionId) {
-      where.createdByUser = { regionId };
+      where.billedBy = { regionId };
     }
 
     // Get sales metrics
@@ -210,7 +236,7 @@ router.get("/sales", async (req, res, next) => {
 
     // Get top performing users
     const topUsers = await prisma.invoice.groupBy({
-      by: ["createdBy"],
+      by: ["billedByUserId"],
       where,
       _count: { id: true },
       _sum: { totalAmount: true },
@@ -219,7 +245,7 @@ router.get("/sales", async (req, res, next) => {
     });
 
     // Get user details for top performers
-    const userIds = topUsers.map((u: any) => u.createdBy);
+    const userIds = topUsers.map((u: any) => u.billedByUserId);
     const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
       select: {
@@ -231,9 +257,9 @@ router.get("/sales", async (req, res, next) => {
     });
 
     const topUsersWithDetails = topUsers.map((sale: any) => {
-      const user = users.find((u: any) => u.id === sale.createdBy);
+      const user = users.find((u: any) => u.id === sale.billedByUserId);
       return {
-        userId: sale.createdBy,
+        userId: sale.billedByUserId,
         fullName: user?.fullName || "Unknown",
         email: user?.email || "Unknown",
         teamName: user?.team?.name || "No Team",
@@ -279,7 +305,11 @@ router.get("/teams", async (req, res, next) => {
     // Get teams with member counts and sales data
     const teams = await prisma.team.findMany({
       include: {
-        location: true,
+        locations: {
+          include: {
+            location: true,
+          },
+        },
         leader: {
           select: { fullName: true, email: true },
         },

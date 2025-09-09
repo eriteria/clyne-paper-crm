@@ -4,6 +4,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { apiClient } from "@/lib/api";
+
+interface EditTeamData {
+  name: string;
+  regionId: string;
+  leaderUserId: string;
+  locationIds: string[];
+}
 import { Team } from "@/types";
 
 interface EditTeamModalProps {
@@ -17,7 +24,7 @@ interface UpdateTeamData {
   name: string;
   regionId: string;
   leaderUserId?: string;
-  locationNames: string[];
+  locationIds: string[];
 }
 
 export default function EditTeamModal({
@@ -30,14 +37,16 @@ export default function EditTeamModal({
     name: "",
     regionId: "",
     leaderUserId: "",
-    locationNames: [],
+    locationIds: [],
   });
-  const [locationInput, setLocationInput] = useState("");
   const [leaderSearchTerm, setLeaderSearchTerm] = useState("");
   const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
   const [selectedLeaderName, setSelectedLeaderName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const leaderDropdownRef = useRef<HTMLDivElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -47,6 +56,12 @@ export default function EditTeamModal({
         !leaderDropdownRef.current.contains(event.target as Node)
       ) {
         setShowLeaderDropdown(false);
+      }
+      if (
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowUserDropdown(false);
       }
     }
 
@@ -61,9 +76,11 @@ export default function EditTeamModal({
     if (team) {
       setFormData({
         name: team.name,
-        regionId: team.regionId || team.region?.id || "",
+        regionId: team.regionId || "",
         leaderUserId: team.leaderUserId || "",
-        locationNames: team.locationNames || [],
+        locationIds: team.locations
+          ? team.locations.map((loc) => loc.location.id)
+          : [],
       });
 
       // Set leader name for search field
@@ -82,6 +99,15 @@ export default function EditTeamModal({
     queryKey: ["regions"],
     queryFn: async () => {
       const response = await apiClient.get("/regions");
+      return response.data;
+    },
+  });
+
+  // Fetch locations
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await apiClient.get("/locations");
       return response.data;
     },
   });
@@ -118,6 +144,40 @@ export default function EditTeamModal({
     },
   });
 
+  // Add team members mutation
+  const addMembersMutation = useMutation({
+    mutationFn: async (userIds: string[]) => {
+      const response = await apiClient.post(`/teams/${team.id}/members`, {
+        userIds,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      onSuccess();
+    },
+    onError: (error: any) => {
+      console.error("Add members error:", error);
+      setErrors({ general: "Failed to add team members" });
+    },
+  });
+
+  // Remove team members mutation
+  const removeMembersMutation = useMutation({
+    mutationFn: async (userIds: string[]) => {
+      const response = await apiClient.delete(`/teams/${team.id}/members`, {
+        data: { userIds },
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      onSuccess();
+    },
+    onError: (error: any) => {
+      console.error("Remove members error:", error);
+      setErrors({ general: "Failed to remove team members" });
+    },
+  });
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -144,31 +204,25 @@ export default function EditTeamModal({
     await updateTeamMutation.mutateAsync(formData);
   };
 
-  const addLocation = () => {
-    const location = locationInput.trim();
-    if (location && !formData.locationNames.includes(location)) {
+  const addLocation = (locationId: string) => {
+    if (locationId && !formData.locationIds.includes(locationId)) {
       setFormData({
         ...formData,
-        locationNames: [...formData.locationNames, location],
+        locationIds: [...formData.locationIds, locationId],
       });
-      setLocationInput("");
     }
   };
 
   const removeLocation = (index: number) => {
     setFormData({
       ...formData,
-      locationNames: formData.locationNames.filter((_, i) => i !== index),
+      locationIds: formData.locationIds.filter((_, i) => i !== index),
     });
   };
 
-  const handleLocationInputKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addLocation();
-    }
-  };
-
+  const locations = Array.isArray(locationsData?.data)
+    ? locationsData.data
+    : [];
   const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
   const users = Array.isArray(usersData?.data?.users)
     ? usersData.data.users
@@ -195,6 +249,21 @@ export default function EditTeamModal({
     setSelectedLeaderName(user.fullName);
     setLeaderSearchTerm(user.fullName);
     setShowLeaderDropdown(false);
+  };
+
+  const handleAddMember = (userId: string) => {
+    addMembersMutation.mutate([userId]);
+    setUserSearchTerm("");
+    setShowUserDropdown(false);
+  };
+
+  const handleRemoveMember = (userId: string) => {
+    removeMembersMutation.mutate([userId]);
+  };
+
+  const handleUserSearch = (searchTerm: string) => {
+    setUserSearchTerm(searchTerm);
+    setShowUserDropdown(searchTerm.length > 0);
   };
 
   // Handle clearing leader selection
@@ -337,46 +406,160 @@ export default function EditTeamModal({
             </div>
           </div>
 
-          {/* Location Names */}
+          {/* Location Coverage */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Location Coverage
             </label>
-            <div className="flex gap-2">
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  addLocation(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+            >
+              <option value="">Select a location to add</option>
+              {locations
+                .filter(
+                  (location: any) => !formData.locationIds.includes(location.id)
+                )
+                .map((location: any) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+            </select>
+            {formData.locationIds.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {formData.locationIds.map((locationId, index) => {
+                  const location = locations.find(
+                    (loc: any) => loc.id === locationId
+                  );
+                  return (
+                    <span
+                      key={locationId}
+                      className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
+                    >
+                      {location?.name || locationId}
+                      <button
+                        type="button"
+                        onClick={() => removeLocation(index)}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Team Members Management */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Team Members
+            </label>
+
+            {/* Current Members */}
+            {team.members && team.members.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm text-gray-600">Current Members:</div>
+                <div className="space-y-1">
+                  {team.members.map((member: any) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">
+                          {member.fullName}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {member.email} • {member.role?.name}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMember(member.id)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                        disabled={removeMembersMutation.isPending}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add New Members */}
+            <div className="relative" ref={userDropdownRef}>
               <input
                 type="text"
-                value={locationInput}
-                onChange={(e) => setLocationInput(e.target.value)}
-                onKeyPress={handleLocationInputKeyPress}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                placeholder="Enter location name"
+                value={userSearchTerm}
+                onChange={(e) => handleUserSearch(e.target.value)}
+                placeholder="Search users to add to team..."
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-              <button
-                type="button"
-                onClick={addLocation}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Add
-              </button>
+
+              {showUserDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {users
+                    .filter(
+                      (user: any) =>
+                        !team.members?.some(
+                          (member: any) => member.id === user.id
+                        ) &&
+                        (user.fullName
+                          .toLowerCase()
+                          .includes(userSearchTerm.toLowerCase()) ||
+                          user.email
+                            .toLowerCase()
+                            .includes(userSearchTerm.toLowerCase()))
+                    )
+                    .map((user: any) => (
+                      <div
+                        key={user.id}
+                        onClick={() => handleAddMember(user.id)}
+                        className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-sm">
+                          {user.fullName}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {user.email} • {user.role?.name}
+                        </div>
+                      </div>
+                    ))}
+                  {users.filter(
+                    (user: any) =>
+                      !team.members?.some(
+                        (member: any) => member.id === user.id
+                      ) &&
+                      (user.fullName
+                        .toLowerCase()
+                        .includes(userSearchTerm.toLowerCase()) ||
+                        user.email
+                          .toLowerCase()
+                          .includes(userSearchTerm.toLowerCase()))
+                  ).length === 0 && (
+                    <div className="p-2 text-gray-500 text-sm">
+                      No available users found
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            {formData.locationNames.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {formData.locationNames.map((location, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
-                  >
-                    {location}
-                    <button
-                      type="button"
-                      onClick={() => removeLocation(index)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
+
+            {addMembersMutation.isPending && (
+              <div className="text-sm text-blue-600">Adding member...</div>
+            )}
+            {removeMembersMutation.isPending && (
+              <div className="text-sm text-blue-600">Removing member...</div>
             )}
           </div>
 

@@ -15,7 +15,7 @@ interface CreateTeamData {
   name: string;
   regionId: string;
   leaderUserId?: string;
-  locationNames: string[];
+  locationIds: string[];
 }
 
 export default function CreateTeamModal({
@@ -27,9 +27,8 @@ export default function CreateTeamModal({
     name: "",
     regionId: "",
     leaderUserId: "",
-    locationNames: [],
+    locationIds: [],
   });
-  const [locationInput, setLocationInput] = useState("");
   const [leaderSearchTerm, setLeaderSearchTerm] = useState("");
   const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
   const [selectedLeaderName, setSelectedLeaderName] = useState("");
@@ -58,6 +57,15 @@ export default function CreateTeamModal({
     queryKey: ["regions"],
     queryFn: async () => {
       const response = await apiClient.get("/regions");
+      return response.data;
+    },
+  });
+
+  // Fetch locations
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await apiClient.get("/locations");
       return response.data;
     },
   });
@@ -99,9 +107,8 @@ export default function CreateTeamModal({
       name: "",
       regionId: "",
       leaderUserId: "",
-      locationNames: [],
+      locationIds: [],
     });
-    setLocationInput("");
     setErrors({});
   };
 
@@ -131,32 +138,26 @@ export default function CreateTeamModal({
     await createTeamMutation.mutateAsync(formData);
   };
 
-  const addLocation = () => {
-    const location = locationInput.trim();
-    if (location && !formData.locationNames.includes(location)) {
+  const addLocation = (locationId: string) => {
+    if (locationId && !formData.locationIds.includes(locationId)) {
       setFormData({
         ...formData,
-        locationNames: [...formData.locationNames, location],
+        locationIds: [...formData.locationIds, locationId],
       });
-      setLocationInput("");
     }
   };
 
   const removeLocation = (index: number) => {
     setFormData({
       ...formData,
-      locationNames: formData.locationNames.filter((_, i) => i !== index),
+      locationIds: formData.locationIds.filter((_, i) => i !== index),
     });
   };
 
-  const handleLocationInputKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addLocation();
-    }
-  };
-
   const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
+  const locations = Array.isArray(locationsData?.data)
+    ? locationsData.data
+    : [];
   const users = Array.isArray(usersData?.data?.users)
     ? usersData.data.users
     : [];
@@ -326,45 +327,54 @@ export default function CreateTeamModal({
             </div>
           </div>
 
-          {/* Location Names */}
+          {/* Location Coverage */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Location Coverage
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={locationInput}
-                onChange={(e) => setLocationInput(e.target.value)}
-                onKeyPress={handleLocationInputKeyPress}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                placeholder="Enter location name"
-              />
-              <button
-                type="button"
-                onClick={addLocation}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-            {formData.locationNames.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {formData.locationNames.map((location, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
-                  >
-                    {location}
-                    <button
-                      type="button"
-                      onClick={() => removeLocation(index)}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  addLocation(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+            >
+              <option value="">Select a location to add</option>
+              {locations
+                .filter(
+                  (location: any) => !formData.locationIds.includes(location.id)
+                )
+                .map((location: any) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
                 ))}
+            </select>
+            {formData.locationIds.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {formData.locationIds.map((locationId, index) => {
+                  const location = locations.find(
+                    (loc: any) => loc.id === locationId
+                  );
+                  return (
+                    <span
+                      key={locationId}
+                      className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
+                    >
+                      {location?.name || locationId}
+                      <button
+                        type="button"
+                        onClick={() => removeLocation(index)}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>

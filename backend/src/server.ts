@@ -32,6 +32,7 @@ import paymentRoutes from "./routes/payments";
 import notificationRoutes from "./routes/notifications";
 import dataManagementRoutes from "./routes/dataManagement";
 import settingsRoutes from "./routes/settings";
+import locationRoutes from "./routes/locations";
 
 // Import utils
 import { logger } from "./utils/logger";
@@ -100,6 +101,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/data-management", dataManagementRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/locations", locationRoutes);
 
 // Error handling middleware
 app.use(notFound);

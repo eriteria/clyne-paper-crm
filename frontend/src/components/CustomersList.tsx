@@ -6,8 +6,6 @@ import {
   Eye,
   Edit,
   Trash2,
-  Mail,
-  Phone,
   MapPin,
   Building,
   User as UserIcon,
@@ -149,7 +147,7 @@ export default function CustomersList({
                   Customer
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact Information
+                  Location
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Company
@@ -190,22 +188,15 @@ export default function CustomersList({
                   </td>
                   <td className="px-6 py-4">
                     <div className="space-y-1">
-                      {customer.email && (
+                      {customer.locationRef && (
                         <div className="flex items-center text-sm text-gray-900">
-                          <Mail className="h-3 w-3 mr-1 text-gray-400" />
-                          {customer.email}
+                          <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+                          {customer.locationRef.name}
                         </div>
                       )}
-                      {customer.phone && (
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Phone className="h-3 w-3 mr-1 text-gray-400" />
-                          {customer.phone}
-                        </div>
-                      )}
-                      {customer.address && (
-                        <div className="flex items-center text-sm text-gray-500">
-                          <MapPin className="h-3 w-3 mr-1 text-gray-400" />
-                          {customer.address.substring(0, 30)}...
+                      {customer.locationRef?.description && (
+                        <div className="text-xs text-gray-500">
+                          {customer.locationRef.description}
                         </div>
                       )}
                     </div>

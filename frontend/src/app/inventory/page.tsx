@@ -2,17 +2,8 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Package,
-  Plus,
-  Search,
-  Filter,
-  Edit,
-  Trash2,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Package, Search, Trash2, FileText } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 
@@ -35,10 +26,9 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Fetch inventory items
   const {
@@ -123,16 +113,45 @@ export default function InventoryPage() {
             Inventory Management
           </h1>
           <p className="text-gray-600 mt-1">
-            Manage your tissue paper products
+            Manage your tissue paper products. Add new items by creating a
+            waybill.
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Item
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          <button
+            onClick={() => router.push("/admin/waybills?create=true")}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Create Waybill
+          </button>
+          <p className="text-xs text-gray-500 text-right max-w-xs">
+            Add inventory items by creating a waybill for received goods
+          </p>
+        </div>
+      </div>
+
+      {/* Info Box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-start gap-3">
+          <FileText className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-medium text-blue-800">
+              How to Add Inventory Items
+            </h3>
+            <p className="text-sm text-blue-700 mt-1">
+              Inventory items are added automatically when you create and
+              process waybills. Create a waybill for goods received from
+              suppliers, and the system will add the items to your inventory.
+            </p>
+            <button
+              onClick={() => router.push("/admin/waybills")}
+              className="text-sm text-blue-800 hover:text-blue-900 underline mt-2"
+            >
+              Go to Waybill Management →
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -251,14 +270,9 @@ export default function InventoryPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => setEditingItem(item)}
-                          className="text-blue-600 hover:text-blue-900 p-1"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
                           onClick={() => deleteMutation.mutate(item.id)}
                           className="text-red-600 hover:text-red-900 p-1"
+                          title="Delete item"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -278,8 +292,15 @@ export default function InventoryPage() {
               No inventory items
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by adding a new product.
+              Add inventory items by creating a waybill for received goods.
             </p>
+            <button
+              onClick={() => router.push("/admin/waybills")}
+              className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 mx-auto"
+            >
+              <FileText className="h-4 w-4" />
+              Create Your First Waybill
+            </button>
           </div>
         )}
       </div>

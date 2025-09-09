@@ -46,6 +46,14 @@ router.get("/", async (req, res, next) => {
               phone: true,
             },
           },
+          locationRef: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isActive: true,
+            },
+          },
           _count: {
             select: {
               invoices: true,
@@ -94,6 +102,14 @@ router.get("/:id", async (req, res, next) => {
             phone: true,
           },
         },
+        locationRef: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+          },
+        },
         invoices: {
           orderBy: {
             createdAt: "desc",
@@ -138,6 +154,7 @@ router.post("/", async (req, res, next) => {
       companyName,
       contactPerson,
       relationshipManagerId,
+      locationId,
     } = req.body;
 
     // Validation
@@ -145,6 +162,13 @@ router.post("/", async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: "Customer name is required",
+      });
+    }
+
+    if (!locationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Location is required",
       });
     }
 
@@ -171,6 +195,7 @@ router.post("/", async (req, res, next) => {
         companyName,
         contactPerson,
         relationshipManagerId,
+        locationId,
       },
       include: {
         relationshipManager: {
@@ -179,6 +204,14 @@ router.post("/", async (req, res, next) => {
             fullName: true,
             email: true,
             phone: true,
+          },
+        },
+        locationRef: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
           },
         },
       },
