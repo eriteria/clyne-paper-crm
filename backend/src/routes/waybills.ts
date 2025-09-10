@@ -149,6 +149,97 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// Update existing waybill
+router.put("/:id", authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const waybillId = req.params.id;
+    const {
+      waybillNumber,
+      supplierName,
+      supplierContact,
+      locationId,
+      notes,
+      items,
+    } = req.body;
+
+    const userId = req.user!.id;
+
+    // Check if waybill exists and is still editable
+    const existingWaybill = await prisma.waybill.findUnique({
+      where: { id: waybillId },
+      include: { items: true },
+    });
+
+    if (!existingWaybill) {
+      return res.status(404).json({ error: "Waybill not found" });
+    }
+
+    if (existingWaybill.status !== WaybillStatus.PENDING) {
+      return res.status(400).json({ 
+        error: "Only pending waybills can be edited" 
+      });
+    }
+
+    // Validate location exists
+    const location = await prisma.location.findUnique({
+      where: { id: locationId },
+    });
+
+    if (!location) {
+      return res.status(400).json({ error: "Invalid location" });
+    }
+
+    // Update waybill with items in transaction
+    const waybill = await prisma.$transaction(async (tx) => {
+      // Delete existing waybill items
+      await tx.waybillItem.deleteMany({
+        where: { waybillId },
+      });
+
+      // Update waybill
+      const updatedWaybill = await tx.waybill.update({
+        where: { id: waybillId },
+        data: {
+          waybillNumber,
+          supplier: supplierName,
+          locationId,
+          notes,
+        },
+      });
+
+      // Create new waybill items
+      const waybillItems = await Promise.all(
+        items.map((item: any) =>
+          tx.waybillItem.create({
+            data: {
+              waybillId: updatedWaybill.id,
+              sku: item.sku,
+              name: item.name,
+              description: item.description,
+              unit: item.unit,
+              quantityReceived: item.quantityReceived,
+              unitCost: item.unitCost,
+              batchNo: item.batchNo,
+              expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
+              status: WaybillItemStatus.PENDING,
+            },
+          })
+        )
+      );
+
+      return { ...updatedWaybill, items: waybillItems };
+    });
+
+    return res.json(waybill);
+  } catch (error: any) {
+    console.error("Error updating waybill:", error);
+    if (error.code === "P2002") {
+      return res.status(400).json({ error: "Waybill number already exists" });
+    }
+    return res.status(500).json({ error: "Failed to update waybill" });
+  }
+});
+
 // Process waybill - hybrid approach
 router.post(
   "/:id/process",

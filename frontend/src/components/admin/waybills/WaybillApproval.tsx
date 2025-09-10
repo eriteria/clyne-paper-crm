@@ -226,25 +226,25 @@ export default function WaybillApproval({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <Label className="text-sm font-medium text-gray-500">
+              <Label className="text-sm font-medium text-gray-700">
                 Supplier
               </Label>
               <p className="font-medium">{waybill.supplier}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">
+              <Label className="text-sm font-medium text-gray-700">
                 Location
               </Label>
               <p className="font-medium">{waybill.location.name}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">Date</Label>
+              <Label className="text-sm font-medium text-gray-700">Date</Label>
               <p className="font-medium">
                 {new Date(waybill.date).toLocaleDateString()}
               </p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-500">
+              <Label className="text-sm font-medium text-gray-700">
                 Received By
               </Label>
               <p className="font-medium">{waybill.receivedBy.fullName}</p>
@@ -252,8 +252,8 @@ export default function WaybillApproval({
           </div>
           {waybill.notes && (
             <div className="mt-4">
-              <Label className="text-sm font-medium text-gray-500">Notes</Label>
-              <p className="text-sm text-gray-700">{waybill.notes}</p>
+              <Label className="text-sm font-medium text-gray-700">Notes</Label>
+              <p className="text-sm text-gray-800">{waybill.notes}</p>
             </div>
           )}
         </CardContent>
@@ -280,7 +280,7 @@ export default function WaybillApproval({
                       <span className="font-medium">{item.name}</span>
                       {getItemStatusBadge(item.status)}
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="text-sm text-gray-700 mt-1">
                       SKU: {item.sku} • {item.quantityReceived} {item.unit} • ₦
                       {Number(item.unitCost).toFixed(2)} each
                     </div>
@@ -300,7 +300,7 @@ export default function WaybillApproval({
               <AlertCircle className="h-5 w-5 text-red-600" />
               New Products Requiring Approval ({newProductItems.length})
             </CardTitle>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-700">
               <Info className="h-4 w-4" />
               These products are new to the system and require review before
               adding to inventory
@@ -323,7 +323,7 @@ export default function WaybillApproval({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div>
-                        <Label className="text-sm font-medium text-gray-500">
+                        <Label className="text-sm font-medium text-gray-700">
                           Original SKU
                         </Label>
                         <p className="font-mono text-sm bg-gray-100 p-2 rounded">
@@ -331,7 +331,7 @@ export default function WaybillApproval({
                         </p>
                       </div>
                       <div>
-                        <Label className="text-sm font-medium text-gray-500">
+                        <Label className="text-sm font-medium text-gray-700">
                           Quantity & Cost
                         </Label>
                         <p className="font-medium">

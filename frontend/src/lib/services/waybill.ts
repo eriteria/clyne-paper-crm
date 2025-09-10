@@ -49,6 +49,17 @@ export const waybillService = {
     return this.createWaybill(data);
   },
 
+  // Update existing waybill
+  async updateWaybill(id: string, data: CreateWaybillRequest): Promise<Waybill> {
+    const response = await apiClient.put(`/waybills/${id}`, data);
+    return response.data;
+  },
+
+  // Alias for compatibility
+  async update(id: string, data: CreateWaybillRequest): Promise<Waybill> {
+    return this.updateWaybill(id, data);
+  },
+
   // Process waybill (hybrid approach)
   async processWaybill(id: string): Promise<ProcessWaybillResponse> {
     const response = await apiClient.post(`/waybills/${id}/process`);

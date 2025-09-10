@@ -124,18 +124,18 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Filter className="w-5 h-5 mr-2 text-gray-700" />
+            <Filter className="w-5 h-5 mr-2 text-gray-800" />
             Filters
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block text-gray-700">
+              <label className="text-sm font-medium mb-2 block text-gray-800">
                 Supplier
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 w-4 h-4" />
                 <Input
                   placeholder="Search supplier..."
                   className="pl-10"
@@ -148,7 +148,7 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block text-gray-700">
+              <label className="text-sm font-medium mb-2 block text-gray-800">
                 Status
               </label>
               <Select
@@ -166,7 +166,7 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block text-gray-700">
+              <label className="text-sm font-medium mb-2 block text-gray-800">
                 Location
               </label>
               <Select
@@ -264,7 +264,7 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => onEdit(waybill)}
-                                className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                                className="border-gray-300 text-gray-800 hover:bg-gray-50 hover:text-gray-900"
                               >
                                 Edit
                               </Button>

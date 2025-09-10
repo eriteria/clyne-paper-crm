@@ -522,13 +522,13 @@ export default function WaybillForm({
                     {item.productId && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-3 bg-gray-50 rounded-md">
                         <div className="space-y-1">
-                          <Label className="text-sm text-gray-600">SKU</Label>
+                          <Label className="text-sm text-gray-800">SKU</Label>
                           <p className="text-sm font-mono bg-white p-2 rounded border">
                             {item.sku}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-sm text-gray-600">
+                          <Label className="text-sm text-gray-800">
                             Product Name
                           </Label>
                           <p className="text-sm bg-white p-2 rounded border">
@@ -536,7 +536,7 @@ export default function WaybillForm({
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-sm text-gray-600">Unit</Label>
+                          <Label className="text-sm text-gray-800">Unit</Label>
                           <p className="text-sm bg-white p-2 rounded border">
                             {item.unit}
                           </p>
