@@ -116,7 +116,7 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
   }
 });
 
-// @desc    Get inventory items for invoicing (only items linked to products)
+// @desc    Get inventory items for invoicing (all available items)
 // @route   GET /api/inventory/for-invoicing
 // @access  Private
 router.get(
@@ -126,9 +126,8 @@ router.get(
     try {
       const { location } = req.query;
 
-      // Build filters
+      // Build filters - include all items, not just those linked to products
       const where: any = {
-        productId: { not: null }, // Only items linked to products
         currentQuantity: { gt: 0 }, // Only items in stock
       };
 
@@ -151,8 +150,14 @@ router.get(
               },
             },
           },
+          location: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
-        orderBy: [{ product: { name: "asc" } }, { location: "asc" }],
+        orderBy: [{ name: "asc" }, { location: { name: "asc" } }],
       });
 
       res.json({

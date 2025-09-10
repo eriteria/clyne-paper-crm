@@ -239,7 +239,9 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
                       <TableCell>
                         {new Date(waybill.date).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>{waybill.location.name}</TableCell>
+                      <TableCell>
+                        {waybill.location?.name || "No location"}
+                      </TableCell>
                       <TableCell>{getStatusBadge(waybill.status)}</TableCell>
                       <TableCell>{waybill.items.length}</TableCell>
                       <TableCell>{waybill.receivedBy.fullName}</TableCell>

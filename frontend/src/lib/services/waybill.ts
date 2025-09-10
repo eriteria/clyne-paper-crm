@@ -33,16 +33,31 @@ export const waybillService = {
     return response.data;
   },
 
+  // Alias for compatibility
+  async getById(id: string): Promise<Waybill> {
+    return this.getWaybill(id);
+  },
+
   // Create new waybill
   async createWaybill(data: CreateWaybillRequest): Promise<Waybill> {
     const response = await apiClient.post("/waybills", data);
     return response.data;
   },
 
+  // Alias for compatibility
+  async create(data: CreateWaybillRequest): Promise<Waybill> {
+    return this.createWaybill(data);
+  },
+
   // Process waybill (hybrid approach)
   async processWaybill(id: string): Promise<ProcessWaybillResponse> {
     const response = await apiClient.post(`/waybills/${id}/process`);
     return response.data;
+  },
+
+  // Alias for compatibility  
+  async process(id: string): Promise<ProcessWaybillResponse> {
+    return this.processWaybill(id);
   },
 
   // Approve new products from waybill
