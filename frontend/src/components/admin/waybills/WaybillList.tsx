@@ -131,7 +131,9 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block text-gray-700">Supplier</label>
+              <label className="text-sm font-medium mb-2 block text-gray-700">
+                Supplier
+              </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
                 <Input
@@ -146,7 +148,9 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block text-gray-700">Status</label>
+              <label className="text-sm font-medium mb-2 block text-gray-700">
+                Status
+              </label>
               <Select
                 value={filters.status}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
@@ -162,7 +166,9 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block text-gray-700">Location</label>
+              <label className="text-sm font-medium mb-2 block text-gray-700">
+                Location
+              </label>
               <Select
                 value={filters.locationId}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>

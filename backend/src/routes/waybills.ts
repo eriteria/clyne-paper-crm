@@ -81,8 +81,14 @@ router.get("/:id", authenticate, async (req: AuthenticatedRequest, res) => {
 // Create new waybill
 router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
   try {
-    const { waybillNumber, supplier, date, locationId, notes, items } =
-      req.body;
+    const {
+      waybillNumber,
+      supplierName,
+      supplierContact,
+      locationId,
+      notes,
+      items,
+    } = req.body;
 
     const userId = req.user!.id;
 
@@ -100,8 +106,8 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
       const newWaybill = await tx.waybill.create({
         data: {
           waybillNumber,
-          supplier,
-          date: new Date(date),
+          supplier: supplierName, // Map supplierName to supplier field
+          date: new Date(), // Use current date for waybill creation
           locationId,
           receivedByUserId: userId,
           notes,
@@ -119,10 +125,11 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
               name: item.name,
               description: item.description,
               unit: item.unit,
-              quantityReceived: item.quantity,
+              quantityReceived: item.quantityReceived, // Use quantityReceived from frontend
               unitCost: item.unitCost,
               batchNo: item.batchNo,
               expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
+              // inventoryItemId will be set during processing, not creation
               status: WaybillItemStatus.PENDING,
             },
           })

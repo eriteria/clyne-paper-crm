@@ -8,7 +8,29 @@ export interface User {
     id: string;
     name: string;
     region?: {
-      id: string;
+       createdAt: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  productGroupId: string;
+  monthlyTarget: string;
+  createdAt: string;
+  updatedAt: string;
+  productGroup?: {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  inventoryItems?: any[];
+  monthlySales?: number;
+  totalSales?: number;
+  targetProgress?: number;
+}
+
+export interface Location { string;
       name: string;
     };
   };
@@ -196,4 +218,23 @@ export interface Location {
   };
   teams?: Team[];
   createdAt: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  productGroupId: string;
+  monthlyTarget: string;
+  createdAt: string;
+  updatedAt: string;
+  productGroup?: {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  inventoryItems?: any[];
+  monthlySales?: number;
+  totalSales?: number;
+  targetProgress?: number;
 }

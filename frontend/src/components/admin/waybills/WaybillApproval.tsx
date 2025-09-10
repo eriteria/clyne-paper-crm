@@ -282,7 +282,7 @@ export default function WaybillApproval({
                     </div>
                     <div className="text-sm text-gray-600 mt-1">
                       SKU: {item.sku} • {item.quantityReceived} {item.unit} • ₦
-                      {item.unitCost.toFixed(2)} each
+                      {Number(item.unitCost).toFixed(2)} each
                     </div>
                   </div>
                 </div>
@@ -336,7 +336,7 @@ export default function WaybillApproval({
                         </Label>
                         <p className="font-medium">
                           {item.quantityReceived} {item.unit} @ ₦
-                          {item.unitCost.toFixed(2)}
+                          {Number(item.unitCost).toFixed(2)}
                         </p>
                       </div>
                     </div>

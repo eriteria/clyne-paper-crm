@@ -5,23 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Save, AlertCircle } from "lucide-react";
 import { locationService } from "@/lib/services/locationService";
 import { waybillService } from "@/lib/services/waybillService";
-import { Location } from "@/types";
+import { productsService } from "@/lib/services/products";
+import { Location, Product } from "@/types";
 import { Waybill, CreateWaybillRequest } from "@/types/waybill";
 import { toast } from "@/lib/toast";
 
 interface FormWaybillItem {
+  productId: string; // ID of selected product
   sku: string;
   name: string;
   description: string;
@@ -47,6 +43,7 @@ export default function WaybillForm({
 }: WaybillFormProps) {
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [formData, setFormData] = useState({
     waybillNumber: initialData?.waybillNumber || "",
     supplierName: initialData?.supplier || "",
@@ -55,6 +52,7 @@ export default function WaybillForm({
     notes: initialData?.notes || "",
     items:
       initialData?.items?.map((item) => ({
+        productId: "", // Will be populated from existing data
         sku: item.sku,
         name: item.name,
         description: item.description || "",
@@ -66,6 +64,7 @@ export default function WaybillForm({
       })) ||
       ([
         {
+          productId: "",
           sku: "",
           name: "",
           description: "",
@@ -82,6 +81,7 @@ export default function WaybillForm({
 
   useEffect(() => {
     loadLocations();
+    loadProducts();
   }, []);
 
   const loadLocations = async () => {
@@ -91,6 +91,39 @@ export default function WaybillForm({
     } catch (error) {
       console.error("Error loading locations:", error);
       toast.error("Failed to load locations");
+    }
+  };
+
+  const loadProducts = async () => {
+    try {
+      const response = await productsService.getAllProducts();
+      setProducts(response || []);
+
+      if (!response || response.length === 0) {
+        toast.info("No products found. Please add some products first.");
+      }
+    } catch (error: unknown) {
+      console.error("Error loading products:", error);
+
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+      }
+
+      // Check if it's an axios error
+      if (error && typeof error === "object" && "response" in error) {
+        const response = (error as { response?: { status?: number } }).response;
+        if (response?.status === 401) {
+          toast.error("Authentication required. Please log in again.");
+        } else if (response?.status === 403) {
+          toast.error(
+            "Access denied. You don't have permission to view inventory."
+          );
+        } else {
+          toast.error("Failed to load inventory items. Please try again.");
+        }
+      } else {
+        toast.error("Failed to load inventory items. Please try again.");
+      }
     }
   };
 
@@ -110,14 +143,8 @@ export default function WaybillForm({
     }
 
     formData.items.forEach((item, index) => {
-      if (!item.sku.trim()) {
-        newErrors[`items.${index}.sku`] = "SKU is required";
-      }
-      if (!item.name.trim()) {
-        newErrors[`items.${index}.name`] = "Product name is required";
-      }
-      if (!item.unit.trim()) {
-        newErrors[`items.${index}.unit`] = "Unit is required";
+      if (!item.productId) {
+        newErrors[`items.${index}.product`] = "Product selection is required";
       }
       if (item.quantityShipped <= 0) {
         newErrors[`items.${index}.quantityShipped`] =
@@ -126,10 +153,6 @@ export default function WaybillForm({
       if (item.quantityReceived < 0) {
         newErrors[`items.${index}.quantityReceived`] =
           "Quantity received cannot be negative";
-      }
-      if (item.unitCost <= 0) {
-        newErrors[`items.${index}.unitCost`] =
-          "Unit cost must be greater than 0";
       }
     });
 
@@ -167,6 +190,7 @@ export default function WaybillForm({
           quantityReceived: item.quantityReceived,
           unitCost: item.unitCost,
           notes: item.notes,
+          productId: item.productId, // Include for backend processing
         })),
       };
 
@@ -205,6 +229,7 @@ export default function WaybillForm({
       items: [
         ...prev.items,
         {
+          productId: "",
           sku: "",
           name: "",
           description: "",
@@ -238,6 +263,30 @@ export default function WaybillForm({
         i === index ? { ...item, [field]: value } : item
       ),
     }));
+  };
+
+  const handleProductSelection = (index: number, productId: string) => {
+    const selectedProduct = products.find(
+      (product) => product.id === productId
+    );
+    if (selectedProduct) {
+      setFormData((prev) => ({
+        ...prev,
+        items: prev.items.map((item, i) =>
+          i === index
+            ? {
+                ...item,
+                productId: selectedProduct.id,
+                sku: selectedProduct.name, // Products don't have SKU field, use name
+                name: selectedProduct.name,
+                description: selectedProduct.productGroup?.name || "",
+                unit: "pcs", // Default unit - you might want to add this to Product model
+                unitCost: 0, // Default - user will need to enter this
+              }
+            : item
+        ),
+      }));
+    }
   };
 
   return (
@@ -336,19 +385,14 @@ export default function WaybillForm({
                       locationId: e.target.value,
                     }))
                   }
+                  className={errors.locationId ? "border-red-500" : ""}
                 >
-                  <SelectTrigger
-                    className={errors.locationId ? "border-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectItem value="">Select location</SelectItem>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
                 </Select>
                 {errors.locationId && (
                   <p className="text-sm text-red-500 flex items-center gap-1">
@@ -375,7 +419,9 @@ export default function WaybillForm({
             {/* Items Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Waybill Items</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Waybill Items
+                </h3>
                 <Button
                   type="button"
                   variant="outline"
@@ -399,7 +445,9 @@ export default function WaybillForm({
                 {formData.items.map((item, index) => (
                   <Card key={index} className="p-4">
                     <div className="flex items-start justify-between mb-4">
-                      <h4 className="font-medium">Item {index + 1}</h4>
+                      <h4 className="font-medium text-gray-900">
+                        Item {index + 1}
+                      </h4>
                       {formData.items.length > 1 && (
                         <Button
                           type="button"
@@ -414,67 +462,89 @@ export default function WaybillForm({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>SKU *</Label>
-                        <Input
-                          value={item.sku}
-                          onChange={(e) =>
-                            updateItem(index, "sku", e.target.value)
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Select Product *</Label>
+                        <Select
+                          value={item.productId}
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                            handleProductSelection(index, e.target.value)
                           }
-                          placeholder="Enter SKU"
                           className={
-                            errors[`items.${index}.sku`] ? "border-red-500" : ""
+                            errors[`items.${index}.product`]
+                              ? "border-red-500"
+                              : ""
                           }
-                        />
-                        {errors[`items.${index}.sku`] && (
+                        >
+                          <SelectItem value="">Choose a product...</SelectItem>
+                          {products.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name} -{" "}
+                              {product.productGroup?.name || "No Group"}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                        {errors[`items.${index}.product`] && (
                           <p className="text-sm text-red-500">
-                            {errors[`items.${index}.sku`]}
+                            {errors[`items.${index}.product`]}
                           </p>
                         )}
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Product Name *</Label>
+                        <Label>Unit Cost *</Label>
                         <Input
-                          value={item.name}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitCost}
                           onChange={(e) =>
-                            updateItem(index, "name", e.target.value)
+                            updateItem(
+                              index,
+                              "unitCost",
+                              parseFloat(e.target.value) || 0
+                            )
                           }
-                          placeholder="Enter product name"
                           className={
-                            errors[`items.${index}.name`]
+                            errors[`items.${index}.unitCost`]
                               ? "border-red-500"
                               : ""
                           }
                         />
-                        {errors[`items.${index}.name`] && (
+                        {errors[`items.${index}.unitCost`] && (
                           <p className="text-sm text-red-500">
-                            {errors[`items.${index}.name`]}
+                            {errors[`items.${index}.unitCost`]}
                           </p>
                         )}
                       </div>
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label>Unit *</Label>
-                        <Input
-                          value={item.unit}
-                          onChange={(e) =>
-                            updateItem(index, "unit", e.target.value)
-                          }
-                          placeholder="e.g., pieces, kg, liters"
-                          className={
-                            errors[`items.${index}.unit`]
-                              ? "border-red-500"
-                              : ""
-                          }
-                        />
-                        {errors[`items.${index}.unit`] && (
-                          <p className="text-sm text-red-500">
-                            {errors[`items.${index}.unit`]}
+                    {/* Product Details (Read-only when product selected) */}
+                    {item.productId && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-3 bg-gray-50 rounded-md">
+                        <div className="space-y-1">
+                          <Label className="text-sm text-gray-600">SKU</Label>
+                          <p className="text-sm font-mono bg-white p-2 rounded border">
+                            {item.sku}
                           </p>
-                        )}
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-sm text-gray-600">
+                            Product Name
+                          </Label>
+                          <p className="text-sm bg-white p-2 rounded border">
+                            {item.name}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-sm text-gray-600">Unit</Label>
+                          <p className="text-sm bg-white p-2 rounded border">
+                            {item.unit}
+                          </p>
+                        </div>
                       </div>
+                    )}
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Quantity Shipped *</Label>
                         <Input
@@ -525,33 +595,6 @@ export default function WaybillForm({
                         {errors[`items.${index}.quantityReceived`] && (
                           <p className="text-sm text-red-500">
                             {errors[`items.${index}.quantityReceived`]}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Unit Cost *</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.unitCost}
-                          onChange={(e) =>
-                            updateItem(
-                              index,
-                              "unitCost",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className={
-                            errors[`items.${index}.unitCost`]
-                              ? "border-red-500"
-                              : ""
-                          }
-                        />
-                        {errors[`items.${index}.unitCost`] && (
-                          <p className="text-sm text-red-500">
-                            {errors[`items.${index}.unitCost`]}
                           </p>
                         )}
                       </div>
