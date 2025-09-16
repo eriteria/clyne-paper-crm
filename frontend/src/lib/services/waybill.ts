@@ -50,7 +50,10 @@ export const waybillService = {
   },
 
   // Update existing waybill
-  async updateWaybill(id: string, data: CreateWaybillRequest): Promise<Waybill> {
+  async updateWaybill(
+    id: string,
+    data: CreateWaybillRequest
+  ): Promise<Waybill> {
     const response = await apiClient.put(`/waybills/${id}`, data);
     return response.data;
   },
@@ -66,7 +69,7 @@ export const waybillService = {
     return response.data;
   },
 
-  // Alias for compatibility  
+  // Alias for compatibility
   async process(id: string): Promise<ProcessWaybillResponse> {
     return this.processWaybill(id);
   },

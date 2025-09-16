@@ -51,13 +51,13 @@ export default function WaybillDetailPage() {
 
   const handleProcessWaybill = async () => {
     if (!waybill) return;
-    
+
     try {
       const result = await waybillService.processWaybill(waybill.id);
       toast.success(
         `Processing Complete - Matched: ${result.results.matched}, Processed: ${result.results.processed}, New Products: ${result.results.newProducts}`
       );
-      
+
       // Reload waybill to get updated status
       const updatedWaybill = await waybillService.getById(waybillId);
       setWaybill(updatedWaybill);
@@ -112,7 +112,8 @@ export default function WaybillDetailPage() {
               Waybill Not Found
             </h3>
             <p className="text-gray-800 mb-4">
-              The waybill you&apos;re looking for doesn&apos;t exist or has been removed.
+              The waybill you&apos;re looking for doesn&apos;t exist or has been
+              removed.
             </p>
             <Button onClick={() => router.push("/admin/waybills")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -140,18 +141,22 @@ export default function WaybillDetailPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               Waybill {waybill.waybillNumber}
             </h1>
-            <p className="text-gray-600">View waybill details and manage items</p>
+            <p className="text-gray-600">
+              View waybill details and manage items
+            </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
           {getStatusBadge(waybill.status)}
-          
+
           {/* Action Buttons */}
           {waybill.status === WaybillStatus.PENDING && (
             <>
               <Button
                 variant="outline"
-                onClick={() => router.push(`/admin/waybills/${waybill.id}/edit`)}
+                onClick={() =>
+                  router.push(`/admin/waybills/${waybill.id}/edit`)
+                }
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
@@ -162,10 +167,12 @@ export default function WaybillDetailPage() {
               </Button>
             </>
           )}
-          
+
           {waybill.status === WaybillStatus.REVIEW && (
             <Button
-              onClick={() => router.push(`/admin/waybills/${waybill.id}/review`)}
+              onClick={() =>
+                router.push(`/admin/waybills/${waybill.id}/review`)
+              }
               className="bg-orange-600 hover:bg-orange-700"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
@@ -192,14 +199,14 @@ export default function WaybillDetailPage() {
               </Label>
               <p className="font-semibold text-lg">{waybill.waybillNumber}</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">
                 Supplier
               </Label>
               <p className="font-medium">{waybill.supplier}</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
@@ -209,7 +216,7 @@ export default function WaybillDetailPage() {
                 {new Date(waybill.date).toLocaleDateString()}
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
@@ -219,7 +226,7 @@ export default function WaybillDetailPage() {
                 {waybill.location?.name || "No location"}
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                 <User className="h-4 w-4" />
@@ -227,21 +234,21 @@ export default function WaybillDetailPage() {
               </Label>
               <p className="font-medium">{waybill.receivedBy.fullName}</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">
                 Status
               </Label>
               <div>{getStatusBadge(waybill.status)}</div>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">
                 Total Items
               </Label>
               <p className="font-medium">{waybill.items.length}</p>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">
                 Created
@@ -251,7 +258,7 @@ export default function WaybillDetailPage() {
               </p>
             </div>
           </div>
-          
+
           {waybill.notes && (
             <>
               <Separator className="my-6" />
@@ -299,7 +306,7 @@ export default function WaybillDetailPage() {
                     {item.status}
                   </Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <Label className="text-gray-700">Unit</Label>
@@ -307,20 +314,27 @@ export default function WaybillDetailPage() {
                   </div>
                   <div>
                     <Label className="text-gray-700">Quantity Received</Label>
-                    <p className="font-medium">{Number(item.quantityReceived)}</p>
+                    <p className="font-medium">
+                      {Number(item.quantityReceived)}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-gray-700">Unit Cost</Label>
-                    <p className="font-medium">₦{Number(item.unitCost).toFixed(2)}</p>
+                    <p className="font-medium">
+                      ₦{Number(item.unitCost).toFixed(2)}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-gray-700">Total Value</Label>
                     <p className="font-medium">
-                      ₦{(Number(item.quantityReceived) * Number(item.unitCost)).toFixed(2)}
+                      ₦
+                      {(
+                        Number(item.quantityReceived) * Number(item.unitCost)
+                      ).toFixed(2)}
                     </p>
                   </div>
                 </div>
-                
+
                 {item.batchNo && (
                   <div className="mt-3 pt-3 border-t">
                     <div className="grid grid-cols-2 gap-4 text-sm">

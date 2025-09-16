@@ -175,8 +175,8 @@ router.put("/:id", authenticate, async (req: AuthenticatedRequest, res) => {
     }
 
     if (existingWaybill.status !== WaybillStatus.PENDING) {
-      return res.status(400).json({ 
-        error: "Only pending waybills can be edited" 
+      return res.status(400).json({
+        error: "Only pending waybills can be edited",
       });
     }
 

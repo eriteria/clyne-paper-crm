@@ -78,9 +78,7 @@ export default function EditWaybillPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             Edit Waybill {waybill.waybillNumber}
           </h1>
-          <p className="text-gray-600">
-            Modify waybill details and items
-          </p>
+          <p className="text-gray-600">Modify waybill details and items</p>
         </div>
       </div>
 
