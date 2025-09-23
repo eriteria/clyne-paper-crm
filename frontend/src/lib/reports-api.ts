@@ -9,6 +9,7 @@ import type {
   ExportRequest,
   ExportResponse,
   OverdueInvoice,
+  ARAgingReport,
 } from "../types/reports";
 
 // Executive Reports
@@ -199,4 +200,24 @@ export const getReportCacheStatus = async () => {
 export const getOverdueInvoices = async (): Promise<OverdueInvoice[]> => {
   const response = await apiClient.get("/reports/overdue-invoices");
   return response.data.data;
+};
+
+// Accounts Receivable Aging
+export const getARAging = async (
+  asOf: string,
+  mode: "due" | "outstanding" = "due",
+  netDays = 30,
+  filters?: { teamId?: string; regionId?: string; customerId?: string }
+): Promise<ARAgingReport> => {
+  const params = new URLSearchParams();
+  params.set("asOf", asOf);
+  if (mode) params.set("mode", mode);
+  if (netDays != null) params.set("netDays", String(netDays));
+  if (filters?.teamId) params.set("teamId", filters.teamId);
+  if (filters?.regionId) params.set("regionId", filters.regionId);
+  if (filters?.customerId) params.set("customerId", filters.customerId);
+
+  const response = await apiClient.get(`/reports/ar-aging?${params.toString()}`);
+  // Some endpoints return { success, data }, others return the payload directly
+  return (response.data && response.data.data) ? (response.data.data as ARAgingReport) : (response.data as ARAgingReport);
 };

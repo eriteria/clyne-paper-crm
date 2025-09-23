@@ -245,3 +245,45 @@ export interface ReportConfig {
   refreshInterval?: number; // minutes
   cacheTimeout?: number; // minutes
 }
+
+// Accounts Receivable Aging
+export type AgingBucketKey = "current" | "d1_30" | "d31_60" | "d61_90" | "d90_plus";
+
+export interface ARAgingInvoice {
+  id: string;
+  date: string; // ISO
+  dueDate: string | null; // ISO
+  balance: number;
+  daysPastDueOrOutstanding: number;
+  bucket: AgingBucketKey;
+}
+
+export interface ARAgingCustomer {
+  customerId: string;
+  customerName: string | null;
+  current: number;
+  d1_30: number;
+  d31_60: number;
+  d61_90: number;
+  d90_plus: number;
+  total: number;
+  invoices?: ARAgingInvoice[];
+}
+
+export interface ARAgingTotals {
+  current: number;
+  d1_30: number;
+  d31_60: number;
+  d61_90: number;
+  d90_plus: number;
+  total: number;
+}
+
+export interface ARAgingReport {
+  asOf: string; // ISO
+  mode: "due" | "outstanding";
+  netDays: number;
+  filters: { teamId?: string; regionId?: string; customerId?: string };
+  totals: ARAgingTotals;
+  customers: ARAgingCustomer[];
+}

@@ -27,8 +27,9 @@ import {
   exportReport,
   getOverdueInvoices,
   getSalesReport,
+  getARAging,
 } from "@/lib/reports-api";
-import type { OverdueInvoice } from "@/types/reports";
+import type { OverdueInvoice, ARAgingReport, ARAgingCustomer } from "@/types/reports";
 import type { SalesReport } from "@/types/reports";
 import { format } from "date-fns";
 
@@ -369,6 +370,89 @@ function OverdueTab({ data, isLoading }: OverdueTabProps) {
   );
 }
 
+// AR Aging Tab
+function AgingTab({ data, isLoading }: { data?: ARAgingReport; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">Loading A/R aging...</div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="text-center text-gray-500 h-64 flex items-center justify-center">No receivables data</div>
+    );
+  }
+
+  const buckets = [
+    { key: "current", label: "Current" },
+    { key: "d1_30", label: "1–30" },
+    { key: "d31_60", label: "31–60" },
+    { key: "d61_90", label: "61–90" },
+    { key: "d90_plus", label: "90+" },
+  ] as const;
+
+  const formatCurrency = (n: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(n || 0);
+
+  return (
+    <div className="space-y-8">
+      {/* Totals */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <MetricCard icon={DollarSign} iconColor="text-gray-700" title="Current" value={formatCurrency(data.totals.current)} change="" changeColor="text-gray-500" />
+        <MetricCard icon={DollarSign} iconColor="text-yellow-700" title="1–30" value={formatCurrency(data.totals.d1_30)} change="" changeColor="text-gray-500" />
+        <MetricCard icon={DollarSign} iconColor="text-orange-700" title="31–60" value={formatCurrency(data.totals.d31_60)} change="" changeColor="text-gray-500" />
+        <MetricCard icon={DollarSign} iconColor="text-red-700" title="61–90" value={formatCurrency(data.totals.d61_90)} change="" changeColor="text-gray-500" />
+        <MetricCard icon={DollarSign} iconColor="text-red-800" title="90+" value={formatCurrency(data.totals.d90_plus)} change="" changeColor="text-gray-500" />
+      </div>
+
+      {/* Per-customer table */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">A/R Aging by Customer</h3>
+          <div className="text-sm text-gray-500">As of {new Date(data.asOf).toLocaleDateString()}</div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                {buckets.map(b => (
+                  <th key={b.key} className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{b.label}</th>
+                ))}
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {data.customers.map((c: ARAgingCustomer) => (
+                <tr key={c.customerId} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{c.customerName || c.customerId}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.current)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.d1_30)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.d31_60)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.d61_90)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.d90_plus)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold">{formatCurrency(c.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-gray-50">
+              <tr>
+                <td className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Grand Total</td>
+                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.current)}</td>
+                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.d1_30)}</td>
+                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.d31_60)}</td>
+                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.d61_90)}</td>
+                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.d90_plus)}</td>
+                <td className="px-6 py-3 text-right text-sm font-bold">{formatCurrency(data.totals.total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const [filters, setFilters] = useState({
     startDate: "2000-01-01",
@@ -388,10 +472,17 @@ export default function ReportsPage() {
     queryFn: () => getSalesReport(filters.startDate, filters.endDate),
   });
 
+  // AR Aging query (as-of uses filters.endDate to align with date pickers)
+  const { data: agingData, isLoading: agingLoading } = useQuery({
+    queryKey: ["ar-aging", filters.endDate],
+    queryFn: () => getARAging(filters.endDate),
+  });
+
   const tabs = [
     { id: "executive", name: "Executive Summary", icon: BarChart3 },
     { id: "sales", name: "Sales Performance", icon: TrendingUp },
     { id: "overdue", name: "Overdue Invoices", icon: Target },
+    { id: "aging", name: "A/R Aging", icon: FileText },
     { id: "inventory", name: "Inventory", icon: Package },
     { id: "customers", name: "Customers", icon: Users },
   ];
@@ -493,6 +584,11 @@ export default function ReportsPage() {
         {/* Overdue Invoices */}
         {activeTab === "overdue" && (
           <OverdueTab data={overdueData} isLoading={overdueLoading} />
+        )}
+
+        {/* A/R Aging */}
+        {activeTab === "aging" && (
+          <AgingTab data={agingData} isLoading={agingLoading} />
         )}
 
         {/* Other tabs placeholder */}
