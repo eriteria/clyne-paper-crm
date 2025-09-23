@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
+import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 
 const router = express.Router();
 
@@ -97,6 +98,204 @@ router.get("/dashboard", async (req, res, next) => {
     next(error);
   }
 });
+
+// @desc    Accounts Receivable Aging report
+// @route   GET /api/reports/ar-aging
+// @access  Private
+// Query params:
+// - asOf: YYYY-MM-DD (defaults to today, end of day)
+// - mode: "due" | "outstanding" (default: "due")
+//   - due: age by days past due (uses dueDate; if missing, falls back to invoice.date + netDays)
+//   - outstanding: age by days since invoice.date
+// - netDays: number (default: 30) used when dueDate is missing in due-mode
+// - teamId, regionId, customerId: optional filters
+router.get(
+  "/ar-aging",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const {
+        asOf,
+        mode = "due",
+        netDays: netDaysParam,
+        teamId,
+        regionId,
+        customerId,
+      } = req.query as Record<string, string | undefined>;
+
+      const netDays = Number.isFinite(Number(netDaysParam))
+        ? Math.max(0, parseInt(netDaysParam as string, 10))
+        : 30;
+
+      // Set asOf to end of day for inclusiveness
+      const asOfDate = asOf ? new Date(asOf) : new Date();
+      asOfDate.setHours(23, 59, 59, 999);
+
+      // Build base filters for open A/R
+      const where: any = {
+        status: { in: ["OPEN", "PARTIAL"] },
+        balance: { gt: 0 },
+      };
+
+      if (teamId) where.teamId = teamId;
+      if (regionId) where.regionId = regionId;
+      if (customerId) where.customerId = customerId;
+
+      // Fetch only fields we need for aging
+      const invoices = await prisma.invoice.findMany({
+        where,
+        select: {
+          id: true,
+          customerId: true,
+          customerName: true,
+          date: true,
+          dueDate: true,
+          balance: true,
+        },
+        orderBy: { dueDate: "asc" },
+      });
+
+      // Aging buckets definition
+      type BucketKey = "current" | "d1_30" | "d31_60" | "d61_90" | "d90_plus";
+      const bucketKeys: BucketKey[] = [
+        "current",
+        "d1_30",
+        "d31_60",
+        "d61_90",
+        "d90_plus",
+      ];
+
+      const initBuckets = () => ({
+        current: 0,
+        d1_30: 0,
+        d31_60: 0,
+        d61_90: 0,
+        d90_plus: 0,
+      });
+
+      const addToBucket = (obj: any, key: BucketKey, amount: number) => {
+        obj[key] = (obj[key] || 0) + amount;
+      };
+
+      const dayDiff = (a: Date, b: Date) => {
+        const MS_PER_DAY = 24 * 60 * 60 * 1000;
+        return Math.floor((a.getTime() - b.getTime()) / MS_PER_DAY);
+      };
+
+      // Aggregate by customer
+      const byCustomer: Record<
+        string,
+        {
+          customerId: string;
+          customerName: string | null;
+          current: number;
+          d1_30: number;
+          d31_60: number;
+          d61_90: number;
+          d90_plus: number;
+          total: number;
+          invoices: Array<{
+            id: string;
+            date: Date;
+            dueDate: Date | null;
+            balance: number;
+            daysPastDueOrOutstanding: number;
+            bucket: BucketKey;
+          }>;
+        }
+      > = {};
+
+      const toNumber = (val: any): number => {
+        // Prisma Decimal may come through; convert safely to number for sums
+        if (val == null) return 0;
+        const n = typeof val === "object" && "toNumber" in val ? val.toNumber() : Number(val);
+        return Number.isFinite(n) ? n : 0;
+      };
+
+      for (const inv of invoices) {
+        const balance = toNumber(inv.balance);
+        if (balance <= 0) continue;
+
+        let metric = 0; // days past due or outstanding depending on mode
+        if (mode === "outstanding") {
+          // Age by days since invoice date
+          metric = dayDiff(asOfDate, inv.date);
+        } else {
+          // Default: due-mode
+          // Use dueDate if present; otherwise assume terms of netDays from invoice date
+          const effectiveDue = inv.dueDate
+            ? new Date(inv.dueDate)
+            : new Date(inv.date.getTime() + netDays * 24 * 60 * 60 * 1000);
+          metric = Math.max(0, dayDiff(asOfDate, effectiveDue));
+        }
+
+        let bucket: BucketKey = "current";
+        if (mode === "outstanding") {
+          // In outstanding mode, treat 0–30 as Current
+          if (metric <= 30) bucket = "current";
+          else if (metric <= 60) bucket = "d1_30"; // 31–60
+          else if (metric <= 90) bucket = "d31_60"; // 61–90
+          else bucket = "d90_plus"; // 90+
+        } else {
+          // due-mode buckets by days past due
+          if (metric === 0) bucket = "current"; // not yet due
+          else if (metric <= 30) bucket = "d1_30";
+          else if (metric <= 60) bucket = "d31_60";
+          else if (metric <= 90) bucket = "d61_90";
+          else bucket = "d90_plus";
+        }
+
+        const key = inv.customerId;
+        if (!byCustomer[key]) {
+          byCustomer[key] = {
+            customerId: inv.customerId,
+            customerName: inv.customerName ?? null,
+            ...initBuckets(),
+            total: 0,
+            invoices: [],
+          };
+        }
+
+        addToBucket(byCustomer[key], bucket, balance);
+        byCustomer[key].total += balance;
+        byCustomer[key].invoices.push({
+          id: inv.id,
+          date: inv.date,
+          dueDate: inv.dueDate,
+          balance,
+          daysPastDueOrOutstanding: metric,
+          bucket,
+        });
+      }
+
+      // Compute grand totals
+      const totals = initBuckets() as Record<BucketKey, number> & { total: number };
+      (totals as any).total = 0;
+      for (const c of Object.values(byCustomer)) {
+        for (const k of bucketKeys) {
+          (totals as any)[k] += c[k];
+        }
+        (totals as any).total += c.total;
+      }
+
+      // Prepare response
+      const customers = Object.values(byCustomer).sort((a, b) => b.total - a.total);
+
+      res.json({
+        success: true,
+        asOf: asOfDate.toISOString(),
+        mode,
+        netDays,
+        filters: { teamId, regionId, customerId },
+        totals,
+        customers,
+      });
+    } catch (error) {
+      logger.error("Error generating AR aging report:", error);
+      next(error);
+    }
+  }
+);
 
 // @desc    Get inventory analytics
 // @route   GET /api/reports/inventory
@@ -256,7 +455,7 @@ router.get("/sales", async (req, res, next) => {
   }
   try {
     const { startDate, endDate, userId, teamId, regionId } = req.query;
-    
+
     // Log all parameters
     logger.info(
       `[SALES REPORT] Parameters received: startDate=${startDate}, endDate=${endDate}, userId=${userId}, teamId=${teamId}, regionId=${regionId}`
@@ -281,7 +480,7 @@ router.get("/sales", async (req, res, next) => {
     if (Object.keys(dateFilter).length > 0) {
       where.createdAt = dateFilter;
     }
-    
+
     logger.info(
       `[SALES REPORT] Final where clause: ${JSON.stringify(where, null, 2)}`
     );
