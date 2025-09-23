@@ -19,6 +19,7 @@ import {
   UsersIcon,
   ShoppingCart,
   CreditCard,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
@@ -33,6 +34,7 @@ const navigation = [
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Financial", href: "/financial", icon: Calculator },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Users", href: "/users", icon: Users },
   { name: "Teams", href: "/teams", icon: UsersIcon },
   { name: "Settings", href: "/settings", icon: Settings },

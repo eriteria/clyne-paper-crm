@@ -40,12 +40,21 @@ import { logger } from "./utils/logger";
 // Load environment variables
 dotenv.config();
 
+// Ensure BigInt values serialize safely in JSON responses
+// Converts BigInt to number when safe, otherwise to string
+// This prevents: TypeError: Do not know how to serialize a BigInt
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(BigInt.prototype as any).toJSON = function toJSONBigInt() {
+  const asNumber = Number(this);
+  return Number.isSafeInteger(asNumber) ? asNumber : this.toString();
+};
+
 // Initialize Prisma
 export const prisma = new PrismaClient();
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || "5000", 10);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -53,6 +62,9 @@ const limiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100"), // limit each IP to 100 requests per windowMs
   message: "Too many requests from this IP, please try again later.",
 });
+
+// Trust proxy for Fly.io
+app.set("trust proxy", true);
 
 // Middleware
 app.use(helmet());
@@ -63,6 +75,8 @@ app.use(
     origin: [
       process.env.FRONTEND_URL || "http://localhost:3000",
       "http://localhost:3001",
+      "https://clyne-paper-crm-frontend.fly.dev",
+      "https://crm.clynepaper.com.ng",
     ],
     credentials: true,
   })
@@ -121,7 +135,7 @@ process.on("SIGTERM", async () => {
 });
 
 // Start server
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📚 Environment: ${process.env.NODE_ENV}`);
 });

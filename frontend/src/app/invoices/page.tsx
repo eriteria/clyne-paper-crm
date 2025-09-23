@@ -6,14 +6,14 @@ import {
   FileText,
   Plus,
   Search,
-  Eye,
+  // Eye,
   Edit,
   Trash2,
   Download,
   Calendar,
   DollarSign,
-  User,
-  Building,
+  // User,
+  // Building,
   UserPlus,
   Upload,
 } from "lucide-react";
@@ -31,7 +31,7 @@ export default function InvoicesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
-  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  // const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -68,12 +68,24 @@ export default function InvoicesPage() {
   });
 
   // Update status mutation
-  const updateStatusMutation = useMutation({
+  /* const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       await apiClient.patch(`/invoices/${id}`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    },
+  }); */
+
+  // Post draft (publish) mutation
+  const postDraftMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.post(`/invoices/${id}/post`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice-stats"] });
     },
   });
 
@@ -107,6 +119,7 @@ export default function InvoicesPage() {
     const badges: { [key: string]: string } = {
       draft: "bg-gray-100 text-gray-800",
       DRAFT: "bg-gray-100 text-gray-800",
+      OPEN: "bg-blue-100 text-blue-700",
       pending: "bg-yellow-100 text-yellow-800",
       paid: "bg-green-100 text-green-800",
       COMPLETED: "bg-green-100 text-green-800",
@@ -124,7 +137,7 @@ export default function InvoicesPage() {
 
   const getPendingAmount = () => {
     return filteredInvoices
-      .filter((inv: Invoice) => inv.status === "DRAFT")
+      .filter((inv: Invoice) => inv.status === "DRAFT" || inv.status === "OPEN")
       .reduce((sum: number, inv: Invoice) => sum + inv.totalAmount, 0);
   };
 
@@ -253,7 +266,8 @@ export default function InvoicesPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="">All Status</option>
-            <option value="draft">Draft</option>
+            <option value="DRAFT">Draft</option>
+            <option value="OPEN">Open</option>
             <option value="pending">Pending</option>
             <option value="paid">Paid</option>
             <option value="overdue">Overdue</option>
@@ -356,13 +370,7 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setViewingInvoice(invoice)}
-                        className="text-blue-600 hover:text-blue-900 p-1"
-                        title="View invoice"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
+                      {/* View action intentionally hidden for now */}
                       <button
                         className="text-green-600 hover:text-green-900 p-1"
                         title="Download PDF"
@@ -375,6 +383,24 @@ export default function InvoicesPage() {
                       >
                         <Edit className="h-4 w-4" />
                       </button>
+                      {invoice.status === "DRAFT" && (
+                        <button
+                          onClick={() => postDraftMutation.mutate(invoice.id)}
+                          className="text-green-600 hover:text-green-900 p-1"
+                          title={
+                            postDraftMutation.isPending
+                              ? "Posting..."
+                              : "Post now"
+                          }
+                          disabled={postDraftMutation.isPending}
+                        >
+                          {postDraftMutation.isPending ? (
+                            <span className="text-xs">Posting…</span>
+                          ) : (
+                            <span className="text-xs font-medium">Post</span>
+                          )}
+                        </button>
+                      )}
                       <button
                         onClick={() => deleteMutation.mutate(invoice.id)}
                         className="text-red-600 hover:text-red-900 p-1"

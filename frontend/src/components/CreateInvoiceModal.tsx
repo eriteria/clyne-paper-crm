@@ -62,6 +62,21 @@ export default function CreateInvoiceModal({
   onClose,
   onSuccess,
 }: CreateInvoiceModalProps) {
+  type PostAction = "save" | "post";
+  type InvoiceRequestItem = {
+    inventoryItemId: string;
+    quantity: number;
+    unitPrice: number;
+  };
+  type InvoiceRequest = {
+    customerId: string;
+    items?: InvoiceRequestItem[];
+    notes: string;
+    dueDate: string | null;
+    taxAmount: number;
+    discountAmount: number;
+    action?: PostAction;
+  };
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -136,14 +151,7 @@ export default function CreateInvoiceModal({
 
   // Create invoice mutation
   const createInvoiceMutation = useMutation({
-    mutationFn: async (invoiceData: {
-      customerId: string;
-      items: { inventoryItemId: string; quantity: number; unitPrice: number }[];
-      notes: string;
-      dueDate: string | null;
-      taxAmount: number;
-      discountAmount: number;
-    }) => {
+    mutationFn: async (invoiceData: InvoiceRequest) => {
       const response = await apiClient.post("/invoices", invoiceData);
       return response.data;
     },
@@ -173,10 +181,7 @@ export default function CreateInvoiceModal({
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const total = subtotal + taxAmount - discountAmount;
 
-  // Calculate maximum due date (30 days from invoice date)
-  const maxDueDate = new Date(invoiceDate);
-  maxDueDate.setDate(maxDueDate.getDate() + 30);
-  const maxDueDateString = maxDueDate.toISOString().split("T")[0];
+  // Relaxed due date UI message to match backend flexibility
 
   const handleClose = () => {
     // Reset form
@@ -249,51 +254,37 @@ export default function CreateInvoiceModal({
       alert("Please select a customer");
       return;
     }
-
-    if (items.some((item) => !item.inventoryItemId || item.quantity <= 0)) {
-      alert("Please complete all item details");
-      return;
-    }
-
-    // Validate due date is not more than 30 days from invoice date
-    if (dueDate) {
-      const dueDateObj = new Date(dueDate);
-      const invoiceDateObj = new Date(invoiceDate);
-      const maxDueDateObj = new Date(invoiceDate);
-      maxDueDateObj.setDate(maxDueDateObj.getDate() + 30);
-
-      // Normalize times for accurate comparison
-      dueDateObj.setHours(0, 0, 0, 0);
-      invoiceDateObj.setHours(0, 0, 0, 0);
-      maxDueDateObj.setHours(0, 0, 0, 0);
-
-      if (dueDateObj > maxDueDateObj) {
-        alert(
-          `Due date cannot be more than 30 days from the invoice date. Maximum allowed date is ${maxDueDateObj.toLocaleDateString()}`
-        );
-        return;
-      }
-
-      if (dueDateObj < invoiceDateObj) {
-        alert("Due date cannot be before the invoice date");
-        return;
-      }
-    }
-
     // Note: Stock validation removed - allowing sales of out-of-stock items
 
-    const invoiceData = {
+    const invoiceData: InvoiceRequest = {
       customerId: selectedCustomerId,
-      items: items.map((item) => ({
-        inventoryItemId: item.inventoryItemId,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      })),
       notes,
       dueDate: dueDate || null,
       taxAmount,
       discountAmount,
     };
+
+    // Default submit acts like "Post"
+    invoiceData.action = "post";
+    invoiceData.items = items.map(
+      (item): InvoiceRequestItem => ({
+        inventoryItemId: item.inventoryItemId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })
+    );
+
+    // Client-side check for posted invoices: require items
+    if (
+      !invoiceData.items ||
+      invoiceData.items.length === 0 ||
+      invoiceData.items.some(
+        (it: InvoiceRequestItem) => !it.inventoryItemId || it.quantity <= 0
+      )
+    ) {
+      alert("Please complete all item details before posting");
+      return;
+    }
 
     createInvoiceMutation.mutate(invoiceData);
   };
@@ -383,14 +374,9 @@ export default function CreateInvoiceModal({
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                min={invoiceDate}
-                max={maxDueDateString}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Optional. Maximum 30 days from invoice date (
-                {new Date(maxDueDateString).toLocaleDateString()})
-              </p>
+              <p className="mt-1 text-xs text-gray-500">Optional.</p>
             </div>
           </div>
 
@@ -618,14 +604,45 @@ export default function CreateInvoiceModal({
               Cancel
             </button>
             <button
+              type="button"
+              onClick={() => {
+                if (!selectedCustomerId) {
+                  alert("Please select a customer");
+                  return;
+                }
+                const draftData: InvoiceRequest = {
+                  customerId: selectedCustomerId,
+                  notes,
+                  dueDate: dueDate || null,
+                  taxAmount,
+                  discountAmount,
+                  action: "save",
+                };
+                // Include items only if user started adding
+                if (items && items.length > 0) {
+                  draftData.items = items
+                    .filter((i) => i.inventoryItemId)
+                    .map(
+                      (item): InvoiceRequestItem => ({
+                        inventoryItemId: item.inventoryItemId,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                      })
+                    );
+                }
+                createInvoiceMutation.mutate(draftData);
+              }}
+              className="flex items-center px-6 py-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <Save className="w-4 h-4 mr-2" /> Save for later
+            </button>
+            <button
               type="submit"
               disabled={createInvoiceMutation.isPending}
               className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
-              {createInvoiceMutation.isPending
-                ? "Creating..."
-                : "Create Invoice"}
+              {createInvoiceMutation.isPending ? "Submitting..." : "Post"}
             </button>
           </div>
         </form>

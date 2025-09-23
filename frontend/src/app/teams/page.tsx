@@ -284,9 +284,9 @@ export default function TeamsPage() {
                           </span>
                         )}
                       </div>
-                      {team.location && (
+                      {team.locations && team.locations.length > 0 && (
                         <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                          {team.location.name}
+                          {team.locations[0].location.name}
                         </span>
                       )}
                     </div>

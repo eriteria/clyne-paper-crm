@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Eye, CreditCard, Receipt, FileText } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { apiClient } from "@/lib/api";
 
 interface Customer {
   id: string;
@@ -126,15 +127,10 @@ const CustomerLedgerModal: React.FC<CustomerLedgerModalProps> = ({
   const fetchLedgerData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/payments/customers/${customer.id}/ledger`
+      const response = await apiClient.get(
+        `/payments/customers/${customer.id}/ledger`
       );
-      if (response.ok) {
-        const data = await response.json();
-        setLedgerData(data.data);
-      } else {
-        throw new Error("Failed to fetch ledger data");
-      }
+      setLedgerData(response.data?.data || null);
     } catch (error) {
       console.error("Error fetching ledger data:", error);
       alert("Failed to load customer ledger");

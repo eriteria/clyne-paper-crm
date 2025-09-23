@@ -361,11 +361,13 @@ router.patch(
       const validStatuses = [
         "DRAFT",
         "COMPLETED",
+        "OPEN",
         "draft",
         "pending",
         "paid",
         "overdue",
         "cancelled",
+        "open",
       ];
       if (status && !validStatuses.includes(status)) {
         return res.status(400).json({
@@ -411,6 +413,71 @@ router.patch(
   }
 );
 
+// @desc    Post (publish) a draft invoice
+// @route   POST /api/invoices/:id/post
+// @access  Private
+router.post(
+  "/:id/post",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { id } = req.params;
+
+      // Load the draft invoice with items
+      const invoice = await prisma.invoice.findUnique({
+        where: { id },
+        include: {
+          items: true,
+        },
+      });
+
+      if (!invoice) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Invoice not found" });
+      }
+
+      if (invoice.status !== "DRAFT") {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Only draft invoices can be posted",
+          });
+      }
+
+      // Post in a transaction: adjust inventory and set status to OPEN
+      await prisma.$transaction(async (tx) => {
+        // Adjust inventory for each item
+        for (const item of invoice.items) {
+          await tx.inventoryItem.update({
+            where: { id: item.inventoryItemId },
+            data: {
+              currentQuantity: { decrement: item.quantity as any },
+            },
+          });
+        }
+
+        await tx.invoice.update({
+          where: { id: invoice.id },
+          data: { status: "OPEN" },
+        });
+      });
+
+      const updated = await prisma.invoice.findUnique({ where: { id } });
+
+      res.json({
+        success: true,
+        data: updated,
+        message: "Invoice posted successfully",
+      });
+    } catch (error) {
+      logger.error("Error posting invoice:", error);
+      next(error);
+    }
+  }
+);
+
 // @desc    Create new invoice
 // @route   POST /api/invoices
 // @access  Private
@@ -423,7 +490,17 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
       dueDate,
       taxAmount = 0,
       discountAmount = 0,
+      action,
+      status: statusInBody,
+      saveForLater,
     } = req.body;
+
+    // Determine intent: save draft vs post (publish)
+    const isDraft =
+      action === "save" ||
+      saveForLater === true ||
+      (typeof statusInBody === "string" &&
+        statusInBody.toUpperCase() === "DRAFT");
 
     // Validation
     if (!customerId) {
@@ -433,11 +510,14 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
       });
     }
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invoice items are required",
-      });
+    // For drafts, allow saving without items; for posted invoices, require items
+    if (!isDraft) {
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invoice items are required",
+        });
+      }
     }
 
     // Verify customer exists
@@ -452,53 +532,31 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
       });
     }
 
-    // Validate due date is not more than 30 days from today
-    if (dueDate) {
-      const dueDateObj = new Date(dueDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
-      dueDateObj.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
-
-      const maxDueDate = new Date(today);
-      maxDueDate.setDate(today.getDate() + 30);
-
-      if (dueDateObj > maxDueDate) {
-        return res.status(400).json({
-          success: false,
-          message: "Due date cannot be more than 30 days from today",
-        });
-      }
-
-      if (dueDateObj < today) {
-        return res.status(400).json({
-          success: false,
-          message: "Due date cannot be in the past",
-        });
-      }
-    }
+    // Relaxed: No due date constraints; allow any provided due date
 
     // Validate inventory items (no stock check - allows selling out of stock items)
-    const inventoryChecks = await Promise.all(
-      items.map(async (item: any) => {
-        const inventoryItem = await prisma.inventoryItem.findUnique({
-          where: { id: item.inventoryItemId },
-        });
+    const inventoryChecks =
+      items && Array.isArray(items) && items.length > 0
+        ? await Promise.all(
+            items.map(async (item: any) => {
+              const inventoryItem = await prisma.inventoryItem.findUnique({
+                where: { id: item.inventoryItemId },
+              });
 
-        if (!inventoryItem) {
-          throw new Error(
-            `Inventory item with ID ${item.inventoryItemId} not found`
-          );
-        }
+              if (!inventoryItem) {
+                throw new Error(
+                  `Inventory item with ID ${item.inventoryItemId} not found`
+                );
+              }
 
-        // Note: Removed stock quantity validation to allow selling out of stock items
-
-        return {
-          ...item,
-          inventoryItem,
-          lineTotal: item.quantity * item.unitPrice,
-        };
-      })
-    );
+              return {
+                ...item,
+                inventoryItem,
+                lineTotal: item.quantity * item.unitPrice,
+              };
+            })
+          )
+        : [];
 
     // Calculate totals
     const subtotal = inventoryChecks.reduce(
@@ -549,7 +607,7 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
           discountAmount: parseFloat(discountAmount),
           notes,
           dueDate: dueDate ? new Date(dueDate) : null,
-          status: "DRAFT",
+          status: isDraft ? "DRAFT" : "OPEN",
         },
       });
 
@@ -567,15 +625,17 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
             },
           });
 
-          // Update inventory - subtract sold quantity
-          await tx.inventoryItem.update({
-            where: { id: item.inventoryItemId },
-            data: {
-              currentQuantity: {
-                decrement: item.quantity,
+          // Update inventory only when posting (not for drafts)
+          if (!isDraft) {
+            await tx.inventoryItem.update({
+              where: { id: item.inventoryItemId },
+              data: {
+                currentQuantity: {
+                  decrement: item.quantity,
+                },
               },
-            },
-          });
+            });
+          }
 
           // Track monthly target progress for the product
           const inventoryItem = item.inventoryItem;
@@ -665,7 +725,9 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
     res.status(201).json({
       success: true,
       data: completeInvoice,
-      message: "Invoice created successfully",
+      message: isDraft
+        ? "Invoice saved as draft"
+        : "Invoice posted successfully",
     });
   } catch (error) {
     logger.error("Error creating invoice:", error);

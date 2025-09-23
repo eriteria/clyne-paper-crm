@@ -308,11 +308,22 @@ async function findOrCreateCustomer(customerName: string) {
     });
 
     if (!customer) {
-      // Create new customer
+      // Ensure we have at least one location to satisfy required relation
+      let location = await prisma.location.findFirst();
+      if (!location) {
+        location = await prisma.location.create({
+          data: {
+            name: "Default Location",
+            description: "Auto-created for imports",
+          },
+        });
+      }
+
+      // Create new customer with required location relation
       customer = await prisma.customer.create({
         data: {
           name: customerName,
-          // We'll leave relationship manager assignment for later
+          locationRef: { connect: { id: location.id } },
         },
         include: {
           relationshipManager: true,
@@ -411,6 +422,13 @@ async function importSingleInvoice(
     // Find or create customer by name
     const customer = await findOrCreateCustomer(invoiceData.customerName);
 
+    if (!customer) {
+      return {
+        success: false,
+        message: `Failed to find or create customer ${invoiceData.customerName}`,
+      };
+    }
+
     // Use customer's relationship manager or default user
     const billingUser = customer.relationshipManager || defaultUser;
 
@@ -430,8 +448,13 @@ async function importSingleInvoice(
     }
 
     // Process items and find inventory matches
-    const processedItems = [];
-    const missingProducts = [];
+    const processedItems: {
+      inventoryItemId: string;
+      quantity: number;
+      unitPrice: number;
+      lineTotal: number;
+    }[] = [];
+    const missingProducts: string[] = [];
 
     for (const item of invoiceData.items) {
       const inventoryItem = await findInventoryItemByProductName(
@@ -510,7 +533,7 @@ async function importSingleInvoice(
         regionId: null, // Set to null for imported invoices for now
         totalAmount: invoiceData.totalAmount,
         balance: invoiceData.totalAmount, // Initialize balance to total amount
-        status: "COMPLETED", // Imported invoices are completed
+        status: "OPEN", // Imported invoices are active/open by default
         items: {
           create: processedItems,
         },

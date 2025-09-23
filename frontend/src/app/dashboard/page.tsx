@@ -126,9 +126,9 @@ export default function DashboardPage() {
                       router.push("/invoices");
                       setShowQuickActions(false);
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2 transition-colors"
                   >
-                    <FileText className="h-4 w-4" />
+                    <FileText className="h-4 w-4 text-gray-600" />
                     Create Invoice
                   </button>
                   <button
@@ -136,9 +136,9 @@ export default function DashboardPage() {
                       router.push("/inventory");
                       setShowQuickActions(false);
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2 transition-colors"
                   >
-                    <Package className="h-4 w-4" />
+                    <Package className="h-4 w-4 text-gray-600" />
                     Add Inventory
                   </button>
                   <button
@@ -146,9 +146,9 @@ export default function DashboardPage() {
                       router.push("/users");
                       setShowQuickActions(false);
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2 transition-colors"
                   >
-                    <Users className="h-4 w-4" />
+                    <Users className="h-4 w-4 text-gray-600" />
                     Manage Users
                   </button>
                   <button
@@ -156,9 +156,9 @@ export default function DashboardPage() {
                       router.push("/reports");
                       setShowQuickActions(false);
                     }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-gray-800 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2 transition-colors"
                   >
-                    <TrendingUp className="h-4 w-4" />
+                    <TrendingUp className="h-4 w-4 text-gray-600" />
                     View Reports
                   </button>
                 </div>

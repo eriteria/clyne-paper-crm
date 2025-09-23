@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { apiClient } from "@/lib/api";
 
 interface Customer {
   id: string;
@@ -94,25 +95,39 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch("/api/customers");
-      if (response.ok) {
-        const data = await response.json();
-        setCustomers(data.customers || []);
-      }
+      const response = await apiClient.get("/customers");
+      // Backend returns { success, data: customers[], pagination }
+      setCustomers(response.data?.data || []);
     } catch (error) {
       console.error("Error fetching customers:", error);
+      setCustomers([]);
     }
   };
 
   const fetchOpenInvoices = async (customerId: string) => {
     try {
-      const response = await fetch(
-        `/api/payments/customers/${customerId}/open-invoices`
+      const response = await apiClient.get(
+        `/payments/customers/${customerId}/open-invoices`
       );
-      if (response.ok) {
-        const data = await response.json();
-        setOpenInvoices(data.data.invoices || []);
-      }
+      // Backend returns { success, data: { invoices, summary } }
+      type RawOpenInvoice = Omit<OpenInvoice, "totalAmount" | "balance"> & {
+        totalAmount: number | string;
+        balance: number | string;
+      };
+      const rawInvoices = (response.data?.data?.invoices ||
+        []) as RawOpenInvoice[];
+      const invoices: OpenInvoice[] = rawInvoices.map((inv) => ({
+        ...inv,
+        totalAmount:
+          typeof inv.totalAmount === "string"
+            ? parseFloat(inv.totalAmount)
+            : inv.totalAmount,
+        balance:
+          typeof inv.balance === "string"
+            ? parseFloat(inv.balance)
+            : inv.balance,
+      }));
+      setOpenInvoices(invoices);
     } catch (error) {
       console.error("Error fetching open invoices:", error);
       setOpenInvoices([]);
@@ -121,11 +136,8 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await fetch("/api/payments/payment-methods");
-      if (response.ok) {
-        const data = await response.json();
-        setPaymentMethods(data.data || []);
-      }
+      const response = await apiClient.get("/payments/payment-methods");
+      setPaymentMethods(response.data?.data || []);
     } catch (error) {
       console.error("Error fetching payment methods:", error);
       setPaymentMethods([
@@ -203,29 +215,23 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/payments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customerId: selectedCustomer.id,
-          amount: parseFloat(formData.amount),
-          paymentMethod: formData.paymentMethod,
-          paymentDate: formData.paymentDate,
-          referenceNumber: formData.referenceNumber || undefined,
-          notes: formData.notes || undefined,
-        }),
+      const response = await apiClient.post("/payments", {
+        customerId: selectedCustomer.id,
+        amount: parseFloat(formData.amount),
+        paymentMethod: formData.paymentMethod,
+        paymentDate: formData.paymentDate,
+        referenceNumber: formData.referenceNumber || undefined,
+        notes: formData.notes || undefined,
       });
 
-      if (response.ok) {
-        const result = await response.json();
+      const result = response.data?.data;
+      if (result) {
         alert(
           `Payment recorded successfully! Allocated: ${formatCurrency(
-            result.data.totalAllocated
+            result.totalAllocated
           )} ${
-            result.data.totalCredit > 0
-              ? `| Credit Created: ${formatCurrency(result.data.totalCredit)}`
+            result.totalCredit > 0
+              ? `| Credit Created: ${formatCurrency(result.totalCredit)}`
               : ""
           }`
         );
@@ -233,8 +239,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
         onClose();
         resetForm();
       } else {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to record payment");
+        throw new Error("Failed to record payment");
       }
     } catch (error) {
       console.error("Error recording payment:", error);
