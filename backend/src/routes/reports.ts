@@ -208,7 +208,10 @@ router.get(
       const toNumber = (val: any): number => {
         // Prisma Decimal may come through; convert safely to number for sums
         if (val == null) return 0;
-        const n = typeof val === "object" && "toNumber" in val ? val.toNumber() : Number(val);
+        const n =
+          typeof val === "object" && "toNumber" in val
+            ? val.toNumber()
+            : Number(val);
         return Number.isFinite(n) ? n : 0;
       };
 
@@ -233,12 +236,15 @@ router.get(
         if (mode === "outstanding") {
           // In outstanding mode, treat 0–30 as Current
           if (metric <= 30) bucket = "current";
-          else if (metric <= 60) bucket = "d1_30"; // 31–60
-          else if (metric <= 90) bucket = "d31_60"; // 61–90
+          else if (metric <= 60)
+            bucket = "d1_30"; // 31–60
+          else if (metric <= 90)
+            bucket = "d31_60"; // 61–90
           else bucket = "d90_plus"; // 90+
         } else {
           // due-mode buckets by days past due
-          if (metric === 0) bucket = "current"; // not yet due
+          if (metric === 0)
+            bucket = "current"; // not yet due
           else if (metric <= 30) bucket = "d1_30";
           else if (metric <= 60) bucket = "d31_60";
           else if (metric <= 90) bucket = "d61_90";
@@ -269,7 +275,9 @@ router.get(
       }
 
       // Compute grand totals
-      const totals = initBuckets() as Record<BucketKey, number> & { total: number };
+      const totals = initBuckets() as Record<BucketKey, number> & {
+        total: number;
+      };
       (totals as any).total = 0;
       for (const c of Object.values(byCustomer)) {
         for (const k of bucketKeys) {
@@ -279,7 +287,9 @@ router.get(
       }
 
       // Prepare response
-      const customers = Object.values(byCustomer).sort((a, b) => b.total - a.total);
+      const customers = Object.values(byCustomer).sort(
+        (a, b) => b.total - a.total
+      );
 
       res.json({
         success: true,

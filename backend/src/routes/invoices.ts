@@ -3,147 +3,9 @@ import { prisma } from "../server";
 import { logger } from "../utils/logger";
 import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
-import {
-  importInvoices,
-  importJsonInvoices,
-  importFlexibleJsonInvoices,
-  getInvoiceImportTemplate,
-  getJsonInvoiceImportTemplate,
-  getImportStatistics,
-  fixDuplicateInvoiceNumbers,
-  ExcelInvoiceRow,
-  JsonInvoiceRow,
-} from "../utils/invoiceImport";
+import PDFDocument = require("pdfkit");
 
 const router = express.Router();
-
-// @desc    Get invoice statistics
-// @route   GET /api/invoices/stats
-// @access  Private
-router.get(
-  "/stats",
-  authenticate,
-  async (req: AuthenticatedRequest, res, next) => {
-    try {
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-
-      const [
-        totalInvoices,
-        monthlyInvoices,
-        yearlyInvoices,
-        pendingInvoices,
-        completedInvoices,
-        totalAmount,
-        monthlyAmount,
-        completedAmount,
-        draftAmount,
-      ] = await Promise.all([
-        prisma.invoice.count(),
-        prisma.invoice.count({
-          where: {
-            createdAt: {
-              gte: startOfMonth,
-            },
-          },
-        }),
-        prisma.invoice.count({
-          where: {
-            createdAt: {
-              gte: startOfYear,
-            },
-          },
-        }),
-        prisma.invoice.count({
-          where: { status: "DRAFT" },
-        }),
-        prisma.invoice.count({
-          where: { status: "COMPLETED" },
-        }),
-        prisma.invoice.aggregate({
-          _sum: { totalAmount: true },
-        }),
-        prisma.invoice.aggregate({
-          where: {
-            createdAt: {
-              gte: startOfMonth,
-            },
-          },
-          _sum: { totalAmount: true },
-        }),
-        prisma.invoice.aggregate({
-          where: { status: "COMPLETED" },
-          _sum: { totalAmount: true },
-        }),
-        prisma.invoice.aggregate({
-          where: { status: "DRAFT" },
-          _sum: { totalAmount: true },
-        }),
-      ]);
-
-      res.json({
-        success: true,
-        data: {
-          totalInvoices,
-          monthlyInvoices,
-          yearlyInvoices,
-          pendingInvoices,
-          completedInvoices,
-          totalAmount: totalAmount._sum.totalAmount || 0,
-          monthlyAmount: monthlyAmount._sum.totalAmount || 0,
-          paidAmount: completedAmount._sum.totalAmount || 0, // Use completed as paid for frontend compatibility
-          pendingAmount: draftAmount._sum.totalAmount || 0, // Use draft as pending for frontend compatibility
-        },
-      });
-    } catch (error) {
-      logger.error("Error fetching invoice statistics:", error);
-      next(error);
-    }
-  }
-);
-
-// @desc    Get next invoice number
-// @route   GET /api/invoices/next-number
-// @access  Private
-router.get(
-  "/next-number",
-  authenticate,
-  async (req: AuthenticatedRequest, res, next) => {
-    try {
-      // Generate simple sequential invoice number
-      const lastInvoice = await prisma.invoice.findFirst({
-        orderBy: {
-          invoiceNumber: "desc",
-        },
-        select: {
-          invoiceNumber: true,
-        },
-      });
-
-      let nextInvoiceNumber = "1000"; // Starting number
-      if (lastInvoice && lastInvoice.invoiceNumber) {
-        // Extract number from existing invoice number
-        const lastNumber = parseInt(
-          lastInvoice.invoiceNumber.replace(/\D/g, "")
-        );
-        if (!isNaN(lastNumber)) {
-          nextInvoiceNumber = String(lastNumber + 1);
-        }
-      }
-
-      res.json({
-        success: true,
-        data: {
-          nextInvoiceNumber,
-        },
-      });
-    } catch (error) {
-      logger.error("Error getting next invoice number:", error);
-      next(error);
-    }
-  }
-);
 
 // @desc    Get all invoices
 // @route   GET /api/invoices
@@ -438,12 +300,10 @@ router.post(
       }
 
       if (invoice.status !== "DRAFT") {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: "Only draft invoices can be posted",
-          });
+        return res.status(400).json({
+          success: false,
+          message: "Only draft invoices can be posted",
+        });
       }
 
       // Post in a transaction: adjust inventory and set status to OPEN

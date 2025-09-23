@@ -1,6 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Region } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { seedCustomers } from "./customers";
+import { seedInvoices } from "./invoices";
 
 const prisma = new PrismaClient();
 
@@ -165,7 +166,7 @@ async function main() {
     { name: "Niger" },
   ];
 
-  const createdRegions = [];
+  const createdRegions: Region[] = [];
   for (const region of regions) {
     const createdRegion = await prisma.region.upsert({
       where: { name: region.name },
@@ -184,7 +185,6 @@ async function main() {
     update: {},
     create: {
       name: "Abuja Central Team",
-      regionId: abujaRegion!.id,
     },
   });
 
@@ -193,7 +193,6 @@ async function main() {
     update: {},
     create: {
       name: "Lagos Metro Team",
-      regionId: lagosRegion!.id,
     },
   });
 
@@ -264,6 +263,25 @@ async function main() {
     data: { leaderUserId: teamLeader1.id },
   });
 
+  // Create Locations for inventory placement
+  const locationNames = [
+    "Warehouse A - Section 1",
+    "Warehouse A - Section 2",
+    "Warehouse B - Section 1",
+    "Warehouse B - Section 2",
+    "Warehouse C - Section 1",
+  ];
+
+  const locationMap: Record<string, string> = {};
+  for (const name of locationNames) {
+    const loc = await prisma.location.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+    locationMap[name] = loc.id;
+  }
+
   // Create Sample Inventory Items
   const inventoryItems = [
     {
@@ -274,7 +292,7 @@ async function main() {
       unitPrice: 350.0,
       currentQuantity: 1500,
       minStock: 200,
-      location: "Warehouse A - Section 1",
+      locationId: locationMap["Warehouse A - Section 1"],
     },
     {
       sku: "TP-002",
@@ -284,7 +302,7 @@ async function main() {
       unitPrice: 200.0,
       currentQuantity: 2000,
       minStock: 300,
-      location: "Warehouse A - Section 2",
+      locationId: locationMap["Warehouse A - Section 2"],
     },
     {
       sku: "NT-001",
@@ -294,7 +312,7 @@ async function main() {
       unitPrice: 150.0,
       currentQuantity: 800,
       minStock: 100,
-      location: "Warehouse B - Section 1",
+      locationId: locationMap["Warehouse B - Section 1"],
     },
     {
       sku: "KT-001",
@@ -304,7 +322,7 @@ async function main() {
       unitPrice: 450.0,
       currentQuantity: 500,
       minStock: 50,
-      location: "Warehouse B - Section 2",
+      locationId: locationMap["Warehouse B - Section 2"],
     },
     {
       sku: "FT-001",
@@ -314,14 +332,21 @@ async function main() {
       unitPrice: 300.0,
       currentQuantity: 300,
       minStock: 50,
-      location: "Warehouse C - Section 1",
+      locationId: locationMap["Warehouse C - Section 1"],
     },
   ];
 
   for (const item of inventoryItems) {
     await prisma.inventoryItem.upsert({
-      where: { sku: item.sku },
-      update: {},
+      where: { sku_locationId: { sku: item.sku, locationId: item.locationId } },
+      update: {
+        name: item.name,
+        description: item.description,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        currentQuantity: item.currentQuantity,
+        minStock: item.minStock,
+      },
       create: item,
     });
   }
@@ -329,6 +354,9 @@ async function main() {
   console.log("✅ Database seeding completed successfully!");
   // Seed customers
   await seedCustomers();
+
+  // Seed invoices after customers and inventory are ensured
+  await seedInvoices();
 
   console.log("\n📋 Created:");
   console.log(
@@ -341,6 +369,9 @@ async function main() {
   );
   console.log("- 5 Inventory Items");
   console.log("- 8 Customers");
+  console.log(
+    "- Invoices (1-3 per customer, items 1-4 each, terms 15-60 days within last 6 months)"
+  );
   console.log("\n🔑 Default password for all users: password123");
 }
 
