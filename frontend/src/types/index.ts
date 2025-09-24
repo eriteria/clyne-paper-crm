@@ -245,3 +245,34 @@ export interface DashboardData {
   }>;
   lowStockItems: InventoryItem[];
 }
+
+// Waybills
+export interface Waybill {
+  id: string;
+  waybillNumber: string;
+  date: string;
+  supplier: string;
+  locationId: string;
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "REVIEW";
+  processedAt?: string;
+  processedBy?: string;
+  receivedByUserId: string;
+  notes?: string;
+  createdAt: string;
+  location?: {
+    id: string;
+    name: string;
+  };
+  receivedBy?: {
+    id: string;
+    fullName: string;
+  };
+  items?: Array<{
+    id: string;
+    sku: string;
+    name: string;
+    quantityReceived: number;
+    unitCost: number;
+    status: string;
+  }>;
+}

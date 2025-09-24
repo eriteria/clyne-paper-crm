@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 
 export default function InvoicesPage() {
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateRange, setFilterDateRange] = useState("");
@@ -132,13 +133,21 @@ export default function InvoicesPage() {
   const getTotalRevenue = () => {
     return filteredInvoices
       .filter((inv: Invoice) => inv.status === "COMPLETED")
-      .reduce((sum: number, inv: Invoice) => sum + inv.totalAmount, 0);
+      .reduce(
+        (sum: number, inv: Invoice) =>
+          sum + +((inv.totalAmount as unknown) ?? 0),
+        0
+      );
   };
 
   const getPendingAmount = () => {
     return filteredInvoices
       .filter((inv: Invoice) => inv.status === "DRAFT" || inv.status === "OPEN")
-      .reduce((sum: number, inv: Invoice) => sum + inv.totalAmount, 0);
+      .reduce(
+        (sum: number, inv: Invoice) =>
+          sum + +((inv.totalAmount as unknown) ?? 0),
+        0
+      );
   };
 
   if (isLoading) {
@@ -209,7 +218,9 @@ export default function InvoicesPage() {
             <div>
               <p className="text-sm text-gray-600">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(invoiceStats?.paidAmount || getTotalRevenue())}
+                {formatCurrency(
+                  Number(invoiceStats?.paidAmount ?? getTotalRevenue())
+                )}
               </p>
             </div>
           </div>
@@ -224,7 +235,7 @@ export default function InvoicesPage() {
               <p className="text-sm text-gray-600">Pending Amount</p>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency(
-                  invoiceStats?.pendingAmount || getPendingAmount()
+                  Number(invoiceStats?.pendingAmount ?? getPendingAmount())
                 )}
               </p>
             </div>
@@ -343,7 +354,7 @@ export default function InvoicesPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(invoice.totalAmount)}
+                    {formatCurrency(Number(invoice.totalAmount))}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -374,12 +385,35 @@ export default function InvoicesPage() {
                       <button
                         className="text-green-600 hover:text-green-900 p-1"
                         title="Download PDF"
+                        onClick={async () => {
+                          try {
+                            const res = await apiClient.get(
+                              `/invoices/${invoice.id}/pdf`,
+                              { responseType: "blob" }
+                            );
+                            const url = window.URL.createObjectURL(
+                              new Blob([res.data])
+                            );
+                            const link = document.createElement("a");
+                            link.href = url;
+                            link.setAttribute(
+                              "download",
+                              `${invoice.invoiceNumber}.pdf`
+                            );
+                            document.body.appendChild(link);
+                            link.click();
+                            link.parentNode?.removeChild(link);
+                          } catch (err) {
+                            alert("Failed to download PDF");
+                          }
+                        }}
                       >
                         <Download className="h-4 w-4" />
                       </button>
                       <button
                         className="text-blue-600 hover:text-blue-900 p-1"
                         title="Edit invoice"
+                        onClick={() => setEditingInvoice(invoice)}
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -467,11 +501,15 @@ export default function InvoicesPage() {
 
       {/* Modals */}
       <CreateInvoiceModal
-        isOpen={showCreateInvoiceModal}
-        onClose={() => setShowCreateInvoiceModal(false)}
+        isOpen={showCreateInvoiceModal || !!editingInvoice}
+        onClose={() => {
+          setShowCreateInvoiceModal(false);
+          setEditingInvoice(null);
+        }}
+        invoice={editingInvoice ?? undefined}
         onSuccess={() => {
           setShowCreateInvoiceModal(false);
-          // Optionally show a success message
+          setEditingInvoice(null);
         }}
       />
 

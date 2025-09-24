@@ -217,7 +217,11 @@ export const getARAging = async (
   if (filters?.regionId) params.set("regionId", filters.regionId);
   if (filters?.customerId) params.set("customerId", filters.customerId);
 
-  const response = await apiClient.get(`/reports/ar-aging?${params.toString()}`);
+  const response = await apiClient.get(
+    `/reports/ar-aging?${params.toString()}`
+  );
   // Some endpoints return { success, data }, others return the payload directly
-  return (response.data && response.data.data) ? (response.data.data as ARAgingReport) : (response.data as ARAgingReport);
+  return response.data && response.data.data
+    ? (response.data.data as ARAgingReport)
+    : (response.data as ARAgingReport);
 };

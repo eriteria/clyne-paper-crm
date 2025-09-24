@@ -16,8 +16,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    // Disable static optimization for pages that use useSearchParams
-    missingSuspenseWithCSRBailout: false,
+    // Note: missingSuspenseWithCSRBailout was removed in newer Next.js versions
   },
 };
 

@@ -24,8 +24,12 @@ import {
   Activity,
   Plus,
 } from "lucide-react";
-import { useDashboardStats } from "@/hooks/useDashboard";
-import { InventoryItem } from "@/types";
+import {
+  useDashboardStats,
+  useRecentInvoices,
+  useRecentWaybills,
+} from "@/hooks/useDashboard";
+import { Invoice, Waybill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 
 // Color scheme for charts
@@ -54,6 +58,10 @@ interface Overview {
 
 export default function DashboardPage() {
   const { data: dashboardData, isLoading, error } = useDashboardStats();
+  const { data: recentInvoices, isLoading: invoicesLoading } =
+    useRecentInvoices();
+  const { data: recentWaybills, isLoading: waybillsLoading } =
+    useRecentWaybills();
   const [showQuickActions, setShowQuickActions] = useState(false);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -301,24 +309,23 @@ export default function DashboardPage() {
             Recent Waybills
           </h3>
           <div className="space-y-3">
-            <ActivityItem
-              icon={<Package className="h-4 w-4 text-green-600" />}
-              title="Waybill #WB001"
-              subtitle="50 units received"
-              time="2 hours ago"
-            />
-            <ActivityItem
-              icon={<Package className="h-4 w-4 text-green-600" />}
-              title="Waybill #WB002"
-              subtitle="30 units received"
-              time="5 hours ago"
-            />
-            <ActivityItem
-              icon={<Package className="h-4 w-4 text-green-600" />}
-              title="Waybill #WB003"
-              subtitle="25 units received"
-              time="1 day ago"
-            />
+            {waybillsLoading ? (
+              <div className="text-gray-500 text-sm">Loading...</div>
+            ) : recentWaybills?.waybills?.length > 0 ? (
+              recentWaybills.waybills
+                .slice(0, 3)
+                .map((waybill: Waybill, index: number) => (
+                  <ActivityItem
+                    key={waybill.id || index}
+                    icon={<Package className="h-4 w-4 text-green-600" />}
+                    title={`Waybill #${waybill.waybillNumber}`}
+                    subtitle={`${waybill.supplier} • ${waybill.items?.length || 0} items`}
+                    time={new Date(waybill.createdAt).toLocaleDateString()}
+                  />
+                ))
+            ) : (
+              <div className="text-gray-500 text-sm">No recent waybills</div>
+            )}
           </div>
         </div>
 
@@ -328,24 +335,23 @@ export default function DashboardPage() {
             Recent Invoices
           </h3>
           <div className="space-y-3">
-            <ActivityItem
-              icon={<FileText className="h-4 w-4 text-yellow-600" />}
-              title="Invoice #INV001"
-              subtitle="₦150,000"
-              time="1 hour ago"
-            />
-            <ActivityItem
-              icon={<FileText className="h-4 w-4 text-yellow-600" />}
-              title="Invoice #INV002"
-              subtitle="₦200,000"
-              time="3 hours ago"
-            />
-            <ActivityItem
-              icon={<FileText className="h-4 w-4 text-yellow-600" />}
-              title="Invoice #INV003"
-              subtitle="₦95,000"
-              time="6 hours ago"
-            />
+            {invoicesLoading ? (
+              <div className="text-gray-500 text-sm">Loading...</div>
+            ) : recentInvoices?.data?.length > 0 ? (
+              recentInvoices.data
+                .slice(0, 3)
+                .map((invoice: Invoice, index: number) => (
+                  <ActivityItem
+                    key={invoice.id || index}
+                    icon={<FileText className="h-4 w-4 text-yellow-600" />}
+                    title={`Invoice #${invoice.invoiceNumber}`}
+                    subtitle={`₦ ${invoice.totalAmount?.toLocaleString() || 0} • ${invoice.customerName || "Unknown Customer"}`}
+                    time={new Date(invoice.createdAt).toLocaleDateString()}
+                  />
+                ))
+            ) : (
+              <div className="text-gray-500 text-sm">No recent invoices</div>
+            )}
           </div>
         </div>
 

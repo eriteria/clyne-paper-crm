@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
@@ -22,6 +22,7 @@ import {
   RefreshCw,
   BarChart3,
   Target,
+  ChevronDown,
 } from "lucide-react";
 import {
   exportReport,
@@ -29,7 +30,11 @@ import {
   getSalesReport,
   getARAging,
 } from "@/lib/reports-api";
-import type { OverdueInvoice, ARAgingReport, ARAgingCustomer } from "@/types/reports";
+import type {
+  OverdueInvoice,
+  ARAgingReport,
+  ARAgingCustomer,
+} from "@/types/reports";
 import type { SalesReport } from "@/types/reports";
 import { format } from "date-fns";
 
@@ -371,16 +376,30 @@ function OverdueTab({ data, isLoading }: OverdueTabProps) {
 }
 
 // AR Aging Tab
-function AgingTab({ data, isLoading }: { data?: ARAgingReport; isLoading: boolean }) {
+function AgingTab({
+  data,
+  isLoading,
+}: {
+  data?: ARAgingReport;
+  isLoading: boolean;
+}) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const toggle = (id: string) =>
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">Loading A/R aging...</div>
+      <div className="flex items-center justify-center h-64">
+        Loading A/R aging...
+      </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="text-center text-gray-500 h-64 flex items-center justify-center">No receivables data</div>
+      <div className="text-center text-gray-500 h-64 flex items-center justify-center">
+        No receivables data
+      </div>
     );
   }
 
@@ -392,58 +411,229 @@ function AgingTab({ data, isLoading }: { data?: ARAgingReport; isLoading: boolea
     { key: "d90_plus", label: "90+" },
   ] as const;
 
-  const formatCurrency = (n: number) => new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(n || 0);
+  const formatCurrency = (n: number) =>
+    new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 0,
+    }).format(n || 0);
 
   return (
     <div className="space-y-8">
       {/* Totals */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <MetricCard icon={DollarSign} iconColor="text-gray-700" title="Current" value={formatCurrency(data.totals.current)} change="" changeColor="text-gray-500" />
-        <MetricCard icon={DollarSign} iconColor="text-yellow-700" title="1–30" value={formatCurrency(data.totals.d1_30)} change="" changeColor="text-gray-500" />
-        <MetricCard icon={DollarSign} iconColor="text-orange-700" title="31–60" value={formatCurrency(data.totals.d31_60)} change="" changeColor="text-gray-500" />
-        <MetricCard icon={DollarSign} iconColor="text-red-700" title="61–90" value={formatCurrency(data.totals.d61_90)} change="" changeColor="text-gray-500" />
-        <MetricCard icon={DollarSign} iconColor="text-red-800" title="90+" value={formatCurrency(data.totals.d90_plus)} change="" changeColor="text-gray-500" />
+        <MetricCard
+          icon={DollarSign}
+          iconColor="text-gray-700"
+          title="Current"
+          value={formatCurrency(data.totals.current)}
+          change=""
+          changeColor="text-gray-500"
+        />
+        <MetricCard
+          icon={DollarSign}
+          iconColor="text-yellow-700"
+          title="1–30"
+          value={formatCurrency(data.totals.d1_30)}
+          change=""
+          changeColor="text-gray-500"
+        />
+        <MetricCard
+          icon={DollarSign}
+          iconColor="text-orange-700"
+          title="31–60"
+          value={formatCurrency(data.totals.d31_60)}
+          change=""
+          changeColor="text-gray-500"
+        />
+        <MetricCard
+          icon={DollarSign}
+          iconColor="text-red-700"
+          title="61–90"
+          value={formatCurrency(data.totals.d61_90)}
+          change=""
+          changeColor="text-gray-500"
+        />
+        <MetricCard
+          icon={DollarSign}
+          iconColor="text-red-800"
+          title="90+"
+          value={formatCurrency(data.totals.d90_plus)}
+          change=""
+          changeColor="text-gray-500"
+        />
       </div>
 
       {/* Per-customer table */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">A/R Aging by Customer</h3>
-          <div className="text-sm text-gray-500">As of {new Date(data.asOf).toLocaleDateString()}</div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            A/R Aging by Customer
+          </h3>
+          <div className="text-sm text-gray-600">
+            As of {new Date(data.asOf).toLocaleDateString()}
+          </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                {buckets.map(b => (
-                  <th key={b.key} className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{b.label}</th>
+                <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide w-10"></th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                  Customer
+                </th>
+                {buckets.map((b) => (
+                  <th
+                    key={b.key}
+                    className="px-6 py-3 text-right text-sm font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    {b.label}
+                  </th>
                 ))}
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                  Total
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.customers.map((c: ARAgingCustomer) => (
-                <tr key={c.customerId} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{c.customerName || c.customerId}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.current)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.d1_30)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.d31_60)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.d61_90)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right">{formatCurrency(c.d90_plus)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold">{formatCurrency(c.total)}</td>
-                </tr>
+              {data.customers.map((c: ARAgingCustomer, idx: number) => (
+                <Fragment key={c.customerId}>
+                  <tr
+                    className={`hover:bg-gray-50 ${
+                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                    }`}
+                  >
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <button
+                        onClick={() => toggle(c.customerId)}
+                        className="inline-flex items-center justify-center h-6 w-6 rounded hover:bg-gray-200"
+                        aria-label={
+                          expanded[c.customerId] ? "Collapse" : "Expand"
+                        }
+                      >
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${
+                            expanded[c.customerId] ? "rotate-180" : "rotate-0"
+                          }`}
+                        />
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {c.customerName || c.customerId}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                      {formatCurrency(c.current)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                      {formatCurrency(c.d1_30)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                      {formatCurrency(c.d31_60)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                      {formatCurrency(c.d61_90)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 font-medium">
+                      {formatCurrency(c.d90_plus)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
+                      {formatCurrency(c.total)}
+                    </td>
+                  </tr>
+                  {expanded[c.customerId] &&
+                    c.invoices &&
+                    c.invoices.length > 0 && (
+                      <tr
+                        className={`${
+                          idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        }`}
+                      >
+                        <td colSpan={8} className="px-6 pb-4">
+                          <div className="rounded-md border border-gray-200">
+                            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700">
+                              Invoices ({c.invoices.length})
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full">
+                                <thead>
+                                  <tr className="text-left text-xs text-gray-600">
+                                    <th className="px-4 py-2">Date</th>
+                                    <th className="px-4 py-2">Due</th>
+                                    <th className="px-4 py-2 text-right">
+                                      Balance
+                                    </th>
+                                    <th className="px-4 py-2 text-right">
+                                      Days
+                                    </th>
+                                    <th className="px-4 py-2 text-right">
+                                      Bucket
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {c.invoices.map((inv) => (
+                                    <tr
+                                      key={inv.id}
+                                      className="text-sm text-gray-800"
+                                    >
+                                      <td className="px-4 py-2">
+                                        {format(
+                                          new Date(inv.date),
+                                          "MMM dd, yyyy"
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-2">
+                                        {inv.dueDate
+                                          ? format(
+                                              new Date(inv.dueDate),
+                                              "MMM dd, yyyy"
+                                            )
+                                          : "-"}
+                                      </td>
+                                      <td className="px-4 py-2 text-right">
+                                        {formatCurrency(inv.balance)}
+                                      </td>
+                                      <td className="px-4 py-2 text-right">
+                                        {inv.daysPastDueOrOutstanding}
+                                      </td>
+                                      <td className="px-4 py-2 text-right uppercase">
+                                        {inv.bucket.replace("_", "-")}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                </Fragment>
               ))}
             </tbody>
             <tfoot className="bg-gray-50">
               <tr>
-                <td className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Grand Total</td>
-                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.current)}</td>
-                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.d1_30)}</td>
-                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.d31_60)}</td>
-                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.d61_90)}</td>
-                <td className="px-6 py-3 text-right text-sm font-semibold">{formatCurrency(data.totals.d90_plus)}</td>
-                <td className="px-6 py-3 text-right text-sm font-bold">{formatCurrency(data.totals.total)}</td>
+                <td className="px-6 py-3 text-left text-sm font-semibold text-gray-800 uppercase">
+                  Grand Total
+                </td>
+                <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900">
+                  {formatCurrency(data.totals.current)}
+                </td>
+                <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900">
+                  {formatCurrency(data.totals.d1_30)}
+                </td>
+                <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900">
+                  {formatCurrency(data.totals.d31_60)}
+                </td>
+                <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900">
+                  {formatCurrency(data.totals.d61_90)}
+                </td>
+                <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900">
+                  {formatCurrency(data.totals.d90_plus)}
+                </td>
+                <td className="px-6 py-3 text-right text-sm font-bold text-gray-900">
+                  {formatCurrency(data.totals.total)}
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -473,9 +663,11 @@ export default function ReportsPage() {
   });
 
   // AR Aging query (as-of uses filters.endDate to align with date pickers)
+  const [agingMode, setAgingMode] = useState<"due" | "outstanding">("due");
+  const [agingNetDays, setAgingNetDays] = useState<number>(30);
   const { data: agingData, isLoading: agingLoading } = useQuery({
-    queryKey: ["ar-aging", filters.endDate],
-    queryFn: () => getARAging(filters.endDate),
+    queryKey: ["ar-aging", filters.endDate, agingMode, agingNetDays],
+    queryFn: () => getARAging(filters.endDate, agingMode, agingNetDays),
   });
 
   const tabs = [
@@ -550,6 +742,32 @@ export default function ReportsPage() {
               }
               className="border border-gray-300 rounded-md px-3 py-2 text-sm"
             />
+            {activeTab === "aging" && (
+              <>
+                <select
+                  value={agingMode}
+                  onChange={(e) =>
+                    setAgingMode(e.target.value as "due" | "outstanding")
+                  }
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                >
+                  <option value="due">Due (days past due)</option>
+                  <option value="outstanding">
+                    Outstanding (since invoice date)
+                  </option>
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  value={agingNetDays}
+                  onChange={(e) =>
+                    setAgingNetDays(parseInt(e.target.value || "0", 10))
+                  }
+                  className="w-24 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  title="Net days for missing due dates"
+                />
+              </>
+            )}
           </div>
         </div>
       </div>

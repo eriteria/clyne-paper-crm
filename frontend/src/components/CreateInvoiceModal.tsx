@@ -51,16 +51,20 @@ interface InvoiceItem {
   inventoryItem?: InventoryItem;
 }
 
+import type { Invoice } from "@/types";
+
 interface CreateInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  invoice?: Invoice;
 }
 
 export default function CreateInvoiceModal({
   isOpen,
   onClose,
   onSuccess,
+  invoice,
 }: CreateInvoiceModalProps) {
   type PostAction = "save" | "post";
   type InvoiceRequestItem = {
@@ -94,6 +98,64 @@ export default function CreateInvoiceModal({
       lineTotal: 0,
     },
   ]);
+
+  // Prefill fields for edit mode
+  useEffect(() => {
+    if (invoice) {
+      setSelectedCustomerId(invoice.customerId);
+      setInvoiceDate(
+        invoice.date
+          ? invoice.date.split("T")[0]
+          : new Date().toISOString().split("T")[0]
+      );
+      setDueDate(invoice.dueDate ? invoice.dueDate.split("T")[0] : "");
+      setNotes(invoice.notes || "");
+      setTaxAmount(Number(invoice.taxAmount) || 0);
+      setDiscountAmount(Number(invoice.discountAmount) || 0);
+      setExpectedInvoiceNumber(invoice.invoiceNumber || "");
+      setItems(
+        invoice.items && invoice.items.length > 0
+          ? invoice.items.map((it) => ({
+              inventoryItemId: it.inventoryItemId,
+              quantity: Number(it.quantity),
+              unitPrice: Number(it.unitPrice),
+              lineTotal: Number(it.lineTotal),
+              inventoryItem: it.inventoryItem
+                ? {
+                    ...it.inventoryItem,
+                    unitPrice: Number(it.unitPrice ?? 0),
+                    currentQuantity: 0,
+                  }
+                : undefined,
+            }))
+          : [
+              {
+                inventoryItemId: "",
+                quantity: 1,
+                unitPrice: 0,
+                lineTotal: 0,
+              },
+            ]
+      );
+    } else {
+      // Reset for create mode
+      setSelectedCustomerId("");
+      setInvoiceDate(new Date().toISOString().split("T")[0]);
+      setDueDate("");
+      setNotes("");
+      setTaxAmount(0);
+      setDiscountAmount(0);
+      setExpectedInvoiceNumber("");
+      setItems([
+        {
+          inventoryItemId: "",
+          quantity: 1,
+          unitPrice: 0,
+          lineTotal: 0,
+        },
+      ]);
+    }
+  }, [invoice, isOpen]);
 
   const queryClient = useQueryClient();
 

@@ -247,7 +247,12 @@ export interface ReportConfig {
 }
 
 // Accounts Receivable Aging
-export type AgingBucketKey = "current" | "d1_30" | "d31_60" | "d61_90" | "d90_plus";
+export type AgingBucketKey =
+  | "current"
+  | "d1_30"
+  | "d31_60"
+  | "d61_90"
+  | "d90_plus";
 
 export interface ARAgingInvoice {
   id: string;
