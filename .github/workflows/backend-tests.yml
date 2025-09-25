@@ -42,27 +42,24 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
-          cache-dependency-path: backend/package-lock.json
+          # Use the monorepo root lockfile for caching. The backend package participates via npm workspaces.
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install dependencies (monorepo root)
         run: npm ci
-        working-directory: ./backend
 
-      - name: Generate Prisma Client
-        run: npm run generate
-        working-directory: ./backend
+      - name: Generate Prisma Client (backend workspace)
+        run: npm run -w backend generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clyne_paper_crm_test
 
-      - name: Run database migrations
-        run: npm run migrate:deploy
-        working-directory: ./backend
+      - name: Run database migrations (backend workspace)
+        run: npm run -w backend migrate:deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clyne_paper_crm_test
 
-      - name: Run tests
-        run: npm run test:ci
-        working-directory: ./backend
+      - name: Run tests (backend workspace)
+        run: npm run -w backend test:ci
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clyne_paper_crm_test
           JWT_SECRET: test-jwt-secret-key-for-ci
