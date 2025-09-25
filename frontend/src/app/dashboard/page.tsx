@@ -319,7 +319,9 @@ export default function DashboardPage() {
                     key={waybill.id || index}
                     icon={<Package className="h-4 w-4 text-green-600" />}
                     title={`Waybill #${waybill.waybillNumber}`}
-                    subtitle={`${waybill.supplier} • ${waybill.items?.length || 0} items`}
+                    subtitle={`${waybill.supplier} • ${
+                      waybill.items?.length || 0
+                    } items`}
                     time={new Date(waybill.createdAt).toLocaleDateString()}
                   />
                 ))
@@ -345,7 +347,9 @@ export default function DashboardPage() {
                     key={invoice.id || index}
                     icon={<FileText className="h-4 w-4 text-yellow-600" />}
                     title={`Invoice #${invoice.invoiceNumber}`}
-                    subtitle={`₦ ${invoice.totalAmount?.toLocaleString() || 0} • ${invoice.customerName || "Unknown Customer"}`}
+                    subtitle={`₦ ${
+                      invoice.totalAmount?.toLocaleString() || 0
+                    } • ${invoice.customerName || "Unknown Customer"}`}
                     time={new Date(invoice.createdAt).toLocaleDateString()}
                   />
                 ))
