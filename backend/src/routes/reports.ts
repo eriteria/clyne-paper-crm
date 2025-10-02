@@ -1026,21 +1026,28 @@ router.get("/customers", async (req, res, next) => {
 
     // Customer payment behavior
     const paymentBehavior = await prisma.$queryRaw`
+      WITH customer_payment_days AS (
+        SELECT 
+          i.customer_id,
+          AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) as avg_payment_days
+        FROM invoices i
+        JOIN payments p ON i.id = p.invoice_id
+        WHERE i.date >= ${start} AND i.date <= ${end}
+        GROUP BY i.customer_id
+      )
       SELECT 
         CASE 
-          WHEN AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) <= 7 THEN 'Fast Payers'
-          WHEN AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) <= 30 THEN 'Regular Payers'
+          WHEN avg_payment_days <= 7 THEN 'Fast Payers'
+          WHEN avg_payment_days <= 30 THEN 'Regular Payers'
           ELSE 'Slow Payers'
         END as payment_type,
-        COUNT(DISTINCT i.customer_id) as customer_count,
-        AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) as avg_payment_days
-      FROM invoices i
-      JOIN payments p ON i.id = p.invoice_id
-      WHERE i.date >= ${start} AND i.date <= ${end}
+        COUNT(*) as customer_count,
+        AVG(avg_payment_days) as avg_payment_days
+      FROM customer_payment_days
       GROUP BY 
         CASE 
-          WHEN AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) <= 7 THEN 'Fast Payers'
-          WHEN AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) <= 30 THEN 'Regular Payers'
+          WHEN avg_payment_days <= 7 THEN 'Fast Payers'
+          WHEN avg_payment_days <= 30 THEN 'Regular Payers'
           ELSE 'Slow Payers'
         END
       ORDER BY avg_payment_days
