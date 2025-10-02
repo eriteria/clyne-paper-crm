@@ -41,6 +41,15 @@ export interface ExecutiveReport {
 
 export interface CustomerReport {
   period: { start: string; end: string };
+  overview: {
+    totalCustomers: number;
+    newCustomers: number;
+    newCustomersPrevious: number;
+    customerGrowthRate: number;
+    activeCustomers: number;
+    retentionRate: number;
+    atRiskCustomers: number;
+  };
   acquisition: Array<{
     month: string;
     new_customers: number;
@@ -48,24 +57,31 @@ export interface CustomerReport {
   topCustomers: Array<{
     id: string;
     name: string;
-    revenue: number;
-    invoiceCount: number;
     email?: string;
     phone?: string;
+    location?: string;
+    revenue: number;
+    invoiceCount: number;
+    avgOrderValue: number;
+    firstPurchase?: string;
+    lastPurchase?: string;
   }>;
   segmentation: Array<{
     segment: string;
     customer_count: number;
     segment_revenue: number;
+    avg_revenue_per_customer: number;
   }>;
   locationDistribution: Array<{
     location_id: string;
     location_name: string;
     customer_count: number;
+    location_revenue: number;
   }>;
   paymentBehavior: Array<{
     payment_type: string;
     customer_count: number;
+    avg_payment_days: number;
   }>;
 }
 

@@ -29,12 +29,33 @@ router.get("/dashboard", async (req, res, next) => {
       prisma.waybill.count(),
     ]);
 
-    // Get inventory value
-    const inventoryValue = await prisma.inventoryItem.aggregate({
-      _sum: {
-        unitPrice: true,
-      },
-    });
+    // Get inventory value - current and historical comparison
+    const [inventoryValue, previousInventoryValue] = await Promise.all([
+      prisma.inventoryItem.aggregate({
+        _sum: {
+          unitPrice: true,
+        },
+      }),
+      // Get inventory value from 30 days ago by checking audit logs or using a simpler approach
+      // For now, we'll use a simpler approach comparing with inventory items modified 30+ days ago
+      prisma.inventoryItem.aggregate({
+        where: {
+          updatedAt: {
+            lte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+          },
+        },
+        _sum: {
+          unitPrice: true,
+        },
+      }),
+    ]);
+
+    // Calculate inventory value change percentage
+    const currentInventoryValue = Number(inventoryValue._sum.unitPrice || 0);
+    const previousInventoryVal = Number(previousInventoryValue._sum.unitPrice || 0);
+    const inventoryValueChange = previousInventoryVal > 0
+      ? ((currentInventoryValue - previousInventoryVal) / previousInventoryVal) * 100
+      : 0;
 
     // Get teams with member counts
     const teamsWithCounts = await prisma.team.findMany({
@@ -82,7 +103,8 @@ router.get("/dashboard", async (req, res, next) => {
           totalInvoices,
           pendingInvoices,
           totalWaybills,
-          totalInventoryValue: inventoryValue._sum.unitPrice || 0,
+          totalInventoryValue: currentInventoryValue,
+          inventoryValueChange: Math.round(inventoryValueChange * 100) / 100, // Round to 2 decimal places
         },
         teams: teamsWithCounts.map((team: any) => ({
           id: team.id,
@@ -830,6 +852,86 @@ router.get("/customers", async (req, res, next) => {
       : new Date(new Date().getFullYear(), 0, 1);
     const end = endDate ? new Date(endDate as string) : new Date();
 
+    // Calculate previous period for comparison
+    const periodLength = end.getTime() - start.getTime();
+    const prevStart = new Date(start.getTime() - periodLength);
+    const prevEnd = start;
+
+    // Customer overview metrics
+    const [
+      totalCustomers,
+      newCustomersThisPeriod,
+      newCustomersPrevPeriod,
+      activeCustomers,
+    ] = await Promise.all([
+      prisma.customer.count(),
+      prisma.customer.count({
+        where: { createdAt: { gte: start, lte: end } },
+      }),
+      prisma.customer.count({
+        where: { createdAt: { gte: prevStart, lte: prevEnd } },
+      }),
+      prisma.customer.count({
+        where: {
+          invoices: {
+            some: {
+              date: { gte: start, lte: end },
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Customer retention calculation
+    const customersWithPreviousPurchases = await prisma.customer.count({
+      where: {
+        invoices: {
+          some: { date: { lt: start } },
+        },
+      },
+    });
+
+    const retentionCustomers = await prisma.customer.count({
+      where: {
+        AND: [
+          {
+            invoices: {
+              some: { date: { lt: start } },
+            },
+          },
+          {
+            invoices: {
+              some: { date: { gte: start, lte: end } },
+            },
+          },
+        ],
+      },
+    });
+
+    const retentionRate = customersWithPreviousPurchases > 0 
+      ? (retentionCustomers / customersWithPreviousPurchases) * 100 
+      : 0;
+
+    // At-risk customers (no purchases in last 90 days)
+    const atRiskCustomers = await prisma.customer.count({
+      where: {
+        AND: [
+          {
+            invoices: {
+              every: {
+                date: { lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) },
+              },
+            },
+          },
+          {
+            invoices: {
+              some: {},
+            },
+          },
+        ],
+      },
+    });
+
     // Customer acquisition trend
     const customerAcquisition = await prisma.$queryRaw`
       SELECT 
@@ -841,23 +943,29 @@ router.get("/customers", async (req, res, next) => {
       ORDER BY month
     `;
 
-    // Top customers by revenue
-    const topCustomers = await prisma.customer.findMany({
-      include: {
-        invoices: {
-          where: {
-            date: { gte: start, lte: end },
-            status: { in: ["PAID", "PARTIALLY_PAID"] },
-          },
-          select: { totalAmount: true },
-        },
-        _count: { select: { invoices: true } },
-      },
-      orderBy: {
-        invoices: { _count: "desc" },
-      },
-      take: 20,
-    });
+    // Top customers by revenue with additional metrics
+    const topCustomersRaw = await prisma.$queryRaw`
+      SELECT 
+        c.id,
+        c.name,
+        c.email,
+        c.phone,
+        l.name as location_name,
+        COALESCE(SUM(i.total_amount), 0) as total_revenue,
+        COUNT(i.id) as invoice_count,
+        AVG(i.total_amount) as avg_order_value,
+        MIN(i.date) as first_purchase,
+        MAX(i.date) as last_purchase
+      FROM customers c
+      LEFT JOIN invoices i ON c.id = i.customer_id
+        AND i.date >= ${start} 
+        AND i.date <= ${end}
+        AND i.status IN ('PAID', 'PARTIALLY_PAID')
+      LEFT JOIN locations l ON c.location_id = l.id
+      GROUP BY c.id, c.name, c.email, c.phone, l.name
+      ORDER BY total_revenue DESC
+      LIMIT 20
+    `;
 
     // Customer segmentation by revenue
     const customerSegmentation = await prisma.$queryRaw`
@@ -881,7 +989,8 @@ router.get("/customers", async (req, res, next) => {
           ELSE 'Low Value'
         END as segment,
         COUNT(*) as customer_count,
-        SUM(total_revenue) as segment_revenue
+        SUM(total_revenue) as segment_revenue,
+        AVG(total_revenue) as avg_revenue_per_customer
       FROM customer_revenue
       GROUP BY 
         CASE 
@@ -898,9 +1007,19 @@ router.get("/customers", async (req, res, next) => {
       SELECT 
         l.id as location_id,
         l.name as location_name,
-        COUNT(c.id) as customer_count
+        COUNT(c.id) as customer_count,
+        COALESCE(SUM(revenue_data.total_revenue), 0) as location_revenue
       FROM locations l
       LEFT JOIN customers c ON l.id = c.location_id
+      LEFT JOIN (
+        SELECT 
+          customer_id,
+          SUM(total_amount) as total_revenue
+        FROM invoices 
+        WHERE date >= ${start} AND date <= ${end}
+          AND status IN ('PAID', 'PARTIALLY_PAID')
+        GROUP BY customer_id
+      ) revenue_data ON c.id = revenue_data.customer_id
       GROUP BY l.id, l.name
       ORDER BY customer_count DESC
     `;
@@ -913,7 +1032,8 @@ router.get("/customers", async (req, res, next) => {
           WHEN AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) <= 30 THEN 'Regular Payers'
           ELSE 'Slow Payers'
         END as payment_type,
-        COUNT(DISTINCT i.customer_id) as customer_count
+        COUNT(DISTINCT i.customer_id) as customer_count,
+        AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) as avg_payment_days
       FROM invoices i
       JOIN payments p ON i.id = p.invoice_id
       WHERE i.date >= ${start} AND i.date <= ${end}
@@ -923,23 +1043,39 @@ router.get("/customers", async (req, res, next) => {
           WHEN AVG(EXTRACT(DAY FROM (p.payment_date - i.date))) <= 30 THEN 'Regular Payers'
           ELSE 'Slow Payers'
         END
+      ORDER BY avg_payment_days
     `;
+
+    // Calculate growth rates
+    const customerGrowthRate = newCustomersPrevPeriod > 0 
+      ? ((newCustomersThisPeriod - newCustomersPrevPeriod) / newCustomersPrevPeriod) * 100
+      : 0;
 
     res.json({
       success: true,
       data: {
         period: { start, end },
+        overview: {
+          totalCustomers,
+          newCustomers: newCustomersThisPeriod,
+          newCustomersPrevious: newCustomersPrevPeriod,
+          customerGrowthRate: Math.round(customerGrowthRate * 100) / 100,
+          activeCustomers,
+          retentionRate: Math.round(retentionRate * 100) / 100,
+          atRiskCustomers,
+        },
         acquisition: customerAcquisition,
-        topCustomers: topCustomers.map((customer: any) => ({
+        topCustomers: (topCustomersRaw as any[]).map((customer: any) => ({
           id: customer.id,
           name: customer.name,
-          revenue: customer.invoices.reduce(
-            (sum: number, inv: any) => sum + Number(inv.totalAmount || 0),
-            0
-          ),
-          invoiceCount: customer._count.invoices,
           email: customer.email,
           phone: customer.phone,
+          location: customer.location_name,
+          revenue: Number(customer.total_revenue || 0),
+          invoiceCount: Number(customer.invoice_count || 0),
+          avgOrderValue: Number(customer.avg_order_value || 0),
+          firstPurchase: customer.first_purchase,
+          lastPurchase: customer.last_purchase,
         })),
         segmentation: customerSegmentation,
         locationDistribution: customersByLocation,

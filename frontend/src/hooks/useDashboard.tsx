@@ -12,6 +12,7 @@ export interface DashboardStats {
       pendingInvoices: number;
       totalWaybills: number;
       totalInventoryValue: number;
+      inventoryValueChange: number;
     };
     teams: Array<{
       id: string;

@@ -10,6 +10,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import {
   Download,
@@ -23,17 +26,20 @@ import {
   BarChart3,
   Target,
   ChevronDown,
+  AlertTriangle,
 } from "lucide-react";
 import {
   exportReport,
   getOverdueInvoices,
   getSalesReport,
   getARAging,
+  getCustomerReport,
 } from "@/lib/reports-api";
 import type {
   OverdueInvoice,
   ARAgingReport,
   ARAgingCustomer,
+  CustomerReport,
 } from "@/types/reports";
 import type { SalesReport } from "@/types/reports";
 import { format } from "date-fns";
@@ -643,6 +649,273 @@ function AgingTab({
   );
 }
 
+// Customers Report Tab
+interface CustomersTabProps {
+  data?: CustomerReport;
+  isLoading: boolean;
+}
+
+function CustomersTab({ data, isLoading }: CustomersTabProps) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading customer analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="text-center text-gray-500 h-64 flex items-center justify-center">
+        <div className="text-center">
+          <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No Customer Data
+          </h3>
+          <p className="text-gray-500">
+            Unable to load customer analytics for the selected period.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Prepare chart data
+  const acquisitionChartData = data.acquisition.map((item) => ({
+    month: format(new Date(item.month), "MMM yyyy"),
+    customers: Number(item.new_customers || 0),
+  }));
+
+  const segmentationChartData = data.segmentation.map((item) => ({
+    name: item.segment,
+    value: Number(item.customer_count || 0),
+    revenue: Number(item.segment_revenue || 0),
+  }));
+
+  const paymentBehaviorData = data.paymentBehavior.map((item) => ({
+    name: item.payment_type,
+    value: Number(item.customer_count || 0),
+    avgDays: Number(item.avg_payment_days || 0),
+  }));
+
+  return (
+    <div className="space-y-8">
+      {/* Overview KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <MetricCard
+          icon={Users}
+          iconColor="text-blue-600"
+          title="Total Customers"
+          value={formatNumber(data.overview.totalCustomers)}
+          change={`${data.overview.activeCustomers} active`}
+          changeColor="text-green-600"
+        />
+        <MetricCard
+          icon={TrendingUp}
+          iconColor="text-green-600"
+          title="New Customers"
+          value={formatNumber(data.overview.newCustomers)}
+          change={`${data.overview.customerGrowthRate >= 0 ? "+" : ""}${data.overview.customerGrowthRate.toFixed(1)}% vs previous`}
+          changeColor={data.overview.customerGrowthRate >= 0 ? "text-green-600" : "text-red-600"}
+        />
+        <MetricCard
+          icon={Target}
+          iconColor="text-purple-600"
+          title="Retention Rate"
+          value={`${data.overview.retentionRate.toFixed(1)}%`}
+          change="Customer retention"
+          changeColor="text-gray-500"
+        />
+        <MetricCard
+          icon={AlertTriangle}
+          iconColor="text-orange-600"
+          title="At Risk"
+          value={formatNumber(data.overview.atRiskCustomers)}
+          change="No recent orders"
+          changeColor="text-orange-600"
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Customer Acquisition Trend */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Customer Acquisition Trend
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={acquisitionChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="customers" fill="#3B82F6" name="New Customers" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Customer Segmentation */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Customer Segmentation by Value
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={segmentationChartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
+                >
+                  {segmentationChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={["#2563eb", "#16a34a", "#eab308", "#dc2626"][index % 4]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Behavior Analysis */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Payment Behavior Analysis
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {paymentBehaviorData.map((item) => (
+            <div key={item.name} className="text-center p-4 border rounded-lg">
+              <div className={`text-2xl font-bold ${
+                item.name === "Fast Payers" ? "text-green-600" :
+                item.name === "Regular Payers" ? "text-yellow-600" : "text-red-600"
+              }`}>
+                {formatNumber(item.value)}
+              </div>
+              <div className="text-sm text-gray-600">{item.name}</div>
+              <div className="text-xs text-gray-500">
+                Avg: {item.avgDays.toFixed(1)} days
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Top Customers Table */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Top Customers by Revenue
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Highest revenue generating customers in the selected period
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Location
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Revenue
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Invoices
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Avg Order
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Last Purchase
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {data.topCustomers.slice(0, 15).map((customer) => (
+                <tr key={customer.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {customer.name}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {customer.location || "-"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{customer.email || "-"}</div>
+                    <div className="text-sm text-gray-500">{customer.phone || "-"}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
+                    {formatCurrency(customer.revenue)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                    {formatNumber(customer.invoiceCount)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                    {formatCurrency(customer.avgOrderValue)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {customer.lastPurchase 
+                      ? format(new Date(customer.lastPurchase), "MMM dd, yyyy")
+                      : "-"
+                    }
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Location Distribution */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Customer Distribution by Location
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.locationDistribution.map((location) => (
+            <div key={location.location_id} className="border rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-gray-900">
+                    {location.location_name}
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    {formatNumber(location.customer_count)} customers
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">
+                    {formatCurrency(Number(location.location_revenue || 0))}
+                  </div>
+                  <div className="text-xs text-gray-500">Revenue</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const [filters, setFilters] = useState({
     startDate: "2000-01-01",
@@ -668,6 +941,12 @@ export default function ReportsPage() {
   const { data: agingData, isLoading: agingLoading } = useQuery({
     queryKey: ["ar-aging", filters.endDate, agingMode, agingNetDays],
     queryFn: () => getARAging(filters.endDate, agingMode, agingNetDays),
+  });
+
+  // Customer Report query
+  const { data: customerData, isLoading: customerLoading } = useQuery({
+    queryKey: ["customer-report", filters],
+    queryFn: () => getCustomerReport(filters.startDate, filters.endDate),
   });
 
   const tabs = [
@@ -809,8 +1088,13 @@ export default function ReportsPage() {
           <AgingTab data={agingData} isLoading={agingLoading} />
         )}
 
+        {/* Customers */}
+        {activeTab === "customers" && (
+          <CustomersTab data={customerData} isLoading={customerLoading} />
+        )}
+
         {/* Other tabs placeholder */}
-        {!["sales", "overdue"].includes(activeTab) && (
+        {!["sales", "overdue", "aging", "customers"].includes(activeTab) && (
           <div className="text-center text-gray-500 h-64 flex items-center justify-center">
             {tabs.find((t) => t.id === activeTab)?.name} implementation coming
             soon...

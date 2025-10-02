@@ -48,6 +48,7 @@ interface LowStockItem {
 // Interface for overview data from API
 interface Overview {
   totalInventoryValue?: number;
+  inventoryValueChange?: number;
   totalInventoryItems?: number;
   lowStockCount?: number;
   totalInvoices?: number;
@@ -186,8 +187,18 @@ export default function DashboardPage() {
             icon={<DollarSign className="h-6 w-6 text-green-600" />}
             label="Total Inventory Value"
             value={formatCurrency(overview.totalInventoryValue || 0)}
-            change="+12.5%"
-            changeType="positive"
+            change={
+              overview.inventoryValueChange !== undefined
+                ? `${overview.inventoryValueChange >= 0 ? "+" : ""}${overview.inventoryValueChange.toFixed(1)}%`
+                : undefined
+            }
+            changeType={
+              overview.inventoryValueChange !== undefined
+                ? overview.inventoryValueChange >= 0
+                  ? "positive"
+                  : "negative"
+                : undefined
+            }
           />
         </div>
         <div
@@ -239,7 +250,7 @@ export default function DashboardPage() {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="memberCount"
-                  label={({ name, memberCount }) => `${name}: ${memberCount}`}
+                  label={({ name, memberCount }: { name: string; memberCount: number }) => `${name}: ${memberCount}`}
                 >
                   {teams.map((entry: unknown, index: number) => (
                     <Cell
