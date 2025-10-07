@@ -132,11 +132,17 @@ export interface Customer {
   companyName?: string;
   contactPerson?: string;
   locationId: string;
+  defaultPaymentTermDays: number;
   locationRef?: {
     id: string;
     name: string;
     description?: string;
     isActive: boolean;
+  };
+  team?: {
+    id: string;
+    name: string;
+    description?: string;
   };
   relationshipManagerId?: string;
   relationshipManager?: {

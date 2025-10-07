@@ -1,27 +1,43 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   getFinancialDashboard,
   getPayments,
-  createPayment,
   createQuickBooksExport,
 } from "../../lib/financial-api";
 import { Card, CardContent, CardHeader, CardTitle } from "../../lib/styles";
 import { formatCurrency } from "../../lib/utils";
-import { Payment, CreatePaymentData } from "../../types/financial";
+import { CustomerPayment } from "../../types/financial";
+import CustomerLedgerExportModal from "../../components/CustomerLedgerExportModal";
 
 export default function FinancialPage() {
   const [selectedTab, setSelectedTab] = useState("dashboard");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showLedgerExportModal, setShowLedgerExportModal] = useState(false);
 
   // Fetch dashboard data
-  const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
+  const {
+    data: dashboardData,
+    isLoading: dashboardLoading,
+    error: dashboardError,
+  } = useQuery({
     queryKey: ["financial-dashboard"],
     queryFn: getFinancialDashboard,
   });
+
+  // Debug logging
+  useEffect(() => {
+    if (dashboardData) {
+      console.log("Financial dashboard data:", dashboardData);
+      console.log("Recent payments:", dashboardData?.recentPayments);
+    }
+    if (dashboardError) {
+      console.error("Financial dashboard error:", dashboardError);
+    }
+  }, [dashboardData, dashboardError]);
 
   // Fetch payments
   const { data: paymentsData, isLoading: paymentsLoading } = useQuery({
@@ -178,9 +194,6 @@ export default function FinancialPage() {
                             Date
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Invoice
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Customer
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -189,30 +202,46 @@ export default function FinancialPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Method
                           </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Reference
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {dashboardData?.recentPayments?.map((payment) => (
-                          <tr key={payment.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {new Date(
-                                payment.paymentDate
-                              ).toLocaleDateString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                              {payment.invoice.invoiceNumber}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {payment.invoice.customer.name}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                              {formatCurrency(payment.amount)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {payment.paymentMethod}
+                        {dashboardData?.recentPayments &&
+                        dashboardData.recentPayments.length > 0 ? (
+                          dashboardData.recentPayments.map((payment) => (
+                            <tr key={payment.id}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {new Date(
+                                  payment.paymentDate
+                                ).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {payment.customer.name ||
+                                  payment.customer.companyName}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                                {formatCurrency(payment.amount)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {payment.paymentMethod.replace("_", " ")}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {payment.referenceNumber || "-"}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="px-6 py-4 text-center text-sm text-gray-500"
+                            >
+                              No recent payments found
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -242,9 +271,6 @@ export default function FinancialPage() {
                           Date
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Invoice
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Customer
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -254,43 +280,60 @@ export default function FinancialPage() {
                           Method
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Reference
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {paymentsData?.data?.map((payment: Payment) => (
-                        <tr key={payment.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {new Date(payment.paymentDate).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                            {payment.invoice.invoiceNumber}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {payment.invoice.customer.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                            {formatCurrency(payment.amount)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {payment.paymentMethod}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                payment.status === "COMPLETED"
-                                  ? "bg-green-100 text-green-800"
-                                  : payment.status === "PENDING"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {payment.status}
-                            </span>
+                      {paymentsData?.data && paymentsData.data.length > 0 ? (
+                        paymentsData.data.map((payment: CustomerPayment) => (
+                          <tr key={payment.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {new Date(
+                                payment.paymentDate
+                              ).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {payment.customer.name ||
+                                payment.customer.companyName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                              {formatCurrency(payment.amount)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {payment.paymentMethod.replace("_", " ")}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {payment.referenceNumber || "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  payment.status === "COMPLETED"
+                                    ? "bg-green-100 text-green-800"
+                                    : payment.status === "PENDING"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {payment.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="px-6 py-4 text-center text-sm text-gray-500"
+                          >
+                            No payments found
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -327,6 +370,15 @@ export default function FinancialPage() {
                     Export all payments for QuickBooks import
                   </p>
                 </button>
+                <button
+                  onClick={() => setShowLedgerExportModal(true)}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left"
+                >
+                  <h3 className="font-medium text-gray-900">Customer Ledger</h3>
+                  <p className="text-sm text-gray-500">
+                    Export customer ledger with custom date range
+                  </p>
+                </button>
                 <div className="p-4 border border-gray-200 rounded-lg">
                   <h3 className="font-medium text-gray-900">Tax Summary</h3>
                   <p className="text-sm text-gray-500">
@@ -338,6 +390,12 @@ export default function FinancialPage() {
           </Card>
         </div>
       )}
+
+      {/* Customer Ledger Export Modal */}
+      <CustomerLedgerExportModal
+        isOpen={showLedgerExportModal}
+        onClose={() => setShowLedgerExportModal(false)}
+      />
     </div>
   );
 }

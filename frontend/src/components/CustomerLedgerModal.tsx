@@ -47,7 +47,7 @@ interface LedgerPayment {
   paymentDate: string;
   referenceNumber?: string;
   notes?: string;
-  recordedBy: {
+  recordedBy?: {
     id: string;
     fullName: string;
   };
@@ -485,7 +485,7 @@ const CustomerLedgerModal: React.FC<CustomerLedgerModalProps> = ({
                                 : "-"}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {payment.recordedBy.fullName}
+                              {payment.recordedBy?.fullName || "Unknown"}
                             </td>
                           </tr>
                         ))}

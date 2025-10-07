@@ -1,0 +1,14 @@
+{
+  "testEnvironment": "node",
+  "moduleNameMapping": {
+    "^@/(.*)$": "<rootDir>/src/$1"
+  },
+  "testMatch": ["**/*.test.js"],
+  "moduleFileExtensions": ["js", "jsx", "ts", "tsx"],
+  "collectCoverageFrom": [
+    "src/**/*.{js,jsx,ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/types/**/*"
+  ],
+  "moduleDirectories": ["node_modules", "<rootDir>/"]
+}

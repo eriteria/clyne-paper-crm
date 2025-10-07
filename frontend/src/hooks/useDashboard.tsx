@@ -39,7 +39,31 @@ export const useDashboardStats = () => {
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Combine multiple dashboard data fetches into a single optimized hook
+export const useDashboardData = () => {
+  return useQuery({
+    queryKey: ["dashboard-combined"],
+    queryFn: async () => {
+      // Fetch all dashboard data in parallel
+      const [statsResponse, recentInvoicesResponse, recentWaybillsResponse] =
+        await Promise.all([
+          apiClient.get("/reports/dashboard"),
+          apiClient.get("/invoices?limit=5&sort=createdAt:desc"),
+          apiClient.get("/waybills?limit=5&sort=createdAt:desc"),
+        ]);
+
+      return {
+        stats: statsResponse.data,
+        recentInvoices: recentInvoicesResponse.data,
+        recentWaybills: recentWaybillsResponse.data,
+      };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 };
 

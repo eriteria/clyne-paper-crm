@@ -46,6 +46,29 @@ export const getFinancialReport = async (
   return response.data.data;
 };
 
+// Customer Ledger
+export const getCustomerLedger = async (
+  customerId: string,
+  startDate: string,
+  endDate: string
+) => {
+  const response = await apiClient.get(
+    `/financial/customer-ledger/${customerId}`,
+    {
+      params: { startDate, endDate },
+    }
+  );
+  return response.data.data;
+};
+
+// Get customers for selection
+export const getCustomers = async (search?: string) => {
+  const response = await apiClient.get("/customers", {
+    params: { search, limit: 100 },
+  });
+  return response.data.data;
+};
+
 // QuickBooks Exports
 export const createQuickBooksExport = async (exportData: ExportData) => {
   const response = await apiClient.post(

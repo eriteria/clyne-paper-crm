@@ -11,6 +11,7 @@ import {
   DollarSign,
   Plus,
   UserMinus,
+  AlertTriangle,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { User } from "@/types";
@@ -202,7 +203,7 @@ export default function ViewTeamModal({
                 </div>
 
                 {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
                   <div className="bg-white rounded-lg p-4 text-center">
                     <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-gray-900">
@@ -223,6 +224,13 @@ export default function ViewTeamModal({
                       {team.invoices?.length || 0}
                     </div>
                     <div className="text-sm text-gray-500">Invoices</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 text-center">
+                    <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-gray-900">
+                      {formatCurrency(team.totalOutstandingPayments || 0)}
+                    </div>
+                    <div className="text-sm text-gray-500">Outstanding</div>
                   </div>
                 </div>
               </div>

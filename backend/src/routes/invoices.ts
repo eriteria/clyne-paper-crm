@@ -4,6 +4,15 @@ import { logger } from "../utils/logger";
 import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 import PDFDocument = require("pdfkit");
+import {
+  ExcelInvoiceRow,
+  fixDuplicateInvoiceNumbers,
+  getImportStatistics,
+  getInvoiceImportTemplate,
+  getJsonInvoiceImportTemplate,
+  importFlexibleJsonInvoices,
+  importInvoices,
+} from "../utils/invoiceImport";
 
 const router = express.Router();
 
@@ -18,6 +27,8 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
       search,
       status,
       dateRange,
+      startDate,
+      endDate,
       customerName,
     } = req.query;
 
@@ -49,35 +60,42 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
       };
     }
 
-    // Date range filter
-    if (dateRange) {
+    // Date range filter - handle both preset ranges and custom dates
+    if (startDate && endDate) {
+      // Custom date range
+      where.createdAt = {
+        gte: new Date(startDate as string),
+        lte: new Date(endDate as string),
+      };
+    } else if (dateRange) {
+      // Preset date range
       const now = new Date();
-      let startDate: Date;
+      let filterStartDate: Date;
 
       switch (dateRange) {
         case "today":
-          startDate = new Date(
+          filterStartDate = new Date(
             now.getFullYear(),
             now.getMonth(),
             now.getDate()
           );
           break;
         case "week":
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          filterStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           break;
         case "month":
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          filterStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
           break;
         case "quarter":
           const quarterStart = Math.floor(now.getMonth() / 3) * 3;
-          startDate = new Date(now.getFullYear(), quarterStart, 1);
+          filterStartDate = new Date(now.getFullYear(), quarterStart, 1);
           break;
         default:
-          startDate = new Date(0);
+          filterStartDate = new Date(0);
       }
 
       where.createdAt = {
-        gte: startDate,
+        gte: filterStartDate,
       };
     }
 
@@ -144,6 +162,201 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
   }
 });
 
+// @desc    Get invoice statistics
+// @route   GET /api/invoices/stats
+// @access  Private
+router.get(
+  "/stats",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { search, status, dateRange, startDate, endDate, customerName } =
+        req.query;
+
+      // Build filters (same logic as main route)
+      const where: any = {};
+
+      if (search) {
+        where.OR = [
+          {
+            invoiceNumber: { contains: search as string, mode: "insensitive" },
+          },
+          { customerName: { contains: search as string, mode: "insensitive" } },
+          {
+            customerContact: {
+              contains: search as string,
+              mode: "insensitive",
+            },
+          },
+        ];
+      }
+
+      if (status) {
+        where.status = status as string;
+      }
+
+      if (customerName) {
+        where.customerName = {
+          contains: customerName as string,
+          mode: "insensitive",
+        };
+      }
+
+      // Date range filter - handle both preset ranges and custom dates
+      if (startDate && endDate) {
+        // Custom date range
+        where.createdAt = {
+          gte: new Date(startDate as string),
+          lte: new Date(endDate as string),
+        };
+      } else if (dateRange) {
+        // Preset date range
+        const now = new Date();
+        let filterStartDate: Date;
+
+        switch (dateRange) {
+          case "today":
+            filterStartDate = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate()
+            );
+            break;
+          case "week":
+            filterStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case "month":
+            filterStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            break;
+          case "quarter":
+            const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+            filterStartDate = new Date(now.getFullYear(), quarterStart, 1);
+            break;
+          default:
+            filterStartDate = new Date(0);
+        }
+
+        where.createdAt = {
+          gte: filterStartDate,
+        };
+      }
+
+      // Calculate stats based on filtered invoices
+      const [
+        totalInvoices,
+        paidInvoices,
+        pendingInvoices,
+        draftInvoices,
+        paidAmount,
+        pendingAmount,
+        totalAmount,
+        actualPayments,
+      ] = await Promise.all([
+        prisma.invoice.count({ where }),
+        prisma.invoice.count({
+          where: { ...where, status: "COMPLETED" },
+        }),
+        prisma.invoice.count({
+          where: {
+            ...where,
+            status: { in: ["OPEN", "pending"] },
+          },
+        }),
+        prisma.invoice.count({
+          where: { ...where, status: "DRAFT" },
+        }),
+        prisma.invoice.aggregate({
+          where: { ...where, status: "COMPLETED" },
+          _sum: { totalAmount: true },
+        }),
+        prisma.invoice.aggregate({
+          where: {
+            ...where,
+            status: { in: ["OPEN", "pending"] },
+          },
+          _sum: { totalAmount: true },
+        }),
+        prisma.invoice.aggregate({
+          where,
+          _sum: { totalAmount: true },
+        }),
+        // Get actual payments for the same date range
+        (async () => {
+          let paymentWhere: any = {};
+
+          if (startDate && endDate) {
+            paymentWhere.createdAt = {
+              gte: new Date(startDate as string),
+              lte: new Date(endDate as string),
+            };
+          } else if (dateRange) {
+            const now = new Date();
+            let filterStartDate: Date;
+
+            switch (dateRange) {
+              case "today":
+                filterStartDate = new Date(
+                  now.getFullYear(),
+                  now.getMonth(),
+                  now.getDate()
+                );
+                break;
+              case "week":
+                filterStartDate = new Date(
+                  now.getTime() - 7 * 24 * 60 * 60 * 1000
+                );
+                break;
+              case "month":
+                filterStartDate = new Date(
+                  now.getFullYear(),
+                  now.getMonth(),
+                  1
+                );
+                break;
+              case "quarter":
+                const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+                filterStartDate = new Date(now.getFullYear(), quarterStart, 1);
+                break;
+              default:
+                filterStartDate = new Date(0);
+            }
+
+            paymentWhere.createdAt = {
+              gte: filterStartDate,
+            };
+          }
+
+          return prisma.customerPayment.aggregate({
+            where: paymentWhere,
+            _sum: { amount: true },
+          });
+        })(),
+      ]);
+
+      const stats = {
+        totalInvoices,
+        paidInvoices,
+        pendingInvoices,
+        draftInvoices,
+        paidAmount: Number(paidAmount._sum.totalAmount || 0),
+        pendingAmount: Number(pendingAmount._sum.totalAmount || 0),
+        totalAmount: Number(totalAmount._sum.totalAmount || 0),
+        actualPaidAmount: Number(actualPayments._sum.amount || 0),
+        // For backward compatibility
+        monthlyInvoices: totalInvoices,
+      };
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      logger.error("Error fetching invoice statistics:", error);
+      next(error);
+    }
+  }
+);
+
 // @desc    Get single invoice
 // @route   GET /api/invoices/:id
 // @access  Private
@@ -204,6 +417,184 @@ router.get(
       });
     } catch (error) {
       logger.error("Error fetching invoice:", error);
+      next(error);
+    }
+  }
+);
+
+// @desc    Download invoice as PDF
+// @route   GET /api/invoices/:id/pdf
+// @access  Private
+router.get(
+  "/:id/pdf",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const { id } = req.params;
+
+      const invoice = await prisma.invoice.findUnique({
+        where: { id },
+        include: {
+          billedBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          team: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          region: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: "Invoice not found",
+        });
+      }
+
+      // Create PDF document
+      const doc = new PDFDocument({ margin: 50 });
+
+      // Set response headers for PDF download
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`
+      );
+
+      // Pipe the PDF to the response
+      doc.pipe(res);
+
+      // Add company header
+      doc.fontSize(20).text("Clyne Paper Limited", 50, 50);
+      doc.fontSize(10).text("Tissue Paper Manufacturing", 50, 75);
+      doc.fontSize(10).text("Lagos, Nigeria", 50, 90);
+
+      // Add invoice title
+      doc.fontSize(16).text("INVOICE", 400, 50);
+      doc.fontSize(10).text(`Invoice #: ${invoice.invoiceNumber}`, 400, 75);
+      doc
+        .fontSize(10)
+        .text(
+          `Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`,
+          400,
+          90
+        );
+      doc
+        .fontSize(10)
+        .text(
+          `Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`,
+          400,
+          105
+        );
+
+      // Add customer information
+      doc.fontSize(12).text("Bill To:", 50, 140);
+      doc.fontSize(10).text(invoice.customerName, 50, 160);
+      if (invoice.customerContact) {
+        doc.text(invoice.customerContact, 50, 175);
+      }
+      if (invoice.customerAddress) {
+        doc.text(invoice.customerAddress, 50, 190);
+      }
+
+      // Add invoice details
+      let currentY = 230;
+      doc.fontSize(12).text("Invoice Details:", 50, currentY);
+      currentY += 20;
+
+      // Table headers
+      doc.fontSize(10);
+      doc.text("Description", 50, currentY);
+      doc.text("Quantity", 200, currentY);
+      doc.text("Unit Price", 280, currentY);
+      doc.text("Total", 400, currentY);
+
+      // Line under headers
+      currentY += 15;
+      doc.moveTo(50, currentY).lineTo(500, currentY).stroke();
+      currentY += 10;
+
+      // Add product details (if available in your schema)
+      const quantity = invoice.quantity || 1;
+      const unitPrice = invoice.totalAmount / quantity;
+
+      doc.text(invoice.description || "Tissue Paper Products", 50, currentY);
+      doc.text(quantity.toString(), 200, currentY);
+      doc.text(`₦${unitPrice.toLocaleString()}`, 280, currentY);
+      doc.text(`₦${invoice.totalAmount.toLocaleString()}`, 400, currentY);
+
+      currentY += 30;
+
+      // Add totals
+      doc.moveTo(300, currentY).lineTo(500, currentY).stroke();
+      currentY += 10;
+
+      doc.fontSize(10);
+      doc.text(
+        `Subtotal: ₦${invoice.totalAmount.toLocaleString()}`,
+        350,
+        currentY
+      );
+      currentY += 15;
+
+      if (invoice.taxAmount && invoice.taxAmount > 0) {
+        doc.text(`Tax: ₦${invoice.taxAmount.toLocaleString()}`, 350, currentY);
+        currentY += 15;
+      }
+
+      doc.fontSize(12);
+      const finalAmount = invoice.totalAmount + (invoice.taxAmount || 0);
+      doc.text(`Total: ₦${finalAmount.toLocaleString()}`, 350, currentY);
+
+      // Add payment information
+      currentY += 40;
+      doc.fontSize(10);
+      doc.text(`Status: ${invoice.status}`, 50, currentY);
+
+      if (invoice.paidAmount && invoice.paidAmount > 0) {
+        currentY += 15;
+        doc.text(
+          `Paid Amount: ₦${invoice.paidAmount.toLocaleString()}`,
+          50,
+          currentY
+        );
+        currentY += 15;
+        const balance = finalAmount - invoice.paidAmount;
+        doc.text(`Balance: ₦${balance.toLocaleString()}`, 50, currentY);
+      }
+
+      // Add footer
+      currentY += 60;
+      doc.fontSize(8);
+      doc.text("Thank you for your business!", 50, currentY);
+      doc.text(
+        `Generated by: ${invoice.billedBy?.fullName || "System"}`,
+        50,
+        currentY + 15
+      );
+      doc.text(
+        `Generated on: ${new Date().toLocaleDateString()}`,
+        50,
+        currentY + 30
+      );
+
+      // Finalize the PDF
+      doc.end();
+    } catch (error) {
+      logger.error("Error generating invoice PDF:", error);
       next(error);
     }
   }
@@ -392,7 +783,21 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
       });
     }
 
-    // Relaxed: No due date constraints; allow any provided due date
+    // Validate payment terms: if dueDate is provided, ensure it doesn't exceed customer's default payment term
+    if (dueDate) {
+      const invoiceDate = new Date();
+      const providedDueDate = new Date(dueDate);
+      const daysDifference = Math.ceil(
+        (providedDueDate.getTime() - invoiceDate.getTime()) / (1000 * 3600 * 24)
+      );
+
+      if (daysDifference > customer.defaultPaymentTermDays) {
+        return res.status(400).json({
+          success: false,
+          message: `Payment term cannot exceed ${customer.defaultPaymentTermDays} days for this customer. You selected ${daysDifference} days.`,
+        });
+      }
+    }
 
     // Validate inventory items (no stock check - allows selling out of stock items)
     const inventoryChecks =
@@ -426,29 +831,17 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
     const totalAmount =
       subtotal + parseFloat(taxAmount) - parseFloat(discountAmount);
 
-    // Generate simple sequential invoice number
-    const lastInvoice = await prisma.invoice.findFirst({
-      orderBy: {
-        invoiceNumber: "desc",
-      },
-      select: {
-        invoiceNumber: true,
-      },
-    });
-
-    let invoiceNumber = "1000"; // Starting number
-    if (lastInvoice && lastInvoice.invoiceNumber) {
-      // Extract number from existing invoice number
-      const lastNumber = parseInt(lastInvoice.invoiceNumber.replace(/\D/g, ""));
-      if (!isNaN(lastNumber)) {
-        invoiceNumber = String(lastNumber + 1);
-      }
-    }
-
     // Create invoice with transaction to ensure data consistency
     const result = await prisma.$transaction(async (tx) => {
       // Use the authenticated user as billed by user
       const billedByUserId = req.user!.id;
+
+      // Generate unique invoice number using timestamp + random
+      const timestamp = Date.now().toString();
+      const randomSuffix = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, "0");
+      const invoiceNumber = timestamp.slice(-8) + randomSuffix; // Last 8 digits of timestamp + 3 digit random
 
       // Create the invoice
       const invoice = await tx.invoice.create({
@@ -466,7 +859,12 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
           taxAmount: parseFloat(taxAmount),
           discountAmount: parseFloat(discountAmount),
           notes,
-          dueDate: dueDate ? new Date(dueDate) : null,
+          dueDate: dueDate
+            ? new Date(dueDate)
+            : new Date(
+                Date.now() +
+                  customer.defaultPaymentTermDays * 24 * 60 * 60 * 1000
+              ), // Use customer's default payment term
           status: isDraft ? "DRAFT" : "OPEN",
         },
       });
@@ -591,6 +989,21 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
     });
   } catch (error) {
     logger.error("Error creating invoice:", error);
+
+    // Handle unique constraint violations
+    if (
+      error instanceof Error &&
+      error.message.includes(
+        "Unique constraint failed on the fields: (`invoice_number`)"
+      )
+    ) {
+      logger.warn("Invoice number collision detected, retrying...");
+      return res.status(409).json({
+        success: false,
+        message: "Invoice number collision detected. Please try again.",
+        code: "INVOICE_NUMBER_CONFLICT",
+      });
+    }
 
     // Note: Removed insufficient stock error handling since we now allow out-of-stock sales
 

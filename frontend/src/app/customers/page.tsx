@@ -173,6 +173,34 @@ export default function CustomersPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Location
+                    </label>
+                    <p className="text-gray-900">
+                      {viewingCustomer.locationRef?.name || "N/A"}
+                      {viewingCustomer.locationRef?.description && (
+                        <span className="text-sm text-gray-500 block">
+                          {viewingCustomer.locationRef.description}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Team
+                    </label>
+                    <p className="text-gray-900">
+                      {viewingCustomer.team?.name || "No team assigned"}
+                      {viewingCustomer.team?.description && (
+                        <span className="text-sm text-gray-500 block">
+                          {viewingCustomer.team.description}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Relationship Manager
                     </label>
                     <p className="text-gray-900">

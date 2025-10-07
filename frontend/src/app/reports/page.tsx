@@ -46,6 +46,11 @@ import { format } from "date-fns";
 
 // Utility Functions
 const formatCurrency = (amount: number) => {
+  // Handle invalid numbers
+  if (isNaN(amount) || !isFinite(amount)) {
+    return "₦0";
+  }
+
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
@@ -246,10 +251,10 @@ function OverdueTab({ data, isLoading }: OverdueTabProps) {
   }
 
   // Calculate summary metrics
-  const totalOverdueAmount = data.reduce(
-    (sum, invoice) => sum + invoice.balance,
-    0
-  );
+  const totalOverdueAmount = data.reduce((sum, invoice) => {
+    const balance = Number(invoice.balance);
+    return sum + (isNaN(balance) || !isFinite(balance) ? 0 : balance);
+  }, 0);
   const averageDaysOverdue = Math.round(
     data.reduce((sum, invoice) => sum + invoice.daysOverdue, 0) / data.length
   );
@@ -718,8 +723,14 @@ function CustomersTab({ data, isLoading }: CustomersTabProps) {
           iconColor="text-green-600"
           title="New Customers"
           value={formatNumber(data.overview.newCustomers)}
-          change={`${data.overview.customerGrowthRate >= 0 ? "+" : ""}${data.overview.customerGrowthRate.toFixed(1)}% vs previous`}
-          changeColor={data.overview.customerGrowthRate >= 0 ? "text-green-600" : "text-red-600"}
+          change={`${
+            data.overview.customerGrowthRate >= 0 ? "+" : ""
+          }${data.overview.customerGrowthRate.toFixed(1)}% vs previous`}
+          changeColor={
+            data.overview.customerGrowthRate >= 0
+              ? "text-green-600"
+              : "text-red-600"
+          }
         />
         <MetricCard
           icon={Target}
@@ -774,10 +785,17 @@ function CustomersTab({ data, isLoading }: CustomersTabProps) {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, value }: { name: string; value: number }) => `${name}: ${value}`}
+                  label={({ name, value }: { name: string; value: number }) =>
+                    `${name}: ${value}`
+                  }
                 >
                   {segmentationChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={["#2563eb", "#16a34a", "#eab308", "#dc2626"][index % 4]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        ["#2563eb", "#16a34a", "#eab308", "#dc2626"][index % 4]
+                      }
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -795,10 +813,15 @@ function CustomersTab({ data, isLoading }: CustomersTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {paymentBehaviorData.map((item) => (
             <div key={item.name} className="text-center p-4 border rounded-lg">
-              <div className={`text-2xl font-bold ${
-                item.name === "Fast Payers" ? "text-green-600" :
-                item.name === "Regular Payers" ? "text-yellow-600" : "text-red-600"
-              }`}>
+              <div
+                className={`text-2xl font-bold ${
+                  item.name === "Fast Payers"
+                    ? "text-green-600"
+                    : item.name === "Regular Payers"
+                    ? "text-yellow-600"
+                    : "text-red-600"
+                }`}
+              >
                 {formatNumber(item.value)}
               </div>
               <div className="text-sm text-gray-600">{item.name}</div>
@@ -859,8 +882,12 @@ function CustomersTab({ data, isLoading }: CustomersTabProps) {
                     {customer.location || "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{customer.email || "-"}</div>
-                    <div className="text-sm text-gray-500">{customer.phone || "-"}</div>
+                    <div className="text-sm text-gray-900">
+                      {customer.email || "-"}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {customer.phone || "-"}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
                     {formatCurrency(customer.revenue)}
@@ -872,10 +899,9 @@ function CustomersTab({ data, isLoading }: CustomersTabProps) {
                     {formatCurrency(customer.avgOrderValue)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {customer.lastPurchase 
+                    {customer.lastPurchase
                       ? format(new Date(customer.lastPurchase), "MMM dd, yyyy")
-                      : "-"
-                    }
+                      : "-"}
                   </td>
                 </tr>
               ))}
@@ -1010,7 +1036,7 @@ export default function ReportsPage() {
               onChange={(e) =>
                 setFilters({ ...filters, startDate: e.target.value })
               }
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <span className="text-gray-500">to</span>
             <input
@@ -1019,7 +1045,7 @@ export default function ReportsPage() {
               onChange={(e) =>
                 setFilters({ ...filters, endDate: e.target.value })
               }
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {activeTab === "aging" && (
               <>

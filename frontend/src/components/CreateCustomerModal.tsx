@@ -27,6 +27,7 @@ export default function CreateCustomerModal({
     contactPerson: "",
     relationshipManagerId: "",
     locationId: "",
+    defaultPaymentTermDays: 30,
   });
 
   const queryClient = useQueryClient();
@@ -63,6 +64,7 @@ export default function CreateCustomerModal({
       contactPerson: string;
       relationshipManagerId: string;
       locationId: string;
+      defaultPaymentTermDays: number;
     }) => {
       const response = await apiClient.post("/customers", customerData);
       return response.data;
@@ -84,6 +86,7 @@ export default function CreateCustomerModal({
       contactPerson: "",
       relationshipManagerId: "",
       locationId: "",
+      defaultPaymentTermDays: 30,
     });
     onClose();
   };
@@ -104,7 +107,7 @@ export default function CreateCustomerModal({
     createCustomerMutation.mutate(formData);
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -261,6 +264,31 @@ export default function CreateCustomerModal({
                     </option>
                   )
                 )}
+              </select>
+            </div>
+
+            {/* Payment Terms */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Building className="w-4 h-4 inline mr-1" />
+                Default Payment Terms (Days)
+              </label>
+              <select
+                value={formData.defaultPaymentTermDays}
+                onChange={(e) =>
+                  handleInputChange(
+                    "defaultPaymentTermDays",
+                    parseInt(e.target.value)
+                  )
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+              >
+                <option value={7}>7 Days</option>
+                <option value={15}>15 Days</option>
+                <option value={30}>30 Days</option>
+                <option value={45}>45 Days</option>
+                <option value={60}>60 Days</option>
+                <option value={90}>90 Days</option>
               </select>
             </div>
 

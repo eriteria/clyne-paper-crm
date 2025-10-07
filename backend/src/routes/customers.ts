@@ -54,6 +54,13 @@ router.get("/", async (req, res, next) => {
               isActive: true,
             },
           },
+          team: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            },
+          },
           _count: {
             select: {
               invoices: true,
@@ -110,6 +117,13 @@ router.get("/:id", async (req, res, next) => {
             isActive: true,
           },
         },
+        team: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
         invoices: {
           orderBy: {
             createdAt: "desc",
@@ -155,6 +169,7 @@ router.post("/", async (req, res, next) => {
       contactPerson,
       relationshipManagerId,
       locationId,
+      defaultPaymentTermDays = 30,
     } = req.body;
 
     // Validation
@@ -186,6 +201,17 @@ router.post("/", async (req, res, next) => {
       }
     }
 
+    // Find team assigned to this location
+    let teamId: string | null = null;
+    const teamLocation = await prisma.teamLocation.findFirst({
+      where: { locationId },
+      include: { team: true },
+    });
+
+    if (teamLocation) {
+      teamId = teamLocation.team.id;
+    }
+
     const customer = await prisma.customer.create({
       data: {
         name,
@@ -196,6 +222,8 @@ router.post("/", async (req, res, next) => {
         contactPerson,
         relationshipManagerId,
         locationId,
+        teamId, // Auto-assign team based on location
+        defaultPaymentTermDays,
       },
       include: {
         relationshipManager: {
@@ -212,6 +240,13 @@ router.post("/", async (req, res, next) => {
             name: true,
             description: true,
             isActive: true,
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
           },
         },
       },
@@ -249,6 +284,7 @@ router.put("/:id", async (req, res, next) => {
       companyName,
       contactPerson,
       relationshipManagerId,
+      defaultPaymentTermDays,
     } = req.body;
 
     // Check if customer exists
@@ -287,6 +323,7 @@ router.put("/:id", async (req, res, next) => {
         companyName,
         contactPerson,
         relationshipManagerId,
+        ...(defaultPaymentTermDays !== undefined && { defaultPaymentTermDays }),
       },
       include: {
         relationshipManager: {
@@ -295,6 +332,21 @@ router.put("/:id", async (req, res, next) => {
             fullName: true,
             email: true,
             phone: true,
+          },
+        },
+        locationRef: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isActive: true,
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
           },
         },
       },

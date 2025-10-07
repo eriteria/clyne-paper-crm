@@ -2,10 +2,34 @@ export interface FinancialDashboard {
   totalRevenue: number;
   outstandingAmount: number;
   outstandingCount: number;
-  recentPayments: Payment[];
+  recentPayments: CustomerPayment[];
   monthlyRevenue: MonthlyRevenue[];
   paymentMethods: PaymentMethodSummary[];
   taxCollected: number;
+}
+
+export interface CustomerPayment {
+  id: string;
+  customerId: string;
+  amount: number;
+  paymentMethod: string;
+  paymentDate: string;
+  referenceNumber?: string;
+  notes?: string;
+  recordedByUserId: string;
+  status: string;
+  allocatedAmount: number;
+  creditAmount: number;
+  createdAt: string;
+  updatedAt: string;
+  customer: {
+    id: string;
+    name: string;
+    companyName?: string;
+  };
+  recordedBy: {
+    fullName: string;
+  };
 }
 
 export interface Payment {

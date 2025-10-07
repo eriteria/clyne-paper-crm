@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   X,
   Plus,
   Trash2,
   Calendar,
-  User,
   Package,
   FileText,
   Save,
@@ -15,15 +14,8 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
-
-interface Customer {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  companyName?: string;
-  contactPerson?: string;
-}
+import SearchableCustomerSelect from "./SearchableCustomerSelect";
+import { Customer } from "@/types";
 
 interface InventoryItem {
   id: string;
@@ -81,7 +73,9 @@ export default function CreateInvoiceModal({
     discountAmount: number;
     action?: PostAction;
   };
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null
+  );
   const [invoiceDate, setInvoiceDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -99,10 +93,28 @@ export default function CreateInvoiceModal({
     },
   ]);
 
+  const queryClient = useQueryClient();
+
+  // Fetch customers
+  const { data: customersData } = useQuery({
+    queryKey: ["customers"],
+    queryFn: async () => {
+      const response = await apiClient.get("/customers?limit=100");
+      return response.data;
+    },
+    enabled: isOpen,
+  });
+
+  const customers = useMemo(() => customersData?.data || [], [customersData]);
+
   // Prefill fields for edit mode
   useEffect(() => {
-    if (invoice) {
-      setSelectedCustomerId(invoice.customerId);
+    if (invoice && customers) {
+      // Find the customer object from the invoice's customerId
+      const customer = customers.find(
+        (c: Customer) => c.id === invoice.customerId
+      );
+      setSelectedCustomer(customer || null);
       setInvoiceDate(
         invoice.date
           ? invoice.date.split("T")[0]
@@ -139,7 +151,7 @@ export default function CreateInvoiceModal({
       );
     } else {
       // Reset for create mode
-      setSelectedCustomerId("");
+      setSelectedCustomer(null);
       setInvoiceDate(new Date().toISOString().split("T")[0]);
       setDueDate("");
       setNotes("");
@@ -155,19 +167,52 @@ export default function CreateInvoiceModal({
         },
       ]);
     }
-  }, [invoice, isOpen]);
+  }, [invoice, isOpen, customers]);
 
-  const queryClient = useQueryClient();
-
-  // Fetch customers
-  const { data: customersData } = useQuery({
-    queryKey: ["customers"],
-    queryFn: async () => {
-      const response = await apiClient.get("/customers?limit=100");
-      return response.data;
-    },
-    enabled: isOpen,
-  });
+  // Prefill fields for edit mode
+  useEffect(() => {
+    if (invoice && customers.length > 0) {
+      // Find the customer object from the invoice's customerId
+      const customer = customers.find(
+        (c: Customer) => c.id === invoice.customerId
+      );
+      setSelectedCustomer(customer || null);
+      setInvoiceDate(
+        invoice.date
+          ? invoice.date.split("T")[0]
+          : new Date().toISOString().split("T")[0]
+      );
+      setDueDate(invoice.dueDate ? invoice.dueDate.split("T")[0] : "");
+      setNotes(invoice.notes || "");
+      setTaxAmount(Number(invoice.taxAmount) || 0);
+      setDiscountAmount(Number(invoice.discountAmount) || 0);
+      setExpectedInvoiceNumber(invoice.invoiceNumber || "");
+      setItems(
+        invoice.items && invoice.items.length > 0
+          ? invoice.items.map((it) => ({
+              inventoryItemId: it.inventoryItemId,
+              quantity: Number(it.quantity),
+              unitPrice: Number(it.unitPrice),
+              lineTotal: Number(it.lineTotal),
+              inventoryItem: it.inventoryItem
+                ? {
+                    ...it.inventoryItem,
+                    unitPrice: Number(it.unitPrice ?? 0),
+                    currentQuantity: 0,
+                  }
+                : undefined,
+            }))
+          : [
+              {
+                inventoryItemId: "",
+                quantity: 1,
+                unitPrice: 0,
+                lineTotal: 0,
+              },
+            ]
+      );
+    }
+  }, [invoice, isOpen, customers]);
 
   // Fetch inventory items for invoicing
   const { data: inventoryData } = useQuery({
@@ -196,20 +241,37 @@ export default function CreateInvoiceModal({
     }
   }, [nextInvoiceData]);
 
-  // Validate and adjust due date when invoice date changes
+  // Auto-set due date when customer is selected (create mode only)
   useEffect(() => {
-    if (dueDate && invoiceDate) {
+    if (selectedCustomer && !invoice && invoiceDate) {
+      const defaultDueDate = new Date(invoiceDate);
+      defaultDueDate.setDate(
+        defaultDueDate.getDate() + selectedCustomer.defaultPaymentTermDays
+      );
+      setDueDate(defaultDueDate.toISOString().split("T")[0]);
+    }
+  }, [selectedCustomer, invoiceDate, invoice]);
+
+  // Validate and adjust due date when invoice date or customer changes
+  useEffect(() => {
+    if (dueDate && invoiceDate && selectedCustomer) {
       const dueDateObj = new Date(dueDate);
       const invoiceDateObj = new Date(invoiceDate);
       const maxDueDateObj = new Date(invoiceDate);
-      maxDueDateObj.setDate(maxDueDateObj.getDate() + 30);
+      maxDueDateObj.setDate(
+        maxDueDateObj.getDate() + selectedCustomer.defaultPaymentTermDays
+      );
 
-      // If current due date is beyond the 30-day limit or before invoice date, reset it
+      // If current due date is beyond the customer's payment term limit or before invoice date, reset it
       if (dueDateObj > maxDueDateObj || dueDateObj < invoiceDateObj) {
-        setDueDate("");
+        const newDueDate = new Date(invoiceDate);
+        newDueDate.setDate(
+          newDueDate.getDate() + selectedCustomer.defaultPaymentTermDays
+        );
+        setDueDate(newDueDate.toISOString().split("T")[0]);
       }
     }
-  }, [invoiceDate, dueDate]);
+  }, [invoiceDate, dueDate, selectedCustomer]);
 
   // Create invoice mutation
   const createInvoiceMutation = useMutation({
@@ -234,9 +296,24 @@ export default function CreateInvoiceModal({
       onSuccess?.();
       handleClose();
     },
+    onError: (error: unknown) => {
+      console.error("Invoice creation error:", error);
+
+      // Handle errors normally
+      const apiError = error as {
+        response?: { status?: number; data?: { message?: string } };
+        message?: string;
+      };
+      alert(
+        `Error creating invoice: ${
+          apiError.response?.data?.message ||
+          apiError.message ||
+          "Unknown error"
+        }`
+      );
+    },
   });
 
-  const customers = customersData?.data || [];
   const inventoryItems = inventoryData?.data || [];
 
   // Calculate totals
@@ -247,7 +324,7 @@ export default function CreateInvoiceModal({
 
   const handleClose = () => {
     // Reset form
-    setSelectedCustomerId("");
+    setSelectedCustomer(null);
     setInvoiceDate(new Date().toISOString().split("T")[0]);
     setDueDate("");
     setNotes("");
@@ -312,14 +389,36 @@ export default function CreateInvoiceModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedCustomerId) {
+    if (!selectedCustomer) {
       alert("Please select a customer");
       return;
     }
+
+    // Validate payment terms: ensure due date doesn't exceed customer's default payment term
+    if (dueDate && selectedCustomer) {
+      const dueDateObj = new Date(dueDate);
+      const invoiceDateObj = new Date(invoiceDate);
+      const daysDifference = Math.ceil(
+        (dueDateObj.getTime() - invoiceDateObj.getTime()) / (1000 * 3600 * 24)
+      );
+
+      if (daysDifference > selectedCustomer.defaultPaymentTermDays) {
+        alert(
+          `Payment term cannot exceed ${selectedCustomer.defaultPaymentTermDays} days for this customer. You selected ${daysDifference} days.`
+        );
+        return;
+      }
+
+      if (daysDifference < 0) {
+        alert("Due date cannot be before the invoice date.");
+        return;
+      }
+    }
+
     // Note: Stock validation removed - allowing sales of out-of-stock items
 
     const invoiceData: InvoiceRequest = {
-      customerId: selectedCustomerId,
+      customerId: selectedCustomer.id,
       notes,
       dueDate: dueDate || null,
       taxAmount,
@@ -389,26 +488,13 @@ export default function CreateInvoiceModal({
             </div>
 
             {/* Customer Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <User className="w-4 h-4 inline mr-1" />
-                Customer *
-              </label>
-              <select
-                value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-                required
-              >
-                <option value="">Select a customer</option>
-                {customers.map((customer: Customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                    {customer.companyName && ` (${customer.companyName})`}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableCustomerSelect
+              customers={customers}
+              selectedCustomer={selectedCustomer}
+              onCustomerChange={setSelectedCustomer}
+              required
+              loading={!customersData}
+            />
 
             {/* Invoice Date */}
             <div>
@@ -438,7 +524,16 @@ export default function CreateInvoiceModal({
                 onChange={(e) => setDueDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
               />
-              <p className="mt-1 text-xs text-gray-500">Optional.</p>
+              {selectedCustomer ? (
+                <p className="mt-1 text-xs text-gray-500">
+                  Maximum payment term for this customer:{" "}
+                  {selectedCustomer.defaultPaymentTermDays} days
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-500">
+                  Select a customer to see payment terms.
+                </p>
+              )}
             </div>
           </div>
 
@@ -668,12 +763,12 @@ export default function CreateInvoiceModal({
             <button
               type="button"
               onClick={() => {
-                if (!selectedCustomerId) {
+                if (!selectedCustomer) {
                   alert("Please select a customer");
                   return;
                 }
                 const draftData: InvoiceRequest = {
-                  customerId: selectedCustomerId,
+                  customerId: selectedCustomer.id,
                   notes,
                   dueDate: dueDate || null,
                   taxAmount,

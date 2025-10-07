@@ -10,109 +10,100 @@ const router = express.Router();
 // @access  Private
 router.get("/dashboard", async (req, res, next) => {
   try {
-    // Get overview metrics
-    const [
-      totalUsers,
-      activeUsers,
-      totalInventoryItems,
-      lowStockCountRow,
-      totalInvoices,
-      pendingInvoices,
-      totalWaybills,
-    ] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { isActive: true } }),
-      prisma.inventoryItem.count(),
-      prisma.$queryRaw`SELECT COUNT(*) as count FROM inventory_items WHERE current_quantity <= min_stock`,
-      prisma.invoice.count(),
-      prisma.invoice.count({ where: { status: "pending" } }),
-      prisma.waybill.count(),
-    ]);
+    const startTime = Date.now();
 
-    // Get inventory value - current and historical comparison
-    const [inventoryValue, previousInventoryValue] = await Promise.all([
-      prisma.inventoryItem.aggregate({
-        _sum: {
-          unitPrice: true,
-        },
-      }),
-      // Get inventory value from 30 days ago by checking audit logs or using a simpler approach
-      // For now, we'll use a simpler approach comparing with inventory items modified 30+ days ago
-      prisma.inventoryItem.aggregate({
-        where: {
-          updatedAt: {
-            lte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-          },
-        },
-        _sum: {
-          unitPrice: true,
-        },
-      }),
-    ]);
+    // Optimize: Use raw SQL for counts - much faster than individual Prisma queries
+    const countsQuery = `
+      SELECT 
+        (SELECT COUNT(*) FROM users) as total_users,
+        (SELECT COUNT(*) FROM users WHERE is_active = true) as active_users,
+        (SELECT COUNT(*) FROM inventory_items) as total_inventory_items,
+        (SELECT COUNT(*) FROM inventory_items WHERE current_quantity <= min_stock) as low_stock_count,
+        (SELECT COUNT(*) FROM invoices) as total_invoices,
+        (SELECT COUNT(*) FROM invoices WHERE status = 'OPEN') as pending_invoices,
+        (SELECT COUNT(*) FROM waybills) as total_waybills
+    `;
 
-    // Calculate inventory value change percentage
-    const currentInventoryValue = Number(inventoryValue._sum.unitPrice || 0);
-    const previousInventoryVal = Number(previousInventoryValue._sum.unitPrice || 0);
-    const inventoryValueChange = previousInventoryVal > 0
-      ? ((currentInventoryValue - previousInventoryVal) / previousInventoryVal) * 100
-      : 0;
+    const [countsResult] = (await prisma.$queryRawUnsafe(countsQuery)) as any[];
 
-    // Get teams with member counts
-    const teamsWithCounts = await prisma.team.findMany({
-      include: {
-        locations: {
-          include: {
-            location: true,
-          },
-        },
+    // Convert BigInt values to numbers
+    const counts = {
+      totalUsers: Number(countsResult.total_users),
+      activeUsers: Number(countsResult.active_users),
+      totalInventoryItems: Number(countsResult.total_inventory_items),
+      lowStockCount: Number(countsResult.low_stock_count),
+      totalInvoices: Number(countsResult.total_invoices),
+      pendingInvoices: Number(countsResult.pending_invoices),
+      totalWaybills: Number(countsResult.total_waybills),
+    };
+
+    // Simplified inventory value calculation - remove historical comparison for now
+    const inventoryValue = await prisma.inventoryItem.aggregate({
+      _sum: {
+        unitPrice: true,
+      },
+    });
+
+    // Simplified teams query - just get essential data
+    const teams = await prisma.team.findMany({
+      select: {
+        id: true,
+        name: true,
         _count: {
           select: { members: true },
         },
       },
     });
 
-    // Get recent low stock items - using raw SQL with proper join
-    const lowStockItems = await prisma.$queryRaw`
-      SELECT 
-        i.id, 
-        i.name, 
-        i.sku, 
-        i.current_quantity, 
-        i.min_stock,
-        l.name as location_name
-      FROM inventory_items i
-      JOIN locations l ON i.location_id = l.id
-      WHERE i.current_quantity <= i.min_stock 
-      ORDER BY i.current_quantity ASC 
-      LIMIT 5
-    `;
+    // Optimized low stock items query
+    const lowStockItems = await prisma.inventoryItem.findMany({
+      where: {
+        currentQuantity: {
+          lte: prisma.inventoryItem.fields.minStock,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        currentQuantity: true,
+        minStock: true,
+        location: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        currentQuantity: "asc",
+      },
+      take: 5,
+    });
+
+    const queryTime = Date.now() - startTime;
+    logger.info(`Dashboard query completed in ${queryTime}ms`);
 
     res.json({
       success: true,
       data: {
         overview: {
-          totalUsers,
-          activeUsers,
-          totalInventoryItems,
-          lowStockCount: (() => {
-            const v = (lowStockCountRow as any[])[0]?.count;
-            if (typeof v === "bigint") return Number(v);
-            if (typeof v === "string") return parseInt(v, 10) || 0;
-            return v || 0;
-          })(),
-          totalInvoices,
-          pendingInvoices,
-          totalWaybills,
-          totalInventoryValue: currentInventoryValue,
-          inventoryValueChange: Math.round(inventoryValueChange * 100) / 100, // Round to 2 decimal places
+          ...counts,
+          totalInventoryValue: Number(inventoryValue._sum.unitPrice || 0),
+          inventoryValueChange: 0, // Simplified for performance
         },
-        teams: teamsWithCounts.map((team: any) => ({
+        teams: teams.map((team: any) => ({
           id: team.id,
           name: team.name,
-          location: team.location?.name,
           memberCount: team._count.members,
         })),
-        lowStockItems,
+        lowStockItems: lowStockItems.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          sku: item.sku,
+          current_quantity: item.currentQuantity,
+          min_stock: item.minStock,
+          location_name: item.location?.name,
+        })),
       },
     });
   } catch (error) {
@@ -908,9 +899,10 @@ router.get("/customers", async (req, res, next) => {
       },
     });
 
-    const retentionRate = customersWithPreviousPurchases > 0 
-      ? (retentionCustomers / customersWithPreviousPurchases) * 100 
-      : 0;
+    const retentionRate =
+      customersWithPreviousPurchases > 0
+        ? (retentionCustomers / customersWithPreviousPurchases) * 100
+        : 0;
 
     // At-risk customers (no purchases in last 90 days)
     const atRiskCustomers = await prisma.customer.count({
@@ -1054,9 +1046,12 @@ router.get("/customers", async (req, res, next) => {
     `;
 
     // Calculate growth rates
-    const customerGrowthRate = newCustomersPrevPeriod > 0 
-      ? ((newCustomersThisPeriod - newCustomersPrevPeriod) / newCustomersPrevPeriod) * 100
-      : 0;
+    const customerGrowthRate =
+      newCustomersPrevPeriod > 0
+        ? ((newCustomersThisPeriod - newCustomersPrevPeriod) /
+            newCustomersPrevPeriod) *
+          100
+        : 0;
 
     res.json({
       success: true,

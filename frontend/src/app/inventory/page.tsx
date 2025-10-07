@@ -123,10 +123,10 @@ export default function InventoryPage() {
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
           >
             <FileText className="h-4 w-4" />
-            Create Waybill
+            Log Waybill
           </button>
           <p className="text-xs text-gray-500 text-right max-w-xs">
-            Add inventory items by creating a waybill for received goods
+            Add inventory items by logging a waybill for received goods
           </p>
         </div>
       </div>
@@ -140,9 +140,9 @@ export default function InventoryPage() {
               How to Add Inventory Items
             </h3>
             <p className="text-sm text-blue-700 mt-1">
-              Inventory items are added automatically when you create and
-              process waybills. Create a waybill for goods received from
-              suppliers, and the system will add the items to your inventory.
+              Inventory items are added automatically when you log and process
+              waybills. Log a waybill for goods received from suppliers, and the
+              system will add the items to your inventory.
             </p>
             <button
               onClick={() => router.push("/admin/waybills")}
@@ -292,14 +292,14 @@ export default function InventoryPage() {
               No inventory items
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Add inventory items by creating a waybill for received goods.
+              Add inventory items by logging a waybill for received goods.
             </p>
             <button
               onClick={() => router.push("/admin/waybills")}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 mx-auto"
             >
               <FileText className="h-4 w-4" />
-              Create Your First Waybill
+              Log Your First Waybill
             </button>
           </div>
         )}

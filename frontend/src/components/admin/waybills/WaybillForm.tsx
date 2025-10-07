@@ -200,7 +200,7 @@ export default function WaybillForm({
         toast.success("Waybill updated successfully");
       } else {
         result = await waybillService.create(waybillData);
-        toast.success("Waybill created successfully");
+        toast.success("Waybill logged successfully");
       }
 
       onSubmit?.(result);
@@ -294,7 +294,7 @@ export default function WaybillForm({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {isEdit ? "Edit Waybill" : "Create New Waybill"}
+            {isEdit ? "Edit Waybill" : "Log New Waybill"}
             {isEdit && initialData?.status && (
               <Badge
                 variant={
@@ -645,7 +645,7 @@ export default function WaybillForm({
                   ? "Saving..."
                   : isEdit
                   ? "Update Waybill"
-                  : "Create Waybill"}
+                  : "Log Waybill"}
               </Button>
             </div>
           </form>

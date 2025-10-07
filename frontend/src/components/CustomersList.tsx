@@ -7,13 +7,13 @@ import {
   Edit,
   Trash2,
   MapPin,
-  Building,
+  Users,
   User as UserIcon,
   Calendar,
   UserCheck,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
-import { Customer, User } from "@/types";
+import { Customer } from "@/types";
 
 interface CustomerWithCount extends Customer {
   _count?: {
@@ -58,19 +58,12 @@ export default function CustomersList({
       const response = await apiClient.get(`/customers?${params.toString()}`);
       return response.data;
     },
-    staleTime: 30000,
+    staleTime: 2 * 60 * 1000, // 2 minutes
     refetchOnWindowFocus: false,
     retry: 1,
   });
 
-  // Fetch users for relationship manager dropdown
-  const { data: usersData } = useQuery({
-    queryKey: ["users"],
-    queryFn: async () => {
-      const response = await apiClient.get("/users?limit=100");
-      return response.data;
-    },
-  });
+  // Remove separate users query - relationship manager data is included in customers response
 
   // Delete customer mutation
   const deleteCustomerMutation = useMutation({
@@ -84,7 +77,6 @@ export default function CustomersList({
 
   const customers = customersData?.data || [];
   const pagination = customersData?.pagination || {};
-  const users = usersData?.data?.users || [];
 
   const handleDeleteCustomer = async (id: string, customerName: string) => {
     if (
@@ -96,12 +88,9 @@ export default function CustomersList({
     }
   };
 
-  const getRelationshipManagerName = (relationshipManagerId?: string) => {
-    if (!relationshipManagerId) return "Not assigned";
-    const manager = users.find(
-      (user: User) => user.id === relationshipManagerId
-    );
-    return manager ? manager.fullName : "Unknown";
+  const getRelationshipManagerName = (customer: CustomerWithCount) => {
+    // Use the included relationship manager data
+    return customer.relationshipManager?.fullName || "Not assigned";
   };
 
   if (isLoading) {
@@ -150,7 +139,7 @@ export default function CustomersList({
                   Location
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Company
+                  Team
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Relationship Manager
@@ -187,33 +176,41 @@ export default function CustomersList({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="space-y-1">
-                      {customer.locationRef && (
-                        <div className="flex items-center text-sm text-gray-900">
-                          <MapPin className="h-4 w-4 mr-1 text-gray-400" />
-                          {customer.locationRef.name}
-                        </div>
-                      )}
-                      {customer.locationRef?.description && (
-                        <div className="text-xs text-gray-500">
-                          {customer.locationRef.description}
-                        </div>
-                      )}
-                    </div>
+                    {/* Location column - show customer address/location only */}
+                    {customer.address ? (
+                      <div className="flex items-center text-sm text-gray-900">
+                        <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+                        {customer.address}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
-                    {customer.companyName && (
+                    {/* Team Information Only */}
+                    {customer.team ? (
                       <div className="flex items-center text-sm text-gray-900">
-                        <Building className="h-4 w-4 mr-1 text-gray-400" />
-                        {customer.companyName}
+                        <Users className="h-4 w-4 mr-1 text-gray-400" />
+                        <div>
+                          <div className="font-medium">
+                            {customer.team.name}
+                          </div>
+                          {customer.team.description && (
+                            <div className="text-xs text-gray-500">
+                              {customer.team.description}
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        No team assigned
+                      </span>
                     )}
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-gray-900">
-                      {getRelationshipManagerName(
-                        customer.relationshipManagerId
-                      )}
+                      {getRelationshipManagerName(customer)}
                     </span>
                   </td>
                   <td className="px-6 py-4">

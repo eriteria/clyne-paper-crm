@@ -18,17 +18,37 @@ import {
   Upload,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
+import { downloadInvoicePDF } from "@/lib/utils";
 import CreateInvoiceModal from "@/components/CreateInvoiceModal";
 import CreateCustomerModal from "@/components/CreateCustomerModal";
 import { Invoice } from "@/types";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 
+// Custom hook for debouncing
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function InvoicesPage() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateRange, setFilterDateRange] = useState("");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
@@ -37,6 +57,13 @@ export default function InvoicesPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
+  // Debounce custom dates to prevent excessive API calls
+  const debouncedStartDate = useDebounce(customStartDate, 500);
+  const debouncedEndDate = useDebounce(customEndDate, 500);
+
+  // Only use custom dates if both are provided
+  const shouldUseCustomDates = debouncedStartDate && debouncedEndDate;
+
   // Fetch invoices
   const { data: invoicesData, isLoading } = useQuery({
     queryKey: [
@@ -44,13 +71,20 @@ export default function InvoicesPage() {
       searchTerm,
       filterStatus,
       filterDateRange,
+      shouldUseCustomDates ? debouncedStartDate : null,
+      shouldUseCustomDates ? debouncedEndDate : null,
       currentPage,
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
       if (filterStatus) params.append("status", filterStatus);
-      if (filterDateRange) params.append("dateRange", filterDateRange);
+      if (shouldUseCustomDates) {
+        params.append("startDate", debouncedStartDate);
+        params.append("endDate", debouncedEndDate);
+      } else if (filterDateRange) {
+        params.append("dateRange", filterDateRange);
+      }
       params.append("page", currentPage.toString());
       params.append("limit", "50");
 
@@ -59,11 +93,28 @@ export default function InvoicesPage() {
     },
   });
 
-  // Fetch invoice statistics
+  // Fetch invoice statistics with same filters
   const { data: invoiceStats } = useQuery({
-    queryKey: ["invoice-stats"],
+    queryKey: [
+      "invoice-stats",
+      searchTerm,
+      filterStatus,
+      filterDateRange,
+      shouldUseCustomDates ? debouncedStartDate : null,
+      shouldUseCustomDates ? debouncedEndDate : null,
+    ],
     queryFn: async () => {
-      const response = await apiClient.get("/invoices/stats");
+      const params = new URLSearchParams();
+      if (searchTerm) params.append("search", searchTerm);
+      if (filterStatus) params.append("status", filterStatus);
+      if (shouldUseCustomDates) {
+        params.append("startDate", debouncedStartDate);
+        params.append("endDate", debouncedEndDate);
+      } else if (filterDateRange) {
+        params.append("dateRange", filterDateRange);
+      }
+
+      const response = await apiClient.get(`/invoices/stats?${params}`);
       return response.data.data;
     },
   });
@@ -111,7 +162,7 @@ export default function InvoicesPage() {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus, filterDateRange]);
+  }, [searchTerm, filterStatus, filterDateRange, shouldUseCustomDates]);
 
   // Since backend handles filtering, use invoices directly
   const filteredInvoices = invoices;
@@ -128,26 +179,6 @@ export default function InvoicesPage() {
       cancelled: "bg-red-100 text-red-800",
     };
     return badges[status] || "bg-gray-100 text-gray-800";
-  };
-
-  const getTotalRevenue = () => {
-    return filteredInvoices
-      .filter((inv: Invoice) => inv.status === "COMPLETED")
-      .reduce(
-        (sum: number, inv: Invoice) =>
-          sum + +((inv.totalAmount as unknown) ?? 0),
-        0
-      );
-  };
-
-  const getPendingAmount = () => {
-    return filteredInvoices
-      .filter((inv: Invoice) => inv.status === "DRAFT" || inv.status === "OPEN")
-      .reduce(
-        (sum: number, inv: Invoice) =>
-          sum + +((inv.totalAmount as unknown) ?? 0),
-        0
-      );
   };
 
   if (isLoading) {
@@ -204,7 +235,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-sm text-gray-600">Total Invoices</p>
               <p className="text-2xl font-bold text-gray-900">
-                {invoiceStats?.totalInvoices || pagination.total}
+                {invoiceStats?.totalInvoices ?? pagination.total}
               </p>
             </div>
           </div>
@@ -216,12 +247,19 @@ export default function InvoicesPage() {
               <DollarSign className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Revenue</p>
+              <p className="text-sm text-gray-600">Revenue (Completed)</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(
-                  Number(invoiceStats?.paidAmount ?? getTotalRevenue())
-                )}
+                {formatCurrency(Number(invoiceStats?.paidAmount ?? 0))}
               </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Invoice amounts marked complete
+              </p>
+              {invoiceStats?.actualPaidAmount !== undefined && (
+                <p className="text-xs text-green-600 mt-1">
+                  Actual payments:{" "}
+                  {formatCurrency(Number(invoiceStats.actualPaidAmount))}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -234,9 +272,7 @@ export default function InvoicesPage() {
             <div>
               <p className="text-sm text-gray-600">Pending Amount</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(
-                  Number(invoiceStats?.pendingAmount ?? getPendingAmount())
-                )}
+                {formatCurrency(Number(invoiceStats?.pendingAmount ?? 0))}
               </p>
             </div>
           </div>
@@ -248,9 +284,9 @@ export default function InvoicesPage() {
               <FileText className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">This Month</p>
+              <p className="text-sm text-gray-600">This Period</p>
               <p className="text-2xl font-bold text-gray-900">
-                {invoiceStats?.monthlyInvoices || 0}
+                {invoiceStats?.totalInvoices ?? 0}
               </p>
             </div>
           </div>
@@ -259,7 +295,7 @@ export default function InvoicesPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
@@ -288,7 +324,14 @@ export default function InvoicesPage() {
           <select
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
             value={filterDateRange}
-            onChange={(e) => setFilterDateRange(e.target.value)}
+            onChange={(e) => {
+              setFilterDateRange(e.target.value);
+              // Clear custom dates when using preset ranges
+              if (e.target.value) {
+                setCustomStartDate("");
+                setCustomEndDate("");
+              }
+            }}
           >
             <option value="">All Time</option>
             <option value="today">Today</option>
@@ -297,9 +340,61 @@ export default function InvoicesPage() {
             <option value="quarter">This Quarter</option>
           </select>
 
-          <div className="text-sm text-gray-600 flex items-center">
-            <FileText className="h-4 w-4 mr-2" />
-            {pagination.total} invoices
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 whitespace-nowrap">
+              From:
+            </label>
+            <input
+              type="date"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              value={customStartDate}
+              max={customEndDate || undefined}
+              onChange={(e) => {
+                setCustomStartDate(e.target.value);
+                // Clear preset range when using custom dates
+                if (e.target.value && customEndDate) {
+                  setFilterDateRange("");
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 whitespace-nowrap">
+              To:
+            </label>
+            <input
+              type="date"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+              value={customEndDate}
+              min={customStartDate || undefined}
+              onChange={(e) => {
+                setCustomEndDate(e.target.value);
+                // Clear preset range when using custom dates
+                if (e.target.value && customStartDate) {
+                  setFilterDateRange("");
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(customStartDate || customEndDate || filterDateRange) && (
+              <button
+                onClick={() => {
+                  setCustomStartDate("");
+                  setCustomEndDate("");
+                  setFilterDateRange("");
+                }}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm"
+              >
+                Clear Filters
+              </button>
+            )}
+            <div className="text-sm text-gray-600 flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
+              {pagination.total} invoices
+            </div>
           </div>
         </div>
       </div>
@@ -387,23 +482,11 @@ export default function InvoicesPage() {
                         title="Download PDF"
                         onClick={async () => {
                           try {
-                            const res = await apiClient.get(
-                              `/invoices/${invoice.id}/pdf`,
-                              { responseType: "blob" }
+                            await downloadInvoicePDF(
+                              invoice.id,
+                              invoice.invoiceNumber
                             );
-                            const url = window.URL.createObjectURL(
-                              new Blob([res.data])
-                            );
-                            const link = document.createElement("a");
-                            link.href = url;
-                            link.setAttribute(
-                              "download",
-                              `${invoice.invoiceNumber}.pdf`
-                            );
-                            document.body.appendChild(link);
-                            link.click();
-                            link.parentNode?.removeChild(link);
-                          } catch (err) {
+                          } catch {
                             alert("Failed to download PDF");
                           }
                         }}

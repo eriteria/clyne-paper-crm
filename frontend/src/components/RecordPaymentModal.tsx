@@ -4,12 +4,8 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { apiClient } from "@/lib/api";
-
-interface Customer {
-  id: string;
-  name: string;
-  companyName?: string;
-}
+import SearchableCustomerSelect from "./SearchableCustomerSelect";
+import { Customer } from "@/types";
 
 interface OpenInvoice {
   id: string;
@@ -299,30 +295,13 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Customer Selection */}
             {!customer && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Customer *
-                </label>
-                <select
-                  value={selectedCustomer?.id || ""}
-                  onChange={(e) => {
-                    const customer = customers.find(
-                      (c) => c.id === e.target.value
-                    );
-                    setSelectedCustomer(customer || null);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  required
-                >
-                  <option value="">Select a customer</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}{" "}
-                      {customer.companyName && `(${customer.companyName})`}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SearchableCustomerSelect
+                customers={customers}
+                selectedCustomer={selectedCustomer}
+                onCustomerChange={setSelectedCustomer}
+                required
+                loading={false}
+              />
             )}
 
             {/* Customer Info & Outstanding Balance */}
@@ -375,27 +354,37 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="bg-gray-100">
-                          <th className="px-2 py-1 text-left">Invoice #</th>
-                          <th className="px-2 py-1 text-left">Due Date</th>
-                          <th className="px-2 py-1 text-right">Balance</th>
-                          <th className="px-2 py-1 text-center">Status</th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-700">
+                            Invoice #
+                          </th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-700">
+                            Due Date
+                          </th>
+                          <th className="px-2 py-1 text-right font-medium text-gray-700">
+                            Balance
+                          </th>
+                          <th className="px-2 py-1 text-center font-medium text-gray-700">
+                            Status
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {openInvoices.map((invoice) => (
                           <tr
                             key={invoice.id}
-                            className={invoice.isOverdue ? "bg-red-50" : ""}
+                            className={`${
+                              invoice.isOverdue ? "bg-red-50" : ""
+                            } text-gray-900`}
                           >
-                            <td className="px-2 py-1">
+                            <td className="px-2 py-1 text-gray-900">
                               {invoice.invoiceNumber}
                             </td>
-                            <td className="px-2 py-1">
+                            <td className="px-2 py-1 text-gray-900">
                               {invoice.dueDate
                                 ? new Date(invoice.dueDate).toLocaleDateString()
                                 : "-"}
                             </td>
-                            <td className="px-2 py-1 text-right">
+                            <td className="px-2 py-1 text-right text-gray-900">
                               {formatCurrency(invoice.balance)}
                             </td>
                             <td className="px-2 py-1 text-center">

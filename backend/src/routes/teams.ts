@@ -170,6 +170,7 @@ router.get("/:id", async (req, res, next) => {
             id: true,
             invoiceNumber: true,
             totalAmount: true,
+            balance: true,
             status: true,
             createdAt: true,
           },
@@ -187,9 +188,32 @@ router.get("/:id", async (req, res, next) => {
       return;
     }
 
+    // Calculate total outstanding payments for this team
+    const outstandingPayments = await prisma.invoice.aggregate({
+      where: {
+        teamId: id,
+        balance: {
+          gt: 0, // Only invoices with outstanding balance
+        },
+        status: {
+          not: "CANCELLED", // Exclude cancelled invoices
+        },
+      },
+      _sum: {
+        balance: true,
+      },
+    });
+
+    // Add calculated fields to team data
+    const teamWithCalculations = {
+      ...team,
+      totalOutstandingPayments: outstandingPayments._sum.balance || 0,
+      locationNames: team.locations.map((tl) => tl.location.name),
+    };
+
     res.json({
       success: true,
-      data: team,
+      data: teamWithCalculations,
     });
   } catch (error) {
     logger.error("Error fetching team:", error);

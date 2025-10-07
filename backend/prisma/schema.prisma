@@ -189,6 +189,7 @@ model Customer {
   onboardingDate        DateTime? @map("onboarding_date") // For DATE OF ONBOARDING from Excel
   lastOrderDate         DateTime? @map("last_order_date") // For LAST ORDER DATE from Excel
   relationshipManagerName String? @map("relationship_manager_name") // Temporary field for import
+  defaultPaymentTermDays Int      @default(30) @map("default_payment_term_days") // Default payment term in days
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   invoices              Invoice[]

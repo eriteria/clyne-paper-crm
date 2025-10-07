@@ -20,8 +20,10 @@ dotenv.config();
 // Initialize Prisma
 export const prisma = new PrismaClient();
 
-// Create Express app with rate limiting enabled for production
-const app = createApp({ enableRateLimit: true });
+// Create Express app with rate limiting only in production
+const app = createApp({
+  enableRateLimit: process.env.NODE_ENV === "production",
+});
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
 // Graceful shutdown
