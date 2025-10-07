@@ -449,6 +449,14 @@ router.put("/:id", async (req, res, next) => {
       });
     });
 
+    if (!updatedTeam) {
+      logger.error("Updated team not found after update operation.");
+      return res.status(500).json({
+        success: false,
+        error: "Team update failed. Please try again.",
+      });
+    }
+
     logger.info(`Team updated: ${updatedTeam.name}`);
 
     res.json({

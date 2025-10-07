@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 
 // Set test environment variables
 process.env.JWT_SECRET = "test-jwt-secret-key";
-process.env.NODE_ENV = "test";
+// process.env.NODE_ENV = "test"; // Avoid assigning to NODE_ENV if it's read-only
 
 describe("Authentication Utils Unit Tests", () => {
   describe("Password hashing", () => {

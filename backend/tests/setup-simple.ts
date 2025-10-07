@@ -6,7 +6,9 @@ import { join } from "path";
 config({ path: join(__dirname, "..", ".env.test") });
 
 // Set default test environment variables
-process.env.NODE_ENV = "test";
+if (!process.env.NODE_ENV) {
+  (process.env as any).NODE_ENV = "test";
+}
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-jwt-secret-key";
 process.env.JWT_REFRESH_SECRET =
   process.env.JWT_REFRESH_SECRET || "test-refresh-secret-key";

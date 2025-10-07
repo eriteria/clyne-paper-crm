@@ -12,8 +12,7 @@ const prisma = new PrismaClient({
 });
 
 beforeAll(async () => {
-  // Set environment to test
-  process.env.NODE_ENV = "test";
+  // Set test secrets (NODE_ENV should be set in your test runner or scripts)
   process.env.JWT_SECRET = "test-jwt-secret-key-for-testing-only";
   process.env.JWT_REFRESH_SECRET = "test-refresh-secret-key-for-testing-only";
 

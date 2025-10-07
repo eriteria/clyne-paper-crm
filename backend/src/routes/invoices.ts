@@ -457,6 +457,17 @@ router.get(
         },
       });
 
+      // Add paidAmount to the invoice object if not present
+      const invoiceWithPaidAmount = invoice as any;
+      if (invoiceWithPaidAmount && typeof invoiceWithPaidAmount.paidAmount === "undefined") {
+        // Option 1: If you have a payments relation, sum the payments
+        const payments = await prisma.customerPayment.aggregate({
+          where: { invoice_id: invoiceWithPaidAmount.id },
+          _sum: { amount: true },
+        });
+        invoiceWithPaidAmount.paidAmount = Number(payments._sum.amount || 0);
+      }
+
       if (!invoice) {
         return res.status(404).json({
           success: false,
@@ -550,13 +561,13 @@ router.get(
       );
       currentY += 15;
 
-      if (invoice.taxAmount && invoice.taxAmount > 0) {
-        doc.text(`Tax: ₦${invoice.taxAmount.toLocaleString()}`, 350, currentY);
+      if (invoice.taxAmount && Number(invoice.taxAmount) > 0) {
+        doc.text(`Tax: ₦${Number(invoice.taxAmount).toLocaleString()}`, 350, currentY);
         currentY += 15;
       }
 
       doc.fontSize(12);
-      const finalAmount = invoice.totalAmount + (invoice.taxAmount || 0);
+      const finalAmount = invoice.totalAmount.add(invoice.taxAmount || 0);
       doc.text(`Total: ₦${finalAmount.toLocaleString()}`, 350, currentY);
 
       // Add payment information
