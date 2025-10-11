@@ -51,7 +51,7 @@ router.get("/callback", async (req, res) => {
         (d) => d.trim().toLowerCase()
       );
       const emailDomain = email.split("@")[1]?.toLowerCase();
-      
+
       if (!emailDomain || !allowedDomains.includes(emailDomain)) {
         logger.warn(`Unauthorized domain login attempt: ${email}`);
         const frontend = process.env.FRONTEND_URL || "http://localhost:3000";

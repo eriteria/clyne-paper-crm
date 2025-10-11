@@ -76,12 +76,12 @@ export function buildAuthorizeUrl(state?: string): string {
     // Remove 'prompt: consent' to allow Zoho to remember user consent
     // Use 'select_account' to let users choose which account without re-consenting
   });
-  
+
   // Optional: Add domain hint if you want to suggest your organization domain
   if (process.env.ZOHO_DOMAIN_HINT) {
     params.set("login_hint", process.env.ZOHO_DOMAIN_HINT);
   }
-  
+
   if (state) params.set("state", state);
   return `${accountsHost}/oauth/v2/auth?${params.toString()}`;
 }

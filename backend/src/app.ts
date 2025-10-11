@@ -33,6 +33,7 @@ import dataManagementRoutes from "./routes/dataManagement";
 import settingsRoutes from "./routes/settings";
 import locationRoutes from "./routes/locations";
 import zohoAuthRoutes from "./routes/auth-zoho";
+import salesReturnsRoutes from "./routes/sales-returns";
 
 /**
  * Creates and configures the Express application
@@ -110,6 +111,7 @@ export function createApp(options: { enableRateLimit?: boolean } = {}) {
   app.use("/api/settings", settingsRoutes);
   app.use("/api/locations", locationRoutes);
   app.use("/api/auth/zoho", zohoAuthRoutes);
+  app.use("/api/sales-returns", salesReturnsRoutes);
 
   // Error handling middleware
   app.use(notFound);

@@ -104,6 +104,7 @@ model InventoryItem {
   updatedAt       DateTime      @updatedAt @map("updated_at")
   invoiceItems    InvoiceItem[]
   waybillItems    WaybillItem[]
+  salesReturnItems SalesReturnItem[]
   location        Location      @relation(fields: [locationId], references: [id])
   product         Product?      @relation(fields: [productId], references: [id])
 
@@ -190,11 +191,13 @@ model Customer {
   lastOrderDate         DateTime? @map("last_order_date") // For LAST ORDER DATE from Excel
   relationshipManagerName String? @map("relationship_manager_name") // Temporary field for import
   defaultPaymentTermDays Int      @default(30) @map("default_payment_term_days") // Default payment term in days
+  returnPolicyDays      Int       @default(30) @map("return_policy_days") // Days allowed for returns
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   invoices              Invoice[]
   payments              CustomerPayment[]
   credits               Credit[]
+  salesReturns          SalesReturn[]
   locationRef           Location  @relation(fields: [locationId], references: [id])
   relationshipManager   User?     @relation("CustomerRelationshipManager", fields: [relationshipManagerId], references: [id])
   team                  Team?     @relation("TeamCustomers", fields: [teamId], references: [id])
@@ -225,6 +228,7 @@ model Invoice {
   payments            Payment[]
   paymentApplications PaymentApplication[]
   creditApplications  CreditApplication[]  @relation("CreditApplications")
+  salesReturns        SalesReturn[]
   customer            Customer             @relation(fields: [customerId], references: [id])
   billedBy            User                 @relation(fields: [billedByUserId], references: [id])
   region              Region?              @relation(fields: [regionId], references: [id])
@@ -434,4 +438,73 @@ enum WaybillItemStatus {
   MATCHED     // Matched to existing inventory
   NEW_PRODUCT // Needs admin review for new product
   PROCESSED   // Added to inventory
+}
+
+model SalesReturn {
+  id              String            @id @default(cuid())
+  returnNumber    String            @unique @map("return_number") // e.g., "RET-2025-001"
+  
+  // Link to original invoice
+  invoiceId       String            @map("invoice_id")
+  invoice         Invoice           @relation(fields: [invoiceId], references: [id])
+  
+  // Customer info
+  customerId      String            @map("customer_id")
+  customer        Customer          @relation(fields: [customerId], references: [id])
+  
+  // Return details
+  returnDate      DateTime          @default(now()) @map("return_date")
+  reason          String            // "Damaged", "Wrong product", "Quality issue", "Customer request", etc.
+  notes           String?
+  
+  // Items being returned
+  items           SalesReturnItem[]
+  
+  // Financial impact
+  totalAmount     Decimal           @map("total_amount") @db.Decimal(12, 2)
+  refundMethod    String            @map("refund_method") // "Credit Note", "Bank Transfer"
+  refundStatus    String            @default("Pending") @map("refund_status") // "Pending", "Completed"
+  
+  // Inventory impact
+  restockStatus   String            @default("Pending") @map("restock_status") // "Pending", "Restocked", "Not Restocked"
+  
+  // Processing details
+  processedAt     DateTime?         @map("processed_at")
+  processedBy     String?           @map("processed_by") // User ID
+  
+  // Audit trail
+  createdBy       String            @map("created_by") // User ID
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@map("sales_returns")
+}
+
+model SalesReturnItem {
+  id                String      @id @default(cuid())
+  salesReturnId     String      @map("sales_return_id")
+  salesReturn       SalesReturn @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+  
+  // Original invoice item reference
+  invoiceItemId     String?     @map("invoice_item_id")
+  
+  // Product details (denormalized for history)
+  inventoryItemId   String?     @map("inventory_item_id")
+  inventoryItem     InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+  productName       String      @map("product_name")
+  sku               String
+  
+  // Return quantities and pricing
+  quantityReturned  Decimal     @map("quantity_returned") @db.Decimal(10, 2)
+  unitPrice         Decimal     @map("unit_price") @db.Decimal(10, 2)
+  subtotal          Decimal     @db.Decimal(12, 2)
+  
+  // Condition of returned items
+  condition         String      // "Good", "Damaged", "Defective"
+  restocked         Boolean     @default(false) // Whether this item was restocked
+  
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  @@map("sales_return_items")
 }
