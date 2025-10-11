@@ -24,8 +24,10 @@ function ZohoAuthCompleteContent() {
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", userJson);
 
-      // Redirect to dashboard
-      setTimeout(() => router.push("/dashboard"), 500);
+      // Redirect to dashboard with replace to trigger auth reload
+      // Using window.location instead of router.push to force a full page reload
+      // This ensures the AuthProvider picks up the new localStorage values
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Failed to complete Zoho authentication:", err);
       setError("Authentication failed. Please try again.");

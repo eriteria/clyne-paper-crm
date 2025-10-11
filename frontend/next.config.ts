@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "www.zoho.com",
         port: "",
-        pathname: "/sites/zweb/images/**",
+        pathname: "/**",
       },
     ],
   },
