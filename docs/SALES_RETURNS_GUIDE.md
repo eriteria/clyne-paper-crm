@@ -18,6 +18,7 @@ The Clyne Paper CRM now includes a comprehensive sales returns system that allow
 ## Database Schema
 
 ### SalesReturn Model
+
 ```
 - returnNumber: Unique identifier (e.g., "RET-2025-0001")
 - invoice: Link to original invoice
@@ -35,6 +36,7 @@ The Clyne Paper CRM now includes a comprehensive sales returns system that allow
 ```
 
 ### SalesReturnItem Model
+
 ```
 - salesReturn: Parent return transaction
 - inventoryItem: Product being returned
@@ -48,6 +50,7 @@ The Clyne Paper CRM now includes a comprehensive sales returns system that allow
 ```
 
 ### Customer Model (Updated)
+
 ```
 - returnPolicyDays: How many days customer can return items (default: 30)
 ```
@@ -55,11 +58,13 @@ The Clyne Paper CRM now includes a comprehensive sales returns system that allow
 ## API Endpoints
 
 ### 1. List All Sales Returns
+
 ```http
 GET /api/sales-returns
 ```
 
 **Query Parameters:**
+
 - `page` (default: 1)
 - `limit` (default: 50)
 - `customerId` - Filter by customer
@@ -69,6 +74,7 @@ GET /api/sales-returns
 - `endDate` - Filter returns to date
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -97,16 +103,19 @@ GET /api/sales-returns
 ```
 
 ### 2. Get Sales Return by ID
+
 ```http
 GET /api/sales-returns/:id
 ```
 
 ### 3. Create Sales Return
+
 ```http
 POST /api/sales-returns
 ```
 
 **Request Body:**
+
 ```json
 {
   "invoiceId": "invoice-id-here",
@@ -119,7 +128,7 @@ POST /api/sales-returns
       "productName": "Toilet Paper 2-ply",
       "sku": "TP-2PLY-500",
       "quantityReturned": 5,
-      "unitPrice": 30.00,
+      "unitPrice": 30.0,
       "condition": "Damaged"
     }
   ]
@@ -127,6 +136,7 @@ POST /api/sales-returns
 ```
 
 **Validations:**
+
 - ✅ Invoice must exist
 - ✅ Return period must not be exceeded (customer's returnPolicyDays)
 - ✅ Quantity returned cannot exceed invoice quantity
@@ -134,6 +144,7 @@ POST /api/sales-returns
 - ✅ All items must exist in the invoice
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -155,11 +166,13 @@ POST /api/sales-returns
 ```
 
 ### 4. Process Sales Return
+
 ```http
 POST /api/sales-returns/:id/process
 ```
 
 **What This Does:**
+
 1. Checks each returned item's condition
 2. If condition is "Good", adds quantity back to inventory
 3. Marks items as restocked
@@ -167,6 +180,7 @@ POST /api/sales-returns/:id/process
 5. Updates restock status
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -176,6 +190,7 @@ POST /api/sales-returns/:id/process
 ```
 
 ### 5. Get Returns for Invoice
+
 ```http
 GET /api/sales-returns/invoice/:invoiceId
 ```
@@ -185,6 +200,7 @@ Returns all sales returns associated with a specific invoice.
 ## User Workflow
 
 ### Step 1: Initiate Return
+
 1. Navigate to invoice details
 2. Click "Return Items" button
 3. Select items to return
@@ -199,12 +215,14 @@ Returns all sales returns associated with a specific invoice.
 9. Submit return
 
 ### Step 2: System Validation
+
 - Checks return period (customer's policy)
 - Validates quantities
 - Checks for previous returns
 - Calculates total refund amount
 
 ### Step 3: Process Return
+
 1. Sales staff reviews return
 2. Clicks "Process Return"
 3. System automatically:
@@ -214,6 +232,7 @@ Returns all sales returns associated with a specific invoice.
    - Generates credit note (if selected)
 
 ### Step 4: Follow-up
+
 - Customer notified (future enhancement)
 - Accounting processes refund
 - Inventory updated automatically
@@ -230,18 +249,21 @@ Returns all sales returns associated with a specific invoice.
 ## Item Conditions
 
 ### Good
+
 - Item is in sellable condition
 - Can be restocked
 - Will be added back to inventory
 - No quality issues
 
 ### Damaged
+
 - Item has physical damage
 - Cannot be resold
 - Will NOT be restocked
 - May need disposal
 
 ### Defective
+
 - Item has manufacturing defect
 - Cannot be resold
 - Will NOT be restocked
@@ -252,6 +274,7 @@ Returns all sales returns associated with a specific invoice.
 Each customer has a `returnPolicyDays` field (default: 30 days).
 
 **To update a customer's return policy:**
+
 ```http
 PATCH /api/customers/:id
 {
@@ -260,6 +283,7 @@ PATCH /api/customers/:id
 ```
 
 **Examples:**
+
 - VIP customers: 60 days
 - Standard customers: 30 days
 - Wholesale customers: 15 days
@@ -268,6 +292,7 @@ PATCH /api/customers/:id
 ## Reporting & Analytics (Future)
 
 Track these metrics:
+
 - Return rate by product
 - Return rate by customer
 - Most common return reasons
@@ -278,28 +303,34 @@ Track these metrics:
 ## Best Practices
 
 ### 1. Document Everything
+
 Always add detailed notes explaining:
+
 - What happened
 - Customer conversation
 - Photos (if applicable)
 - Delivery/shipping issues
 
 ### 2. Inspect Before Processing
+
 - Verify item condition matches customer claim
 - Take photos if items are damaged
 - Check packaging for damage
 
 ### 3. Restock Good Items Promptly
+
 - Process returns quickly to get inventory back
 - Good condition items = lost sales opportunity
 - Update inventory counts immediately
 
 ### 4. Track Patterns
+
 - If same product returns frequently → quality issue
 - If same customer returns frequently → review account
 - If same reason repeats → process improvement needed
 
 ### 5. Customer Communication
+
 - Inform customer of return approval
 - Explain refund timeline
 - Provide credit note/refund reference
@@ -307,21 +338,25 @@ Always add detailed notes explaining:
 ## Integration Points
 
 ### With Invoices
+
 - Returns linked to original invoice
 - Can view returns from invoice detail page
 - Track return percentage per invoice
 
 ### With Inventory
+
 - Auto-restocking updates quantities
 - Location-aware (same location as original sale)
 - Real-time inventory updates
 
 ### With Customers
+
 - Return history per customer
 - Custom return policies per customer
 - Track customer return patterns
 
 ### With Financial
+
 - Credit notes automatically generated
 - Affects customer balance
 - Bank transfer processing queue
@@ -329,16 +364,20 @@ Always add detailed notes explaining:
 ## Security & Permissions
 
 ### Who Can Create Returns?
+
 - Sales staff (USER role)
 - Managers (MANAGER role)
 - Admins (ADMIN role)
 
 ### Who Can Process Returns?
+
 - Managers (MANAGER role)
 - Admins (ADMIN role)
 
 ### Audit Trail
+
 Every return tracks:
+
 - Who created it
 - When it was created
 - Who processed it
@@ -356,6 +395,7 @@ Every return tracks:
 ## Summary
 
 Your sales returns system is now:
+
 - ✅ Flexible - Partial returns, multiple returns per invoice
 - ✅ Intelligent - Customer-specific policies, auto-validation
 - ✅ Efficient - No approval needed, auto-restocking

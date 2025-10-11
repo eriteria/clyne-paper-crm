@@ -373,7 +373,9 @@ router.post("/:id/process", authenticate, async (req, res) => {
       },
     });
 
-    logger.info(`Sales return processed: ${salesReturn.returnNumber} by user ${userId}`);
+    logger.info(
+      `Sales return processed: ${salesReturn.returnNumber} by user ${userId}`
+    );
 
     res.json({
       success: true,

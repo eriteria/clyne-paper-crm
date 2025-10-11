@@ -39,7 +39,10 @@ export default function SalesReturnsPage() {
       Restocked: "bg-green-100 text-green-900 border border-green-300",
       "Not Restocked": "bg-gray-100 text-gray-900 border border-gray-300",
     };
-    return styles[status as keyof typeof styles] || "bg-gray-100 text-gray-900 border border-gray-300";
+    return (
+      styles[status as keyof typeof styles] ||
+      "bg-gray-100 text-gray-900 border border-gray-300"
+    );
   };
 
   return (
@@ -142,25 +145,33 @@ export default function SalesReturnsPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm font-medium text-gray-700">Total Returns</div>
+            <div className="text-sm font-medium text-gray-700">
+              Total Returns
+            </div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
               {pagination?.total || 0}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm font-medium text-gray-700">Pending Returns</div>
+            <div className="text-sm font-medium text-gray-700">
+              Pending Returns
+            </div>
             <div className="text-2xl font-bold text-yellow-700 mt-1">
               {returns.filter((r) => r.refundStatus === "Pending").length}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm font-medium text-gray-700">Completed Returns</div>
+            <div className="text-sm font-medium text-gray-700">
+              Completed Returns
+            </div>
             <div className="text-2xl font-bold text-green-700 mt-1">
               {returns.filter((r) => r.refundStatus === "Completed").length}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm font-medium text-gray-700">Total Refund Amount</div>
+            <div className="text-sm font-medium text-gray-700">
+              Total Refund Amount
+            </div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
               ₦
               {returns

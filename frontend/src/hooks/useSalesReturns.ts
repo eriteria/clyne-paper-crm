@@ -1,10 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
-import {
-  SalesReturn,
-  CreateSalesReturnData,
-  ApiResponse,
-} from "@/types";
+import { SalesReturn, CreateSalesReturnData, ApiResponse } from "@/types";
 
 interface SalesReturnsListParams {
   page?: number;
