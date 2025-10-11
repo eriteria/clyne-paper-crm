@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ZohoAuthComplete() {
+function ZohoAuthCompleteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -58,5 +58,20 @@ export default function ZohoAuthComplete() {
         <p className="text-gray-600">You are being redirected to dashboard…</p>
       </div>
     </div>
+  );
+}
+
+export default function ZohoAuthComplete() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center">
+          <h1 className="text-xl font-semibold mb-3">Loading...</h1>
+          <p className="text-gray-600">Please wait...</p>
+        </div>
+      </div>
+    }>
+      <ZohoAuthCompleteContent />
+    </Suspense>
   );
 }
