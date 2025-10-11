@@ -1,14 +1,15 @@
 {
-  "testEnvironment": "node",
-  "moduleNameMapping": {
+  "testEnvironment": "jsdom",
+  "moduleNameMapper": {
     "^@/(.*)$": "<rootDir>/src/$1"
   },
-  "testMatch": ["**/*.test.js"],
+  "testMatch": ["**/__tests__/**/*.test.tsx", "**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.js"],
   "moduleFileExtensions": ["js", "jsx", "ts", "tsx"],
   "collectCoverageFrom": [
     "src/**/*.{js,jsx,ts,tsx}",
     "!src/**/*.d.ts",
     "!src/types/**/*"
   ],
-  "moduleDirectories": ["node_modules", "<rootDir>/"]
+  "moduleDirectories": ["node_modules", "<rootDir>/"],
+  "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"]
 }

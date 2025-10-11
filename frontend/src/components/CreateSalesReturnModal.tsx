@@ -146,7 +146,8 @@ export default function CreateSalesReturnModal({
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close modal"
             >
               <svg
                 className="w-6 h-6"
@@ -238,25 +239,25 @@ export default function CreateSalesReturnModal({
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         Select
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         Product
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         SKU
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         Invoiced Qty
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         Return Qty
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         Condition
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                         Unit Price
                       </th>
                     </tr>
@@ -284,7 +285,7 @@ export default function CreateSalesReturnModal({
                           <td className="px-4 py-3 text-sm text-gray-900">
                             {item.productName}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">
+                          <td className="px-4 py-3 text-sm text-gray-600">
                             {item.sku}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
@@ -342,13 +343,13 @@ export default function CreateSalesReturnModal({
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <div className="text-gray-600">Items Selected</div>
+                    <div className="text-gray-700">Items Selected</div>
                     <div className="font-semibold text-gray-900">
                       {selectedItems.size}
                     </div>
                   </div>
                   <div>
-                    <div className="text-gray-600">Total Quantity</div>
+                    <div className="text-gray-700">Total Quantity</div>
                     <div className="font-semibold text-gray-900">
                       {Array.from(selectedItems.values()).reduce(
                         (sum, item) => sum + item.quantityReturned,
@@ -357,8 +358,8 @@ export default function CreateSalesReturnModal({
                     </div>
                   </div>
                   <div>
-                    <div className="text-gray-600">Good Condition</div>
-                    <div className="font-semibold text-green-600">
+                    <div className="text-gray-700">Good Condition</div>
+                    <div className="font-semibold text-green-700">
                       {
                         Array.from(selectedItems.values()).filter(
                           (item) => item.condition === "Good"
@@ -368,7 +369,7 @@ export default function CreateSalesReturnModal({
                     </div>
                   </div>
                   <div>
-                    <div className="text-gray-600">Refund Amount</div>
+                    <div className="text-gray-700">Refund Amount</div>
                     <div className="font-bold text-gray-900 text-lg">
                       ₦{calculateTotal().toLocaleString()}
                     </div>
