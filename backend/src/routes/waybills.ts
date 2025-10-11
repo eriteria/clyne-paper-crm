@@ -425,7 +425,7 @@ router.post(
       const waybillId = req.params.id;
       const { approvedItems } = req.body; // Array of { waybillItemId, productData }
 
-      const results = [];
+      const results: Array<{ waybillItemId: string; inventoryItem: any }> = [];
 
       for (const approval of approvedItems) {
         const { waybillItemId, productData } = approval;

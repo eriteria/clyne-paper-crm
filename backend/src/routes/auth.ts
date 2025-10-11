@@ -70,19 +70,22 @@ router.post("/login", async (req, res, next) => {
     }
 
     // Generate tokens
-    const accessToken = jwt.sign(
+    const jwtSecret = process.env.JWT_SECRET as string;
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET as string;
+
+    const accessToken = (jwt.sign as any)(
       {
         userId: user.id,
         email: user.email,
         role: user.role.name,
       },
-      process.env.JWT_SECRET as string,
+      jwtSecret,
       { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
     );
 
-    const refreshToken = jwt.sign(
+    const refreshToken = (jwt.sign as any)(
       { userId: user.id },
-      process.env.JWT_REFRESH_SECRET as string,
+      jwtRefreshSecret,
       { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" }
     );
 
@@ -111,7 +114,7 @@ router.post("/login", async (req, res, next) => {
             ? {
                 id: user.team.id,
                 name: user.team.name,
-                location: user.team.location,
+                location: user.team.locations[0]?.location || null,
               }
             : null,
           region: user.region,
@@ -156,7 +159,7 @@ router.post("/refresh", async (req, res, next) => {
       return;
     }
 
-    const newAccessToken = jwt.sign(
+    const newAccessToken = (jwt.sign as any)(
       {
         userId: user.id,
         email: user.email,

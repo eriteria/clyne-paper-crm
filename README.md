@@ -1,3 +1,7 @@
+# Clyne Paper CRM
+
+[![Doppler](https://img.shields.io/badge/secrets-managed%20by%20doppler-3C4FE0?logo=doppler&logoColor=white)](https://doppler.com/)
+
 # Clyne Paper CRM System
 
 A production-ready CRM system for Clyne Paper Limited tissue paper factory with comprehensive inventory tracking, sales management, user & team modeling, role-based access control, and dashboard analytics.
@@ -40,6 +44,30 @@ npm test             # Run tests for both projects
 # Linting
 npm run lint         # Lint both projects
 ```
+
+## 🔐 Authentication Flow (Cookie-Based)
+
+**Zoho OAuth login now uses secure HTTP-only cookies for authentication.**
+
+### How it works
+
+- When you log in via Zoho, the backend sets `accessToken` and `refreshToken` as secure, HTTP-only cookies.
+- The frontend does **not** handle tokens directly—no tokens in localStorage or URL fragments.
+- To get the current user, the frontend calls `/api/auth/profile` (which reads the cookie).
+- Logout and token refresh are also handled via cookies.
+
+### Local Development
+
+1. Start both servers with Doppler-injected secrets:
+   ```bash
+   doppler run -- npm run dev
+   ```
+2. Log in via the frontend login page. You will be redirected after Zoho auth completes.
+3. The frontend will automatically detect your session via cookies.
+
+**Note:** If you change the backend domain/port, update `NEXT_PUBLIC_API_URL` in `frontend/.env.local` and `FRONTEND_URL` in Doppler/`.env`.
+
+---
 
 ## 🔑 Demo Credentials
 

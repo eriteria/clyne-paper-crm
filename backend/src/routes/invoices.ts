@@ -457,16 +457,22 @@ router.get(
         },
       });
 
-      // Add paidAmount to the invoice object if not present
-      const invoiceWithPaidAmount = invoice as any;
-      if (invoiceWithPaidAmount && typeof invoiceWithPaidAmount.paidAmount === "undefined") {
-        // Option 1: If you have a payments relation, sum the payments
-        const payments = await prisma.customerPayment.aggregate({
-          where: { invoice_id: invoiceWithPaidAmount.id },
-          _sum: { amount: true },
+      // Calculate paid amount from payments applied to this invoice
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: "Invoice not found",
         });
-        invoiceWithPaidAmount.paidAmount = Number(payments._sum.amount || 0);
       }
+
+      const paymentsApplied = await prisma.paymentApplication.aggregate({
+        where: {
+          invoiceId: invoice.id,
+        },
+        _sum: { amountApplied: true },
+      });
+
+      const paidAmount = Number(paymentsApplied._sum?.amountApplied || 0);
 
       if (!invoice) {
         return res.status(404).json({
@@ -498,15 +504,11 @@ router.get(
       doc.fontSize(10).text(`Invoice #: ${invoice.invoiceNumber}`, 400, 75);
       doc
         .fontSize(10)
-        .text(
-          `Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`,
-          400,
-          90
-        );
+        .text(`Date: ${new Date(invoice.date).toLocaleDateString()}`, 400, 90);
       doc
         .fontSize(10)
         .text(
-          `Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`,
+          `Due Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "Not set"}`,
           400,
           105
         );
@@ -517,9 +519,7 @@ router.get(
       if (invoice.customerContact) {
         doc.text(invoice.customerContact, 50, 175);
       }
-      if (invoice.customerAddress) {
-        doc.text(invoice.customerAddress, 50, 190);
-      }
+      // Note: customerAddress is not in the schema, so we'll skip it for now
 
       // Add invoice details
       let currentY = 230;
@@ -538,14 +538,18 @@ router.get(
       doc.moveTo(50, currentY).lineTo(500, currentY).stroke();
       currentY += 10;
 
-      // Add product details (if available in your schema)
-      const quantity = invoice.quantity || 1;
-      const unitPrice = invoice.totalAmount / quantity;
+      // Add product details - use simple fallback since quantity and description aren't in schema
+      const quantity = 1; // Default quantity since it's not in the invoice schema
+      const unitPrice = Number(invoice.totalAmount) / quantity;
 
-      doc.text(invoice.description || "Tissue Paper Products", 50, currentY);
+      doc.text("Tissue Paper Products", 50, currentY);
       doc.text(quantity.toString(), 200, currentY);
       doc.text(`₦${unitPrice.toLocaleString()}`, 280, currentY);
-      doc.text(`₦${invoice.totalAmount.toLocaleString()}`, 400, currentY);
+      doc.text(
+        `₦${Number(invoice.totalAmount).toLocaleString()}`,
+        400,
+        currentY
+      );
 
       currentY += 30;
 
@@ -555,19 +559,24 @@ router.get(
 
       doc.fontSize(10);
       doc.text(
-        `Subtotal: ₦${invoice.totalAmount.toLocaleString()}`,
+        `Subtotal: ₦${Number(invoice.totalAmount).toLocaleString()}`,
         350,
         currentY
       );
       currentY += 15;
 
       if (invoice.taxAmount && Number(invoice.taxAmount) > 0) {
-        doc.text(`Tax: ₦${Number(invoice.taxAmount).toLocaleString()}`, 350, currentY);
+        doc.text(
+          `Tax: ₦${Number(invoice.taxAmount).toLocaleString()}`,
+          350,
+          currentY
+        );
         currentY += 15;
       }
 
       doc.fontSize(12);
-      const finalAmount = invoice.totalAmount.add(invoice.taxAmount || 0);
+      const finalAmount =
+        Number(invoice.totalAmount) + Number(invoice.taxAmount || 0);
       doc.text(`Total: ₦${finalAmount.toLocaleString()}`, 350, currentY);
 
       // Add payment information
@@ -575,15 +584,11 @@ router.get(
       doc.fontSize(10);
       doc.text(`Status: ${invoice.status}`, 50, currentY);
 
-      if (invoice.paidAmount && invoice.paidAmount > 0) {
+      if (paidAmount && paidAmount > 0) {
         currentY += 15;
-        doc.text(
-          `Paid Amount: ₦${invoice.paidAmount.toLocaleString()}`,
-          50,
-          currentY
-        );
+        doc.text(`Paid Amount: ₦${paidAmount.toLocaleString()}`, 50, currentY);
         currentY += 15;
-        const balance = finalAmount - invoice.paidAmount;
+        const balance = finalAmount - paidAmount;
         doc.text(`Balance: ₦${balance.toLocaleString()}`, 50, currentY);
       }
 

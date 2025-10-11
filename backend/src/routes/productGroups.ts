@@ -19,31 +19,26 @@ router.get("/", async (req: Request, res: Response) => {
                     include: {
                       invoiceItems: {
                         include: {
-                          invoice: {
-                            select: {
-                              date: true,
-                              status: true,
-                            },
-                          },
+                          invoice: { select: { date: true, status: true } },
                         },
                       },
                     },
                   },
                 }
-              : false,
+              : {},
         },
       },
       orderBy: { name: "asc" },
     });
 
-    let groupsWithAnalytics = productGroups;
+    let groupsWithAnalytics: any = productGroups;
 
     if (includeAnalytics === "true") {
       const currentMonth = new Date();
       currentMonth.setDate(1);
       currentMonth.setHours(0, 0, 0, 0);
 
-      groupsWithAnalytics = productGroups.map((group) => {
+      groupsWithAnalytics = (productGroups as any).map((group: any) => {
         let totalTarget = 0;
         let totalMonthlySales = 0;
         let totalSales = 0;

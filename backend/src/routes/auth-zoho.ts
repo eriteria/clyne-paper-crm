@@ -107,22 +107,23 @@ router.get("/callback", async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: "/",
     });
-    
+
     // Prepare user data for frontend
     const userData = {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: (await prisma.role.findUnique({ where: { id: user.roleId } }))?.name,
+      role: (await prisma.role.findUnique({ where: { id: user.roleId } }))
+        ?.name,
     };
-    
+
     // Encode tokens and user data in URL for frontend to extract
     const frontend = process.env.FRONTEND_URL || "http://localhost:3000";
     const redirectUrl = new URL("/zoho-auth-complete", frontend);
     redirectUrl.searchParams.set("accessToken", accessToken);
     redirectUrl.searchParams.set("refreshToken", refreshToken);
     redirectUrl.searchParams.set("user", JSON.stringify(userData));
-    
+
     res.redirect(redirectUrl.toString());
   } catch (err: any) {
     logger.error("Zoho OAuth callback error", err);

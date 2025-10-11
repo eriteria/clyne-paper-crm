@@ -409,7 +409,7 @@ export class PaymentService {
   async initializeInvoiceBalances() {
     const invoices = await prisma.invoice.findMany({
       where: {
-        OR: [{ balance: null }, { balance: { equals: 0 } }],
+        OR: [{ balance: { equals: 0 } }],
       },
     });
 

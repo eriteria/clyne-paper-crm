@@ -375,10 +375,10 @@ router.put("/:id/stock", async (req, res, next) => {
 
     switch (type) {
       case "add":
-        newStock = existingItem.currentQuantity + qty;
+        newStock = existingItem.currentQuantity.toNumber() + qty;
         break;
       case "subtract":
-        newStock = existingItem.currentQuantity - qty;
+        newStock = existingItem.currentQuantity.toNumber() - qty;
         if (newStock < 0) {
           res.status(400).json({
             success: false,

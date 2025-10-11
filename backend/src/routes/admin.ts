@@ -1,7 +1,7 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
-import { logCreate } from "../utils/auditLogger";
+import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -89,7 +89,7 @@ router.post("/roles", authenticate, async (req: AuthenticatedRequest, res) => {
     });
 
     // Log the action
-    await logCreate(userId, "CREATE", "ROLE", role.id, {
+    await logCreate(userId, "ROLE", role.id, {
       roleName: role.name,
     });
 
@@ -169,7 +169,7 @@ router.patch(
       });
 
       // Log the action
-      await logCreate(userId, "UPDATE", "ROLE", roleId, {
+      await logUpdate(userId, "ROLE", roleId, existingRole, {
         roleName: updatedRole.name,
         changes: { name, permissions },
       });
@@ -246,7 +246,7 @@ router.delete(
       });
 
       // Log the action
-      await logCreate(userId, "DELETE", "ROLE", roleId, {
+      await logDelete(userId, "ROLE", roleId, {
         roleName: existingRole.name,
       });
 
@@ -284,8 +284,7 @@ router.get("/regions", authenticate, async (req: AuthenticatedRequest, res) => {
         _count: {
           select: {
             users: true,
-            teams: true,
-            customers: true,
+            invoices: true,
           },
         },
       },
@@ -352,7 +351,7 @@ router.post(
       });
 
       // Log the action
-      await logCreate(userId, "CREATE", "REGION", region.id, {
+      await logCreate(userId, "REGION", region.id, {
         regionName: region.name,
       });
 
@@ -431,7 +430,7 @@ router.patch(
       });
 
       // Log the action
-      await logCreate(userId, "UPDATE", "REGION", regionId, {
+      await logUpdate(userId, "REGION", regionId, existingRegion, {
         regionName: updatedRegion.name,
         oldName: existingRegion.name,
       });
@@ -478,8 +477,7 @@ router.delete(
           _count: {
             select: {
               users: true,
-              teams: true,
-              customers: true,
+              invoices: true,
             },
           },
         },
@@ -491,11 +489,11 @@ router.delete(
         });
       }
 
-      // Check if region has users, teams, or customers assigned
-      const { users, teams, customers } = existingRegion._count;
-      if (users > 0 || teams > 0 || customers > 0) {
+      // Check if region has users or invoices assigned
+      const { users, invoices } = existingRegion._count;
+      if (users > 0 || invoices > 0) {
         return res.status(400).json({
-          error: `Cannot delete region "${existingRegion.name}" as it has ${users} users, ${teams} teams, and ${customers} customers assigned. Please reassign them first.`,
+          error: `Cannot delete region "${existingRegion.name}" as it has ${users} users and ${invoices} invoices assigned. Please reassign them first.`,
         });
       }
 
@@ -504,7 +502,7 @@ router.delete(
       });
 
       // Log the action
-      await logCreate(userId, "DELETE", "REGION", regionId, {
+      await logDelete(userId, "REGION", regionId, {
         regionName: existingRegion.name,
       });
 
@@ -614,7 +612,7 @@ router.post(
       });
 
       // Log the action
-      await logCreate(userId, "CREATE", "LOCATION", location.id, {
+      await logCreate(userId, "LOCATION", location.id, {
         locationName: location.name,
       });
 
@@ -697,7 +695,7 @@ router.patch(
       });
 
       // Log the action
-      await logCreate(userId, "UPDATE", "LOCATION", locationId, {
+      await logUpdate(userId, "LOCATION", locationId, existingLocation, {
         oldName: existingLocation.name,
         newName: updatedLocation.name,
       });
@@ -767,7 +765,7 @@ router.delete(
       });
 
       // Log the action
-      await logCreate(userId, "DELETE", "LOCATION", locationId, {
+      await logDelete(userId, "LOCATION", locationId, {
         locationName: existingLocation.name,
       });
 
@@ -887,8 +885,12 @@ router.post("/teams", authenticate, async (req: AuthenticatedRequest, res) => {
       data: {
         name,
         description,
-        locationId,
         leaderUserId,
+        locations: {
+          create: {
+            locationId,
+          },
+        },
       },
       include: {
         locations: {
@@ -911,7 +913,7 @@ router.post("/teams", authenticate, async (req: AuthenticatedRequest, res) => {
       },
     });
 
-    await logCreate(userId, "CREATE", "TEAM", team.id, {
+    await logCreate(userId, "TEAM", team.id, {
       teamName: team.name,
       locationName: location.name,
     });
@@ -1026,7 +1028,7 @@ router.patch(
         },
       });
 
-      await logCreate(userId, "UPDATE", "TEAM", teamId, {
+      await logUpdate(userId, "TEAM", teamId, existingTeam, {
         teamName: updatedTeam.name,
         changes: updateData,
       });
@@ -1095,7 +1097,7 @@ router.delete(
         where: { id: teamId },
       });
 
-      await logCreate(userId, "DELETE", "TEAM", teamId, {
+      await logDelete(userId, "TEAM", teamId, {
         teamName: existingTeam.name,
       });
 
@@ -1237,7 +1239,7 @@ router.post(
         },
       });
 
-      await logCreate(userId, "UPDATE", "TEAM", teamId, {
+      await logUpdate(userId, "TEAM", teamId, team, {
         action: "ADD_MEMBERS",
         teamName: team.name,
         userCount: updatedUsers.count,
@@ -1309,7 +1311,7 @@ router.delete(
         data: { teamId: null },
       });
 
-      await logCreate(adminUserId, "UPDATE", "TEAM", teamId, {
+      await logUpdate(adminUserId, "TEAM", teamId, team, {
         action: "REMOVE_MEMBER",
         teamName: team.name,
         removedUserName: user.fullName,

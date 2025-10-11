@@ -66,7 +66,8 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => {
-              const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+              const apiUrl =
+                process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
               // Remove trailing /api if present, then add the full path
               const baseUrl = apiUrl.replace(/\/api\/?$/, "");
               window.location.href = `${baseUrl}/api/auth/zoho/login`;

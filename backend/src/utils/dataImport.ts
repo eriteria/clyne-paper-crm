@@ -187,13 +187,14 @@ export async function importCustomers(excelData: ExcelCustomerRow[]): Promise<{
       await prisma.customer.create({
         data: {
           name: customerData.name,
-          location: customerData.location,
+          // TODO: Map incoming location name to an existing Location and set locationId
+          // locationId: mappedLocationId,
           address: customerData.address,
           onboardingDate: customerData.onboardingDate,
           lastOrderDate: customerData.lastOrderDate,
           relationshipManagerName: customerData.relationshipManagerName,
           // relationshipManagerId will be set later via linkRelationshipManagers()
-        },
+        } as any,
       });
 
       imported++;
