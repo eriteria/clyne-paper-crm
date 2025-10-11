@@ -6,7 +6,7 @@ import {
   FileText,
   Plus,
   Search,
-  // Eye,
+  Eye,
   Edit,
   Trash2,
   Download,
@@ -21,6 +21,7 @@ import { apiClient } from "@/lib/api";
 import { downloadInvoicePDF } from "@/lib/utils";
 import CreateInvoiceModal from "@/components/CreateInvoiceModal";
 import CreateCustomerModal from "@/components/CreateCustomerModal";
+import InvoiceDetailModal from "@/components/InvoiceDetailModal";
 import { Invoice } from "@/types";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
@@ -44,6 +45,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function InvoicesPage() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateRange, setFilterDateRange] = useState("");
@@ -52,7 +54,6 @@ export default function InvoicesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
-  // const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -476,7 +477,14 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end gap-2">
-                      {/* View action intentionally hidden for now */}
+                      {/* View invoice details with returns */}
+                      <button
+                        className="text-indigo-600 hover:text-indigo-900 p-1"
+                        title="View invoice details"
+                        onClick={() => setViewingInvoice(invoice)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
                       <button
                         className="text-green-600 hover:text-green-900 p-1"
                         title="Download PDF"
@@ -604,6 +612,14 @@ export default function InvoicesPage() {
           // Optionally show a success message
         }}
       />
+
+      {/* Invoice Detail Modal with Returns */}
+      {viewingInvoice && (
+        <InvoiceDetailModal
+          invoice={viewingInvoice}
+          onClose={() => setViewingInvoice(null)}
+        />
+      )}
     </div>
   );
 }

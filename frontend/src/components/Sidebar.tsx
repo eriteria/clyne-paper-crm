@@ -20,6 +20,7 @@ import {
   ShoppingCart,
   CreditCard,
   BarChart3,
+  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
@@ -32,6 +33,7 @@ const navigation = [
   { name: "Products", href: "/products", icon: ShoppingCart },
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Invoices", href: "/invoices", icon: FileText },
+  { name: "Sales Returns", href: "/sales-returns", icon: RotateCcw },
   { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Financial", href: "/financial", icon: Calculator },
   { name: "Reports", href: "/reports", icon: BarChart3 },

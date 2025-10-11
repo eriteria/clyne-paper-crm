@@ -282,3 +282,77 @@ export interface Waybill {
     status: string;
   }>;
 }
+
+// Sales Returns
+export type ItemCondition = "Good" | "Damaged" | "Defective";
+export type RefundMethod = "Credit Note" | "Bank Transfer";
+export type RefundStatus = "Pending" | "Completed";
+export type RestockStatus = "Pending" | "Restocked" | "Not Restocked";
+
+export interface SalesReturnItem {
+  id: string;
+  salesReturnId: string;
+  inventoryItemId: string;
+  productName: string;
+  sku: string;
+  quantityReturned: number;
+  unitPrice: number;
+  subtotal: number;
+  condition: ItemCondition;
+  restocked: boolean;
+  inventoryItem?: {
+    id: string;
+    name: string;
+    sku: string;
+    unit: string;
+  };
+}
+
+export interface SalesReturn {
+  id: string;
+  returnNumber: string;
+  invoiceId: string;
+  customerId: string;
+  returnDate: string;
+  reason: string;
+  notes?: string;
+  totalAmount: number;
+  refundMethod: RefundMethod;
+  refundStatus: RefundStatus;
+  restockStatus: RestockStatus;
+  processedAt?: string;
+  processedById?: string;
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+  customer?: Customer;
+  invoice?: Invoice;
+  items: SalesReturnItem[];
+  processedBy?: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  createdBy?: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+}
+
+export interface CreateSalesReturnItem {
+  inventoryItemId: string;
+  productName: string;
+  sku: string;
+  quantityReturned: number;
+  unitPrice: number;
+  condition: ItemCondition;
+}
+
+export interface CreateSalesReturnData {
+  invoiceId: string;
+  reason: string;
+  notes?: string;
+  refundMethod: RefundMethod;
+  items: CreateSalesReturnItem[];
+}
