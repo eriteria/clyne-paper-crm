@@ -293,9 +293,11 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         phone: "1234567890",
         address: "123 Test St",
         locationId: "test-location-1",
-        location: {
+        defaultPaymentTermDays: 30,
+        locationRef: {
           id: "test-location-1",
           name: "Test Location",
+          isActive: true,
         },
         createdAt: "2024-01-01T10:00:00Z",
         updatedAt: "2024-01-01T10:00:00Z",
