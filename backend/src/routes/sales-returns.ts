@@ -163,7 +163,7 @@ router.post("/", authenticate, async (req, res) => {
     }
 
     const { invoiceId, reason, notes, refundMethod, items } = value;
-    const userId = (req as any).user.userId;
+    const userId = (req as any).user.id; // Fixed: use user.id instead of user.userId
 
     // Fetch the invoice
     const invoice = await prisma.invoice.findUnique({
@@ -303,7 +303,7 @@ router.post("/", authenticate, async (req, res) => {
 router.post("/:id/process", authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = (req as any).user.userId;
+    const userId = (req as any).user.id; // Fixed: use user.id instead of user.userId
 
     const salesReturn = await prisma.salesReturn.findUnique({
       where: { id },
