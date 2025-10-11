@@ -65,14 +65,16 @@ function ZohoAuthCompleteContent() {
 
 export default function ZohoAuthComplete() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md w-full text-center">
-          <h1 className="text-xl font-semibold mb-3">Loading...</h1>
-          <p className="text-gray-600">Please wait...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center p-6">
+          <div className="max-w-md w-full text-center">
+            <h1 className="text-xl font-semibold mb-3">Loading...</h1>
+            <p className="text-gray-600">Please wait...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ZohoAuthCompleteContent />
     </Suspense>
   );

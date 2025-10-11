@@ -45,6 +45,26 @@ router.get("/callback", async (req, res) => {
       return;
     }
 
+    // 2.5) Optional: Validate email domain for organization-only access
+    if (process.env.ALLOWED_EMAIL_DOMAINS) {
+      const allowedDomains = process.env.ALLOWED_EMAIL_DOMAINS.split(",").map(
+        (d) => d.trim().toLowerCase()
+      );
+      const emailDomain = email.split("@")[1]?.toLowerCase();
+      
+      if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+        logger.warn(`Unauthorized domain login attempt: ${email}`);
+        const frontend = process.env.FRONTEND_URL || "http://localhost:3000";
+        const redirectUrl = new URL("/login", frontend);
+        redirectUrl.searchParams.set(
+          "error",
+          "Only organization email addresses are allowed"
+        );
+        res.redirect(redirectUrl.toString());
+        return;
+      }
+    }
+
     // 3) Upsert local user by email
     let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
