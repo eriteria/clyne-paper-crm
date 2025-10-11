@@ -3,15 +3,15 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and prisma schema first
 COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install dependencies (this will run postinstall which needs prisma schema)
 RUN npm install
 
-# Copy backend code
+# Copy rest of backend code
 COPY . ./
-
-# Generate Prisma client
-RUN npx prisma generate
 
 # Compile TypeScript to JavaScript
 RUN npx tsc --skipLibCheck --allowUnusedLabels true || echo "Compiled with errors"
