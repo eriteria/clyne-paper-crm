@@ -3,6 +3,8 @@ primary_region = "jnb"
 
 [build]
   dockerfile = "Dockerfile"
+  [build.args]
+    NEXT_PUBLIC_API_URL = "https://clyne-paper-crm-backend.fly.dev/api"
 
 [env]
   PORT = "3000"
