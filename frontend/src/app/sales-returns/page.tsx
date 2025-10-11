@@ -64,7 +64,7 @@ export default function SalesReturnsPage() {
               <input
                 type="text"
                 placeholder="INV-2025-0001"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={filters.invoiceId}
                 onChange={(e) =>
                   setFilters({ ...filters, invoiceId: e.target.value })
@@ -77,7 +77,7 @@ export default function SalesReturnsPage() {
                 Refund Status
               </label>
               <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 value={filters.refundStatus}
                 onChange={(e) =>
                   setFilters({
@@ -98,7 +98,7 @@ export default function SalesReturnsPage() {
               </label>
               <input
                 type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={filters.startDate}
                 onChange={(e) =>
                   setFilters({ ...filters, startDate: e.target.value })
@@ -112,7 +112,7 @@ export default function SalesReturnsPage() {
               </label>
               <input
                 type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 value={filters.endDate}
                 onChange={(e) =>
                   setFilters({ ...filters, endDate: e.target.value })
@@ -131,7 +131,7 @@ export default function SalesReturnsPage() {
                     endDate: "",
                   })
                 }
-                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                className="w-full px-4 py-2 bg-gray-100 text-gray-800 font-medium rounded-md hover:bg-gray-200 transition-colors"
               >
                 Clear Filters
               </button>
