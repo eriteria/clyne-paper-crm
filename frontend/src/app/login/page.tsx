@@ -81,6 +81,7 @@ export default function LoginPage() {
               width={24}
               height={24}
               className="object-contain"
+              unoptimized
             />
             Sign in with Zoho
           </button>
