@@ -171,7 +171,7 @@ export default function CreateSalesReturnModal({
           <div className="px-6 py-4 space-y-6">
             {/* Return Details */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Return Details</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Return Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -180,7 +180,7 @@ export default function CreateSalesReturnModal({
                   <select
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-gray-900 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   >
                     <option value="">Select a reason</option>
@@ -207,7 +207,7 @@ export default function CreateSalesReturnModal({
                     onChange={(e) =>
                       setRefundMethod(e.target.value as RefundMethod)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-gray-900 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   >
                     <option value="Credit Note">Credit Note</option>
@@ -223,7 +223,7 @@ export default function CreateSalesReturnModal({
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Add any additional information about the return..."
                   />
                 </div>
@@ -232,32 +232,32 @@ export default function CreateSalesReturnModal({
 
             {/* Items Selection */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">
                 Select Items to Return
               </h3>
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Select
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Product
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         SKU
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Invoiced Qty
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Return Qty
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Condition
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                         Unit Price
                       </th>
                     </tr>
@@ -282,13 +282,13 @@ export default function CreateSalesReturnModal({
                               className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                             />
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
+                          <td className="px-4 py-3 text-sm text-gray-900 font-medium">
                             {item.productName}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-4 py-3 text-sm text-gray-700">
                             {item.sku}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
+                          <td className="px-4 py-3 text-sm text-gray-900 font-medium">
                             {item.maxQuantity}
                           </td>
                           <td className="px-4 py-3">
@@ -304,7 +304,7 @@ export default function CreateSalesReturnModal({
                                 )
                               }
                               disabled={!isSelected}
-                              className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                              className="w-20 px-2 py-1 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -317,14 +317,14 @@ export default function CreateSalesReturnModal({
                                 )
                               }
                               disabled={!isSelected}
-                              className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                              className="px-2 py-1 text-gray-900 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
                             >
                               <option value="Good">Good</option>
                               <option value="Damaged">Damaged</option>
                               <option value="Defective">Defective</option>
                             </select>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
+                          <td className="px-4 py-3 text-sm text-gray-900 font-semibold">
                             ₦{item.unitPrice.toLocaleString()}
                           </td>
                         </tr>
@@ -384,7 +384,7 @@ export default function CreateSalesReturnModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-800 font-medium rounded-md hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
@@ -393,7 +393,7 @@ export default function CreateSalesReturnModal({
               disabled={
                 createMutation.isPending || selectedItems.size === 0 || !reason
               }
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMutation.isPending
                 ? "Creating Return..."
