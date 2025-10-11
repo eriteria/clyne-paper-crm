@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import CreateInvoiceModal from "../src/components/CreateInvoiceModal";
 import CreateCustomerModal from "../src/components/CreateCustomerModal";
+import CreateSalesReturnModal from "../src/components/CreateSalesReturnModal";
+import { Invoice } from "../src/types";
 
 // Test wrapper with React Query
 const createTestWrapper = () => {
@@ -268,6 +270,157 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
 
       expect(nameInput).toBeInTheDocument();
       expect(locationSelect).toBeInTheDocument();
+    });
+  });
+
+  describe("CreateSalesReturnModal Accessibility", () => {
+    const mockInvoice: Invoice = {
+      id: "test-invoice-1",
+      invoiceNumber: "INV-2024-001",
+      date: "2024-01-15",
+      customerId: "test-customer-1",
+      customerName: "Test Customer",
+      totalAmount: 150000,
+      taxAmount: 0,
+      discountAmount: 0,
+      status: "PAID",
+      createdAt: "2024-01-15T10:00:00Z",
+      updatedAt: "2024-01-15T10:00:00Z",
+      customer: {
+        id: "test-customer-1",
+        name: "Test Customer",
+        email: "test@example.com",
+        phone: "1234567890",
+        address: "123 Test St",
+        locationId: "test-location-1",
+        defaultPaymentTermDays: 30,
+        locationRef: {
+          id: "test-location-1",
+          name: "Test Location",
+          isActive: true,
+        },
+        createdAt: "2024-01-01T10:00:00Z",
+        updatedAt: "2024-01-01T10:00:00Z",
+      },
+      items: [
+        {
+          id: "item-1",
+          inventoryItemId: "inv-1",
+          quantity: 100,
+          unitPrice: 1000,
+          lineTotal: 100000,
+          inventoryItem: {
+            id: "inv-1",
+            name: "Jumbo Tissue Roll",
+            sku: "JTR-001",
+            unit: "rolls",
+          },
+        },
+        {
+          id: "item-2",
+          inventoryItemId: "inv-2",
+          quantity: 50,
+          unitPrice: 1000,
+          lineTotal: 50000,
+          inventoryItem: {
+            id: "inv-2",
+            name: "Premium Napkins",
+            sku: "PN-002",
+            unit: "packs",
+          },
+        },
+      ],
+    };
+
+    test("should not have color contrast violations", async () => {
+      const { container } = render(
+        <TestWrapper>
+          <CreateSalesReturnModal
+            invoice={mockInvoice}
+            onClose={() => {}}
+            onSuccess={() => {}}
+          />
+        </TestWrapper>
+      );
+
+      const results = await axe(container, {
+        rules: {
+          "color-contrast": { enabled: true },
+          "color-contrast-enhanced": { enabled: true },
+        },
+      });
+
+      expect(results.violations).toHaveLength(0);
+    });
+
+    test("should have accessible table headers", () => {
+      render(
+        <TestWrapper>
+          <CreateSalesReturnModal
+            invoice={mockInvoice}
+            onClose={() => {}}
+            onSuccess={() => {}}
+          />
+        </TestWrapper>
+      );
+
+      // Check that table headers are present and readable
+      expect(screen.getByText(/select/i)).toBeInTheDocument();
+      expect(screen.getByText(/product/i)).toBeInTheDocument();
+      expect(screen.getByText(/sku/i)).toBeInTheDocument();
+      expect(screen.getByText(/invoiced qty/i)).toBeInTheDocument();
+      expect(screen.getByText(/return qty/i)).toBeInTheDocument();
+      expect(screen.getByText(/condition/i)).toBeInTheDocument();
+      expect(screen.getByText(/unit price/i)).toBeInTheDocument();
+    });
+
+    test("should have accessible close button with aria-label", () => {
+      render(
+        <TestWrapper>
+          <CreateSalesReturnModal
+            invoice={mockInvoice}
+            onClose={() => {}}
+            onSuccess={() => {}}
+          />
+        </TestWrapper>
+      );
+
+      const closeButton = screen.getByLabelText(/close modal/i);
+      expect(closeButton).toBeInTheDocument();
+      expect(closeButton).toBeVisible();
+    });
+
+    test("should have proper form labels", () => {
+      render(
+        <TestWrapper>
+          <CreateSalesReturnModal
+            invoice={mockInvoice}
+            onClose={() => {}}
+            onSuccess={() => {}}
+          />
+        </TestWrapper>
+      );
+
+      // Check required form fields have labels
+      expect(screen.getByText(/reason for return/i)).toBeInTheDocument();
+      expect(screen.getByText(/refund method/i)).toBeInTheDocument();
+      expect(screen.getByText(/additional notes/i)).toBeInTheDocument();
+    });
+
+    test("should have readable modal heading", () => {
+      render(
+        <TestWrapper>
+          <CreateSalesReturnModal
+            invoice={mockInvoice}
+            onClose={() => {}}
+            onSuccess={() => {}}
+          />
+        </TestWrapper>
+      );
+
+      const heading = screen.getByText(/create sales return/i);
+      expect(heading).toBeInTheDocument();
+      expect(heading).toBeVisible();
     });
   });
 });
