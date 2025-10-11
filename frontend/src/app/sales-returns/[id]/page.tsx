@@ -31,9 +31,9 @@ export default function SalesReturnDetailPage({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="p-6 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12">Loading return details...</div>
+          <div className="text-center py-12 text-gray-900">Loading return details...</div>
         </div>
       </div>
     );
@@ -41,13 +41,13 @@ export default function SalesReturnDetailPage({
 
   if (!returnData) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="p-6 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">Return not found</p>
+            <p className="text-gray-700 mb-4">Return not found</p>
             <button
               onClick={() => router.push("/sales-returns")}
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-700 hover:text-blue-900 font-medium"
             >
               ← Back to Returns List
             </button>
@@ -59,31 +59,31 @@ export default function SalesReturnDetailPage({
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      Pending: "bg-yellow-100 text-yellow-800",
-      Completed: "bg-green-100 text-green-800",
-      Restocked: "bg-green-100 text-green-800",
-      "Not Restocked": "bg-gray-100 text-gray-800",
+      Pending: "bg-yellow-100 text-yellow-900 border border-yellow-300",
+      Completed: "bg-green-100 text-green-900 border border-green-300",
+      Restocked: "bg-green-100 text-green-900 border border-green-300",
+      "Not Restocked": "bg-gray-100 text-gray-900 border border-gray-300",
     };
-    return styles[status] || "bg-gray-100 text-gray-800";
+    return styles[status] || "bg-gray-100 text-gray-900 border border-gray-300";
   };
 
   const getConditionBadge = (condition: string) => {
     const styles: Record<string, string> = {
-      Good: "bg-green-100 text-green-800",
-      Damaged: "bg-orange-100 text-orange-800",
-      Defective: "bg-red-100 text-red-800",
+      Good: "bg-green-100 text-green-900 border border-green-300",
+      Damaged: "bg-orange-100 text-orange-900 border border-orange-300",
+      Defective: "bg-red-100 text-red-900 border border-red-300",
     };
-    return styles[condition] || "bg-gray-100 text-gray-800";
+    return styles[condition] || "bg-gray-100 text-gray-900 border border-gray-300";
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <button
             onClick={() => router.push("/sales-returns")}
-            className="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center"
+            className="text-blue-700 hover:text-blue-900 mb-4 inline-flex items-center font-medium"
           >
             ← Back to Returns List
           </button>
@@ -92,7 +92,7 @@ export default function SalesReturnDetailPage({
               <h1 className="text-3xl font-bold text-gray-900">
                 {returnData.returnNumber}
               </h1>
-              <p className="text-gray-600 mt-2">
+              <p className="text-gray-700 mt-2 text-base">
                 Return for Invoice {returnData.invoice?.invoiceNumber}
               </p>
             </div>
@@ -115,83 +115,83 @@ export default function SalesReturnDetailPage({
         {/* Return Information */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Return Information</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-900">Return Information</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600">Return Number</label>
-                <p className="font-medium text-gray-900">
+                <label className="text-sm text-gray-700 font-medium">Return Number</label>
+                <p className="font-medium text-gray-900 mt-1">
                   {returnData.returnNumber}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Return Date</label>
-                <p className="font-medium text-gray-900">
+                <label className="text-sm text-gray-700 font-medium">Return Date</label>
+                <p className="font-medium text-gray-900 mt-1">
                   {new Date(returnData.returnDate).toLocaleDateString()}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Customer</label>
-                <p className="font-medium text-gray-900">
+                <label className="text-sm text-gray-700 font-medium">Customer</label>
+                <p className="font-medium text-gray-900 mt-1">
                   {returnData.customer?.name || "N/A"}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Invoice Number</label>
-                <p className="font-medium text-blue-600 cursor-pointer hover:text-blue-800">
+                <label className="text-sm text-gray-700 font-medium">Invoice Number</label>
+                <p className="font-medium text-blue-700 cursor-pointer hover:text-blue-900 mt-1">
                   {returnData.invoice?.invoiceNumber || "N/A"}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Refund Method</label>
-                <p className="font-medium text-gray-900">
+                <label className="text-sm text-gray-700 font-medium">Refund Method</label>
+                <p className="font-medium text-gray-900 mt-1">
                   {returnData.refundMethod}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Total Amount</label>
-                <p className="font-semibold text-gray-900 text-lg">
+                <label className="text-sm text-gray-700 font-medium">Total Amount</label>
+                <p className="font-semibold text-gray-900 text-lg mt-1">
                   ₦{returnData.totalAmount.toLocaleString()}
                 </p>
               </div>
               <div className="col-span-2">
-                <label className="text-sm text-gray-600">Reason</label>
-                <p className="font-medium text-gray-900">{returnData.reason}</p>
+                <label className="text-sm text-gray-700 font-medium">Reason</label>
+                <p className="font-medium text-gray-900 mt-1">{returnData.reason}</p>
               </div>
               {returnData.notes && (
                 <div className="col-span-2">
-                  <label className="text-sm text-gray-600">Notes</label>
-                  <p className="font-medium text-gray-900">
+                  <label className="text-sm text-gray-700 font-medium">Notes</label>
+                  <p className="font-medium text-gray-900 mt-1">
                     {returnData.notes}
                   </p>
                 </div>
               )}
               <div>
-                <label className="text-sm text-gray-600">Created By</label>
-                <p className="font-medium text-gray-900">
+                <label className="text-sm text-gray-700 font-medium">Created By</label>
+                <p className="font-medium text-gray-900 mt-1">
                   {returnData.createdBy?.fullName || "N/A"}
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Created At</label>
-                <p className="font-medium text-gray-900">
+                <label className="text-sm text-gray-700 font-medium">Created At</label>
+                <p className="font-medium text-gray-900 mt-1">
                   {new Date(returnData.createdAt).toLocaleString()}
                 </p>
               </div>
               {returnData.processedBy && (
                 <>
                   <div>
-                    <label className="text-sm text-gray-600">
+                    <label className="text-sm text-gray-700 font-medium">
                       Processed By
                     </label>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-gray-900 mt-1">
                       {returnData.processedBy.fullName}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600">
+                    <label className="text-sm text-gray-700 font-medium">
                       Processed At
                     </label>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-gray-900 mt-1">
                       {returnData.processedAt
                         ? new Date(returnData.processedAt).toLocaleString()
                         : "N/A"}
@@ -207,7 +207,7 @@ export default function SalesReturnDetailPage({
             <h2 className="text-xl font-semibold mb-4">Status</h2>
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-600 block mb-2">
+                <label className="text-sm text-gray-700 font-medium block mb-2">
                   Refund Status
                 </label>
                 <span
@@ -219,7 +219,7 @@ export default function SalesReturnDetailPage({
                 </span>
               </div>
               <div>
-                <label className="text-sm text-gray-600 block mb-2">
+                <label className="text-sm text-gray-700 font-medium block mb-2">
                   Restock Status
                 </label>
                 <span
@@ -231,7 +231,7 @@ export default function SalesReturnDetailPage({
                 </span>
               </div>
               <div className="pt-4 border-t">
-                <div className="text-sm text-gray-600 mb-1">
+                <div className="text-sm text-gray-700 font-medium mb-1">
                   Items Returned
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -239,10 +239,10 @@ export default function SalesReturnDetailPage({
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-600 mb-1">
+                <div className="text-sm text-gray-700 font-medium mb-1">
                   Good Condition Items
                 </div>
-                <div className="text-lg font-semibold text-green-600">
+                <div className="text-lg font-semibold text-green-700">
                   {
                     returnData.items.filter((item) => item.condition === "Good")
                       .length
@@ -250,8 +250,8 @@ export default function SalesReturnDetailPage({
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-600 mb-1">Items Restocked</div>
-                <div className="text-lg font-semibold text-blue-600">
+                <div className="text-sm text-gray-700 font-medium mb-1">Items Restocked</div>
+                <div className="text-lg font-semibold text-blue-700">
                   {returnData.items.filter((item) => item.restocked).length}
                 </div>
               </div>

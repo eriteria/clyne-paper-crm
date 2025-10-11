@@ -27,35 +27,35 @@ export default function SalesReturnsPage() {
 
   const getStatusBadge = (status: RefundStatus) => {
     const styles = {
-      Pending: "bg-yellow-100 text-yellow-800",
-      Completed: "bg-green-100 text-green-800",
+      Pending: "bg-yellow-100 text-yellow-900 border border-yellow-300",
+      Completed: "bg-green-100 text-green-900 border border-green-300",
     };
-    return styles[status] || "bg-gray-100 text-gray-800";
+    return styles[status] || "bg-gray-100 text-gray-900 border border-gray-300";
   };
 
   const getRestockBadge = (status: string) => {
     const styles = {
-      Pending: "bg-blue-100 text-blue-800",
-      Restocked: "bg-green-100 text-green-800",
-      "Not Restocked": "bg-gray-100 text-gray-800",
+      Pending: "bg-blue-100 text-blue-900 border border-blue-300",
+      Restocked: "bg-green-100 text-green-900 border border-green-300",
+      "Not Restocked": "bg-gray-100 text-gray-900 border border-gray-300",
     };
-    return styles[status as keyof typeof styles] || "bg-gray-100 text-gray-800";
+    return styles[status as keyof typeof styles] || "bg-gray-100 text-gray-900 border border-gray-300";
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Sales Returns</h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-700 mt-2 text-base">
             Manage and track customer returns and refunds
           </p>
         </div>
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Filters</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900">Filters</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -142,25 +142,25 @@ export default function SalesReturnsPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm text-gray-600">Total Returns</div>
+            <div className="text-sm font-medium text-gray-700">Total Returns</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
               {pagination?.total || 0}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm text-gray-600">Pending Returns</div>
-            <div className="text-2xl font-bold text-yellow-600 mt-1">
+            <div className="text-sm font-medium text-gray-700">Pending Returns</div>
+            <div className="text-2xl font-bold text-yellow-700 mt-1">
               {returns.filter((r) => r.refundStatus === "Pending").length}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm text-gray-600">Completed Returns</div>
-            <div className="text-2xl font-bold text-green-600 mt-1">
+            <div className="text-sm font-medium text-gray-700">Completed Returns</div>
+            <div className="text-2xl font-bold text-green-700 mt-1">
               {returns.filter((r) => r.refundStatus === "Completed").length}
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-sm text-gray-600">Total Refund Amount</div>
+            <div className="text-sm font-medium text-gray-700">Total Refund Amount</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
               ₦
               {returns
@@ -173,11 +173,11 @@ export default function SalesReturnsPage() {
         {/* Table */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           {isLoading ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-gray-700">
               Loading returns...
             </div>
           ) : returns.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-gray-700">
               No returns found. Returns will appear here when customers return
               items.
             </div>
