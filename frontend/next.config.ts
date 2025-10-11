@@ -2,6 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "www.zoho.com",
+        port: "",
+        pathname: "/sites/zweb/images/**",
+      },
+    ],
+  },
   turbopack: {
     root: __dirname, // Use frontend directory as the root
   },

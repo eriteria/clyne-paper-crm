@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Image from "next/image";
 import { Eye, EyeOff, Building2, Lock, Mail, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -60,8 +61,28 @@ export default function LoginPage() {
           <p className="text-gray-700">Sign in to your account to continue</p>
         </div>
 
-        {/* Login Form */}
+        {/* Zoho Sign In Button */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+          <button
+            type="button"
+            onClick={() => {
+              const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+              // Remove trailing /api if present, then add the full path
+              const baseUrl = apiUrl.replace(/\/api\/?$/, "");
+              window.location.href = `${baseUrl}/api/auth/zoho/login`;
+            }}
+            className="w-full flex items-center justify-center gap-3 py-3 mb-6 border border-gray-200 rounded-lg bg-white hover:bg-blue-50 transition-colors font-medium text-gray-800 shadow-sm"
+            style={{ boxShadow: "0 1px 2px 0 rgba(60,80,200,0.04)" }}
+          >
+            <Image
+              src="https://www.zoho.com/sites/zweb/images/ogimage/zoho-logo.png"
+              alt="Zoho"
+              width={24}
+              height={24}
+              className="object-contain"
+            />
+            Sign in with Zoho
+          </button>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Error Message */}
             {error && (

@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 
 // Import middleware
 import { errorHandler } from "./middleware/errorHandler";
@@ -31,6 +32,7 @@ import notificationRoutes from "./routes/notifications";
 import dataManagementRoutes from "./routes/dataManagement";
 import settingsRoutes from "./routes/settings";
 import locationRoutes from "./routes/locations";
+import zohoAuthRoutes from "./routes/auth-zoho";
 
 /**
  * Creates and configures the Express application
@@ -46,6 +48,7 @@ export function createApp(options: { enableRateLimit?: boolean } = {}) {
   // Security and performance middleware
   app.use(helmet());
   app.use(compression());
+  app.use(cookieParser());
 
   // Rate limiting (disabled in tests by default)
   if (enableRateLimit) {
@@ -106,6 +109,7 @@ export function createApp(options: { enableRateLimit?: boolean } = {}) {
   app.use("/api/data-management", dataManagementRoutes);
   app.use("/api/settings", settingsRoutes);
   app.use("/api/locations", locationRoutes);
+  app.use("/api/auth/zoho", zohoAuthRoutes);
 
   // Error handling middleware
   app.use(notFound);
