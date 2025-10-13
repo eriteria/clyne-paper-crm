@@ -171,7 +171,9 @@ export default function CreateSalesReturnModal({
           <div className="px-6 py-4 space-y-6">
             {/* Return Details */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-900">Return Details</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">
+                Return Details
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

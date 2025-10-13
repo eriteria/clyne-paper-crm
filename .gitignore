@@ -18,6 +18,10 @@ dist/
 .env.test.local
 .env.production.local
 
+# Google Sheets API credentials
+google-credentials.json
+backend/google-credentials.json
+
 # IDE and editor files
 .vscode/
 .idea/
