@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, User, Activity } from "lucide-react";
+import { Clock, User, Activity, Download } from "lucide-react";
 import { apiClient } from "@/lib/api";
 
 interface AuditLog {
@@ -23,6 +23,56 @@ interface AuditLog {
 }
 
 export default function AdminPage() {
+  const [isImporting, setIsImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
+
+  const handleGoogleSheetsImport = async () => {
+    if (isImporting) return;
+
+    if (
+      !confirm(
+        "Are you sure you want to trigger a Google Sheets import? This will import all data from the configured Google Sheet."
+      )
+    ) {
+      return;
+    }
+
+    setIsImporting(true);
+    setImportStatus({
+      message: "Starting import... This may take several minutes.",
+      type: "info",
+    });
+
+    try {
+      const response = await apiClient.post("/admin-import/google-sheets");
+      setImportStatus({
+        message:
+          response.data.message ||
+          "Import started successfully! Check server logs for progress.",
+        type: "success",
+      });
+    } catch (error: unknown) {
+      console.error("Import error:", error);
+      let errorMessage = "Failed to start import. Please try again.";
+
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as {
+          response?: { data?: { message?: string } };
+        };
+        errorMessage = axiosError.response?.data?.message || errorMessage;
+      }
+
+      setImportStatus({
+        message: errorMessage,
+        type: "error",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
   // Fetch recent audit logs
   const { data: auditLogsData, isLoading: auditLogsLoading } = useQuery({
     queryKey: ["audit-logs", "recent"],
@@ -114,6 +164,52 @@ export default function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Google Sheets Import - PRODUCTION IMPORT TOOL */}
+        <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg shadow-lg border-2 border-green-400">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-10 h-10 bg-green-500 rounded-md flex items-center justify-center shadow-md">
+                <span className="text-white text-2xl">📥</span>
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                Google Sheets Import
+              </h3>
+              <p className="text-sm text-gray-600 font-medium">
+                Import data from configured Google Sheets
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button
+              onClick={handleGoogleSheetsImport}
+              disabled={isImporting}
+              className={`w-full inline-flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-bold rounded-md shadow-md text-white ${
+                isImporting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transform hover:scale-105 transition-transform"
+              }`}
+            >
+              <Download className="h-5 w-5 mr-2" />
+              {isImporting ? "Importing..." : "Trigger Import"}
+            </button>
+            {importStatus && (
+              <div
+                className={`mt-3 p-3 rounded-md text-sm font-medium ${
+                  importStatus.type === "success"
+                    ? "bg-green-50 text-green-800 border border-green-200"
+                    : importStatus.type === "error"
+                    ? "bg-red-50 text-red-800 border border-red-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
+                }`}
+              >
+                {importStatus.message}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Role Management */}
         <Link
           href="/admin/roles"
