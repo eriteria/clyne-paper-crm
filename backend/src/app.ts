@@ -44,8 +44,8 @@ export function createApp(options: { enableRateLimit?: boolean } = {}) {
   const app = express();
   const { enableRateLimit = false } = options;
 
-  // Trust proxy for deployment platforms
-  app.set("trust proxy", true);
+  // Trust proxy for deployment platforms (set to 1 for Fly.io)
+  app.set("trust proxy", 1);
 
   // Security and performance middleware
   app.use(helmet());
@@ -58,6 +58,8 @@ export function createApp(options: { enableRateLimit?: boolean } = {}) {
       windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000"), // 15 minutes
       max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100"), // limit each IP to 100 requests per windowMs
       message: "Too many requests from this IP, please try again later.",
+      standardHeaders: true,
+      legacyHeaders: false,
     });
     app.use(limiter);
   }
