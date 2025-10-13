@@ -213,10 +213,7 @@ export async function readCustomersFromSheet() {
  * Read and parse invoices from Master sheet
  */
 export async function readInvoicesFromSheet() {
-  const rows = await readSheetData(
-    SHEET_IDS.MASTER,
-    SHEET_NAMES.INVOICE_LIST
-  );
+  const rows = await readSheetData(SHEET_IDS.MASTER, SHEET_NAMES.INVOICE_LIST);
   return parseSheetData(rows);
 }
 

@@ -5,20 +5,24 @@ This guide will help you set up Google Sheets API integration for importing data
 ## Step 1: Create a Google Cloud Service Account
 
 ### 1.1 Go to Google Cloud Console
+
 Visit: https://console.cloud.google.com/
 
 ### 1.2 Create a New Project (or select existing)
+
 - Click "Select a project" at the top
 - Click "NEW PROJECT"
 - Name it: "Clyne Paper CRM"
 - Click "CREATE"
 
 ### 1.3 Enable Google Sheets API
+
 - In the search bar, type "Google Sheets API"
 - Click on "Google Sheets API"
 - Click "ENABLE"
 
 ### 1.4 Create Service Account
+
 1. Go to "APIs & Services" → "Credentials"
 2. Click "CREATE CREDENTIALS" → "Service Account"
 3. Fill in details:
@@ -31,6 +35,7 @@ Visit: https://console.cloud.google.com/
 6. Click "CONTINUE" then "DONE"
 
 ### 1.5 Create and Download Credentials Key
+
 1. Find your new service account in the list
 2. Click on it to open details
 3. Go to "KEYS" tab
@@ -40,6 +45,7 @@ Visit: https://console.cloud.google.com/
 7. A JSON file will download automatically
 
 ### 1.6 Save the Credentials File
+
 1. Rename the downloaded file to: `google-credentials.json`
 2. Move it to your backend folder: `backend/google-credentials.json`
 3. **IMPORTANT**: This file contains sensitive credentials!
@@ -47,10 +53,12 @@ Visit: https://console.cloud.google.com/
 ## Step 2: Share Google Sheets with Service Account
 
 ### 2.1 Get Service Account Email
+
 Open the `google-credentials.json` file and find the `client_email` field.
 It will look like: `clyne-crm-sheets-reader@clyne-paper-crm.iam.gserviceaccount.com`
 
 ### 2.2 Share Your Google Sheets
+
 For BOTH sheets (Database and Master):
 
 1. Open the Google Sheet
@@ -61,6 +69,7 @@ For BOTH sheets (Database and Master):
 6. Click "Share"
 
 **Sheets to share:**
+
 - Database Sheet: https://docs.google.com/spreadsheets/d/1NLzldesyGsAXR-UfWnX6ax37sZ42MbD0b7PiIMi9hf4/edit
 - Master Sheet: https://docs.google.com/spreadsheets/d/1wURUIeMCe1AERYzI6Q7DIofuBJQwq__-GMKNjGW3IpE/edit
 
@@ -85,6 +94,7 @@ npx ts-node src/scripts/import-from-google-sheets.ts
 ```
 
 This will:
+
 1. Import all customers from Database sheet
 2. Import all invoices from Master sheet
 3. Import all payments from Master sheet
@@ -95,15 +105,19 @@ This will:
 For regular syncing, you can:
 
 ### Option A: Manual Sync
+
 Run the import script whenever you want to sync:
+
 ```bash
 npm run sync:sheets
 ```
 
 ### Option B: Scheduled Sync (Coming Soon)
+
 We can set up a cron job or scheduled task to run daily/weekly.
 
 ### Option C: API Endpoint
+
 Trigger sync from the CRM UI via an admin panel button.
 
 ---
@@ -111,19 +125,23 @@ Trigger sync from the CRM UI via an admin panel button.
 ## Troubleshooting
 
 ### Error: "Credentials file not found"
+
 - Make sure `google-credentials.json` is in the `backend/` folder
 - Check the file name is exactly `google-credentials.json`
 
 ### Error: "The caller does not have permission"
+
 - Make sure you shared both Google Sheets with the service account email
 - Check the service account email in google-credentials.json
 - Verify the share permission is at least "Viewer"
 
 ### Error: "Unable to parse range"
+
 - Check that the sheet tab names in `googleSheets.ts` match your actual sheet tabs
 - Sheet names are case-sensitive
 
 ### Error: "Customer/Product not found"
+
 - This is expected on first run
 - The script will create missing customers, products, locations automatically
 - Check the console output for details
@@ -140,6 +158,7 @@ Trigger sync from the CRM UI via an admin panel button.
 - Store it securely on your server
 
 If credentials are compromised:
+
 1. Go to Google Cloud Console
 2. Find the service account
 3. Delete the compromised key
@@ -151,6 +170,7 @@ If credentials are compromised:
 ## What Gets Imported?
 
 ### Customers (from Database → Table2)
+
 - Customer name
 - Relationship Manager (creates User accounts if needed)
 - Location (creates Location records if needed)
@@ -159,6 +179,7 @@ If credentials are compromised:
 - Last order date (tracked in notes/logs)
 
 ### Invoices (from Master → Invoice sheet)
+
 - Invoice number
 - Date
 - Customer (linked to imported customers)
@@ -167,6 +188,7 @@ If credentials are compromised:
 - Status (calculated from payments)
 
 ### Payments (from Master → Payment sheet)
+
 - Payment date
 - Customer (linked)
 - Invoice number (linked if specified)

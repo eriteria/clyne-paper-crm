@@ -79,7 +79,9 @@ async function testConnection() {
   } catch (error: any) {
     console.error("\n❌ Test failed:", error.message);
     console.error("\nTroubleshooting:");
-    console.error("1. Make sure google-credentials.json exists in backend/ folder");
+    console.error(
+      "1. Make sure google-credentials.json exists in backend/ folder"
+    );
     console.error(
       "2. Verify you've shared both Google Sheets with the service account email"
     );
@@ -89,7 +91,9 @@ async function testConnection() {
     console.error(
       "4. Ensure Google Sheets API is enabled in your Google Cloud project"
     );
-    console.error("\nSee docs/GOOGLE_SHEETS_IMPORT_SETUP.md for detailed setup instructions");
+    console.error(
+      "\nSee docs/GOOGLE_SHEETS_IMPORT_SETUP.md for detailed setup instructions"
+    );
     process.exit(1);
   }
 }

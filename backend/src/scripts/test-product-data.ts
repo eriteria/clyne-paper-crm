@@ -1,4 +1,8 @@
-import { readSheetData, parseSheetData, SHEET_IDS } from "../services/googleSheets";
+import {
+  readSheetData,
+  parseSheetData,
+  SHEET_IDS,
+} from "../services/googleSheets";
 
 async function testProductData() {
   console.log("Testing Product Groups...");

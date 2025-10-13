@@ -45,12 +45,12 @@ interface GoogleSheetPayment {
 interface GoogleSheetProduct {
   "PRODUCT NAME": string;
   "PRODUCT GROUP": string;
-  "TARGET": string;
+  TARGET: string;
 }
 
 interface GoogleSheetProductGroup {
   "PRODUCT GROUP NAME": string;
-  "TARGET": string;
+  TARGET: string;
 }
 
 /**
@@ -112,7 +112,10 @@ async function importProductGroups() {
   console.log("\n📦 Importing product groups from Google Sheets...");
 
   try {
-    const rows = await readSheetData(SHEET_IDS.DATABASE, "PRODUCT GROUPS AND TARGETS");
+    const rows = await readSheetData(
+      SHEET_IDS.DATABASE,
+      "PRODUCT GROUPS AND TARGETS"
+    );
     const sheetProductGroups = parseSheetData<GoogleSheetProductGroup>(rows);
 
     console.log(`Found ${sheetProductGroups.length} product groups in sheet`);
@@ -143,7 +146,9 @@ async function importProductGroups() {
       console.log(`  ✓ Created product group: ${groupName}`);
     }
 
-    console.log(`\n✅ Product groups: ${created} created, ${existing} already existed`);
+    console.log(
+      `\n✅ Product groups: ${created} created, ${existing} already existed`
+    );
     return { created, existing };
   } catch (error: any) {
     console.error("Error importing product groups:", error.message);
@@ -187,7 +192,7 @@ async function importProducts() {
 
       try {
         const groupName = sheetProduct["PRODUCT GROUP"]?.trim();
-        
+
         // Find product group
         let productGroup = defaultGroup;
         if (groupName) {
@@ -222,13 +227,17 @@ async function importProducts() {
         });
 
         created++;
-        console.log(`  ✓ Created product: ${productName} (${productGroup.name})`);
+        console.log(
+          `  ✓ Created product: ${productName} (${productGroup.name})`
+        );
       } catch (error: any) {
         errors.push(`${productName}: ${error.message}`);
       }
     }
 
-    console.log(`\n✅ Products: ${created} created, ${existing} already existed`);
+    console.log(
+      `\n✅ Products: ${created} created, ${existing} already existed`
+    );
     if (errors.length > 0) {
       console.log(`  Errors: ${errors.length}`);
       errors.forEach((err) => console.log(`    - ${err}`));
@@ -399,7 +408,9 @@ async function importCustomers() {
  */
 async function importInvoices() {
   console.log("\n📥 Importing invoices from Google Sheets...");
-  console.log("⚠️  Note: Invoice line items require inventory items to be set up first");
+  console.log(
+    "⚠️  Note: Invoice line items require inventory items to be set up first"
+  );
 
   try {
     const sheetInvoices =
@@ -436,7 +447,9 @@ async function importInvoices() {
 
         if (!customerName || !invoiceDate) {
           skipped++;
-          console.log(`  ⊘ Skipped invoice ${invoiceNumber}: Missing customer or date`);
+          console.log(
+            `  ⊘ Skipped invoice ${invoiceNumber}: Missing customer or date`
+          );
           continue;
         }
 
@@ -494,17 +507,24 @@ async function importInvoices() {
         console.log(
           `  ✓ Created invoice ${invoiceNumber}: ${lines.length} line items, ₦${finalTotal.toLocaleString()}`
         );
-        console.log(`    ⚠️  Note: Line items not created - need inventory items first`);
+        console.log(
+          `    ⚠️  Note: Line items not created - need inventory items first`
+        );
       } catch (error: any) {
         errors.push(`Invoice ${invoiceNumber}: ${error.message}`);
-        console.error(`  ✗ Error processing invoice ${invoiceNumber}:`, error.message);
+        console.error(
+          `  ✗ Error processing invoice ${invoiceNumber}:`,
+          error.message
+        );
       }
     }
 
     console.log("\n✅ Invoice import completed!");
     console.log(`  Created: ${created}`);
     console.log(`  Skipped: ${skipped}`);
-    console.log(`  ⚠️  Line items: Require inventory setup - create via CRM UI`);
+    console.log(
+      `  ⚠️  Line items: Require inventory setup - create via CRM UI`
+    );
     if (errors.length > 0) {
       console.log(`  Errors: ${errors.length}`);
       errors.forEach((err) => console.log(`    - ${err}`));
@@ -584,7 +604,9 @@ async function importPayments() {
             amount,
             paymentDate,
             paymentMethod: "BANK_TRANSFER",
-            referenceNumber: reference || `${bank} - ${paymentDate.toISOString().split("T")[0]}`,
+            referenceNumber:
+              reference ||
+              `${bank} - ${paymentDate.toISOString().split("T")[0]}`,
             recordedByUserId,
             notes: bank ? `Bank: ${bank}` : undefined,
             status: "COMPLETED",
@@ -616,7 +638,7 @@ async function importPayments() {
             // Update invoice balance
             const currentBalance = Number(invoice.balance);
             const newBalance = Math.max(0, currentBalance - amount);
-            
+
             let newStatus = invoice.status;
             if (newBalance === 0) {
               newStatus = "PAID";

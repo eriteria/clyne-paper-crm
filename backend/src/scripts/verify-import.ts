@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function verifyImport() {
   console.log("\n🔍 Verifying Google Sheets Import Results...\n");
-  console.log("=" .repeat(60));
+  console.log("=".repeat(60));
 
   try {
     // 1. Product Groups
@@ -56,10 +56,18 @@ async function verifyImport() {
     });
     console.log("\n🏢 Customers:");
     console.log(`  Total: ${customers.length}`);
-    console.log(`  With Relationship Managers: ${customers.filter((c) => c.relationshipManagerId).length}`);
-    console.log(`  With Locations: ${customers.filter((c) => c.locationId).length}`);
-    console.log(`  With Onboarding Dates: ${customers.filter((c) => c.onboardingDate).length}`);
-    console.log(`  With Last Order Dates: ${customers.filter((c) => c.lastOrderDate).length}`);
+    console.log(
+      `  With Relationship Managers: ${customers.filter((c) => c.relationshipManagerId).length}`
+    );
+    console.log(
+      `  With Locations: ${customers.filter((c) => c.locationId).length}`
+    );
+    console.log(
+      `  With Onboarding Dates: ${customers.filter((c) => c.onboardingDate).length}`
+    );
+    console.log(
+      `  With Last Order Dates: ${customers.filter((c) => c.lastOrderDate).length}`
+    );
     console.log("\n  Sample Customers:");
     customers.slice(0, 5).forEach((c) => {
       console.log(
@@ -116,10 +124,11 @@ async function verifyImport() {
     const applications = await prisma.paymentApplication.findMany();
     console.log("\n📎 Payment Applications:");
     console.log(`  Total: ${applications.length}`);
-    const totalApplied = applications.reduce((sum, app) => sum + Number(app.amountApplied), 0);
-    console.log(
-      `  Total Amount Applied: ₦${totalApplied.toLocaleString()}`
+    const totalApplied = applications.reduce(
+      (sum, app) => sum + Number(app.amountApplied),
+      0
     );
+    console.log(`  Total Amount Applied: ₦${totalApplied.toLocaleString()}`);
 
     // 7. Locations
     const locations = await prisma.location.findMany({
