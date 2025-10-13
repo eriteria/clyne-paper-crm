@@ -19,4 +19,5 @@ RUN npx tsc --skipLibCheck --allowUnusedLabels true || echo "Compiled with error
 EXPOSE 8080
 
 # Run migrations and start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+# Using db push instead of migrate deploy to handle schema drift
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/server.js"]
