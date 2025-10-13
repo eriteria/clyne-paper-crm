@@ -16,17 +16,23 @@ export const SHEET_IDS = {
 // Sheet names/tabs within each workbook
 export const SHEET_NAMES = {
   // Database workbook tabs
-  CUSTOMERS: "Table2", // Customer list with relationship managers
-  PRODUCTS: "Products", // Product list (if exists)
-  PRODUCT_GROUPS: "Product Groups", // Product groups (if exists)
-  SALES_TEAM: "Sales Team", // Sales team list (if exists)
+  CUSTOMERS: "CUSTOMERS", // Customer list with relationship managers
+  PRODUCTS: "PRODUCTS", // Product list
+  PRODUCT_GROUPS: "PRODUCT GROUPS AND TARGETS", // Product groups with targets
+  SALES_TEAM: "SALES TEAM", // Sales team list
+  STOCK: "Stock", // Stock/inventory
 
   // Master workbook tabs
-  INVOICE_LIST: "Invoice", // Main invoice list
-  PAYMENTS: "Payment", // Payment records
-  INVOICE_FORM_1: "Invoice Form 1",
-  CUSTOMER_STATEMENTS: "Customer statements",
-  CUSTOMER_ACCOUNTS: "Customer Accounts",
+  INVOICE_LIST: "INVOICE LIST", // Main invoice list
+  PAYMENTS: "PAYMENTS", // Payment records
+  INVOICE_FORM_1: "INVOICE FORM 1",
+  INVOICE_FORM_2: "INVOICE FORM 2",
+  CUSTOMER_STATEMENTS: "CUSTOMER STATEMENT",
+  CUSTOMER_ACCOUNTS: "CUSTOMER ACCOUNTS",
+  INVOICE_EXPORT: "INVOICE EXPORT",
+  SALES_TEAM_REPORT: "SALES TEAM REPORT",
+  SALES_REPORT: "SALES REPORT",
+  DEBTORS_SHEET: "DEBTORS SHEET",
 };
 
 /**
