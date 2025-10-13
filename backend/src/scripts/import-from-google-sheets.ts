@@ -625,19 +625,22 @@ async function importPayments() {
           });
 
           if (invoice) {
+            const currentBalance = Number(invoice.balance);
+            const amountToApply = Math.min(amount, currentBalance);
+            const overpayment = amount - amountToApply;
+
             // Create payment application to link payment to invoice
             await prisma.paymentApplication.create({
               data: {
                 customerPaymentId: payment.id,
                 invoiceId: invoice.id,
-                amountApplied: amount,
+                amountApplied: amountToApply,
                 notes: `Auto-applied from import for invoice ${invoiceNumber}`,
               },
             });
 
             // Update invoice balance
-            const currentBalance = Number(invoice.balance);
-            const newBalance = Math.max(0, currentBalance - amount);
+            const newBalance = Math.max(0, currentBalance - amountToApply);
 
             let newStatus = invoice.status;
             if (newBalance === 0) {
@@ -654,22 +657,71 @@ async function importPayments() {
               },
             });
 
-            // Update payment allocated amount
+            // Handle overpayment - create credit
+            let creditAmount = 0;
+            if (overpayment > 0) {
+              const credit = await prisma.credit.create({
+                data: {
+                  customerId: customer.id,
+                  amount: overpayment,
+                  availableAmount: overpayment,
+                  sourcePaymentId: payment.id,
+                  reason: "OVERPAYMENT",
+                  description: `Credit from overpayment on invoice ${invoiceNumber}`,
+                  createdByUserId: recordedByUserId,
+                  status: "ACTIVE",
+                },
+              });
+              creditAmount = overpayment;
+              console.log(
+                `    💰 Created credit: ₦${overpayment.toLocaleString()} (overpayment)`
+              );
+            }
+
+            // Update payment allocated amount and credit amount
             await prisma.customerPayment.update({
               where: { id: payment.id },
               data: {
-                allocatedAmount: amount,
+                allocatedAmount: amountToApply,
+                creditAmount,
               },
             });
 
             console.log(
-              `    → Applied to invoice ${invoiceNumber}, new balance: ₦${newBalance.toLocaleString()}`
+              `    → Applied ₦${amountToApply.toLocaleString()} to invoice ${invoiceNumber}, new balance: ₦${newBalance.toLocaleString()}`
             );
           } else {
             console.log(
               `    ⚠ Could not find invoice ${invoiceNumber} to apply payment`
             );
           }
+        } else {
+          // No invoice specified - create as unallocated credit for the customer
+          const credit = await prisma.credit.create({
+            data: {
+              customerId: customer.id,
+              amount,
+              availableAmount: amount,
+              sourcePaymentId: payment.id,
+              reason: "ADVANCE_PAYMENT",
+              description: `Unallocated payment from ${bank || "bank transfer"}`,
+              createdByUserId: recordedByUserId,
+              status: "ACTIVE",
+            },
+          });
+
+          // Update payment credit amount
+          await prisma.customerPayment.update({
+            where: { id: payment.id },
+            data: {
+              allocatedAmount: 0,
+              creditAmount: amount,
+            },
+          });
+
+          console.log(
+            `    💰 Created advance payment credit: ₦${amount.toLocaleString()}`
+          );
         }
       } catch (error: any) {
         errors.push(`Payment: ${error.message}`);
