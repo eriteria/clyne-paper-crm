@@ -40,20 +40,36 @@ export const SHEET_NAMES = {
  */
 export async function getGoogleSheetsClient() {
   try {
-    const credentialsPath = path.join(
-      __dirname,
-      "../../google-credentials.json"
-    );
+    let credentials;
 
-    // Check if credentials file exists
-    if (!fs.existsSync(credentialsPath)) {
-      throw new Error(
-        `Google credentials file not found at: ${credentialsPath}\n` +
-          "Please follow the setup instructions to create a service account and download credentials."
+    // First, try to read from environment variable (production)
+    if (process.env.GOOGLE_CREDENTIALS_BASE64) {
+      const credentialsJson = Buffer.from(
+        process.env.GOOGLE_CREDENTIALS_BASE64,
+        "base64"
+      ).toString("utf8");
+      credentials = JSON.parse(credentialsJson);
+      console.log("✅ Using Google credentials from environment variable");
+    } else {
+      // Fall back to local file (development)
+      const credentialsPath = path.join(
+        __dirname,
+        "../../google-credentials.json"
       );
-    }
 
-    const credentials = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
+      // Check if credentials file exists
+      if (!fs.existsSync(credentialsPath)) {
+        throw new Error(
+          `Google credentials not found!\n` +
+            `Either:\n` +
+            `1. Set GOOGLE_CREDENTIALS_BASE64 environment variable (production)\n` +
+            `2. Place google-credentials.json file at: ${credentialsPath} (development)`
+        );
+      }
+
+      credentials = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
+      console.log("✅ Using Google credentials from local file");
+    }
 
     const auth = new google.auth.GoogleAuth({
       credentials,
