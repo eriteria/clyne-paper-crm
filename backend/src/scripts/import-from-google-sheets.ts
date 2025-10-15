@@ -13,6 +13,60 @@ import {
 
 const prisma = new PrismaClient();
 
+// Import notification sender (will be set from admin-import route)
+type NotificationSender = (
+  userId: string,
+  type: "info" | "success" | "warning" | "error" | "progress",
+  title: string,
+  message: string,
+  data?: any
+) => void;
+
+type NotificationUpdater = (
+  notificationId: string,
+  userId: string,
+  type: "info" | "success" | "warning" | "error" | "progress",
+  title: string,
+  message: string,
+  data?: any
+) => void;
+
+let notificationSender: NotificationSender | null = null;
+let notificationUpdater: NotificationUpdater | null = null;
+
+export function setNotificationSender(sender: NotificationSender) {
+  notificationSender = sender;
+}
+
+export function setNotificationUpdater(updater: NotificationUpdater) {
+  notificationUpdater = updater;
+}
+
+function sendNotification(
+  userId: string,
+  type: "info" | "success" | "warning" | "error" | "progress",
+  title: string,
+  message: string,
+  data?: any
+) {
+  if (notificationSender && userId) {
+    notificationSender(userId, type, title, message, data);
+  }
+}
+
+function updateNotification(
+  notificationId: string,
+  userId: string,
+  type: "info" | "success" | "warning" | "error" | "progress",
+  title: string,
+  message: string,
+  data?: any
+) {
+  if (notificationUpdater && userId) {
+    notificationUpdater(notificationId, userId, type, title, message, data);
+  }
+}
+
 interface GoogleSheetCustomer {
   "CUSTOMER NAME": string;
   "RELATIONSHIP MANAGER": string;
@@ -610,6 +664,8 @@ async function importPayments() {
             recordedByUserId,
             notes: bank ? `Bank: ${bank}` : undefined,
             status: "COMPLETED",
+            allocatedAmount: 0, // Will be updated if applied to invoice
+            creditAmount: 0, // Will be updated if creates credit
           },
         });
 
@@ -747,21 +803,111 @@ async function importPayments() {
 /**
  * Main import function - runs all imports in sequence
  */
-async function runFullImport() {
+async function runFullImport(userId?: string) {
   console.log("🚀 Starting Google Sheets import...\n");
   console.log("=".repeat(60));
 
   try {
+    // Create a single notification ID for all progress updates
+    const importNotificationId = `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     // Import in order: Product Groups → Products → Customers → Invoices → Payments
     console.log("\n📦 Phase 1: Product Setup");
+    if (userId) {
+      sendNotification(
+        userId,
+        "progress",
+        "Import in Progress",
+        "Starting product groups import...",
+        { 
+          id: importNotificationId,
+          phase: 1, 
+          step: "product-groups",
+          progress: 10,
+          totalPhases: 5
+        }
+      );
+    }
+
     const productGroupResults = await importProductGroups();
+    if (userId) {
+      updateNotification(
+        importNotificationId,
+        userId,
+        "progress",
+        "Import in Progress",
+        `Product groups imported: ${productGroupResults.created} created. Starting products...`,
+        {
+          phase: 1,
+          step: "products",
+          progress: 20,
+          totalPhases: 5,
+          productGroups: productGroupResults.created
+        }
+      );
+    }
+
     const productResults = await importProducts();
+    if (userId) {
+      updateNotification(
+        importNotificationId,
+        userId,
+        "progress",
+        "Import in Progress",
+        `Products imported: ${productResults.created} created. Starting customers...`,
+        { 
+          phase: 2, 
+          step: "customers",
+          progress: 40,
+          totalPhases: 5,
+          productGroups: productGroupResults.created,
+          products: productResults.created
+        }
+      );
+    }
 
     console.log("\n👥 Phase 2: Customer Import");
     const customerResults = await importCustomers();
+    if (userId) {
+      updateNotification(
+        importNotificationId,
+        userId,
+        "progress",
+        "Import in Progress",
+        `Customers imported: ${customerResults.created} created, ${customerResults.updated} updated. Starting invoices...`,
+        {
+          phase: 3,
+          step: "invoices",
+          progress: 60,
+          totalPhases: 5,
+          productGroups: productGroupResults.created,
+          products: productResults.created,
+          customers: { created: customerResults.created, updated: customerResults.updated }
+        }
+      );
+    }
 
     console.log("\n📄 Phase 3: Invoice Import");
     const invoiceResults = await importInvoices();
+    if (userId) {
+      updateNotification(
+        importNotificationId,
+        userId,
+        "progress",
+        "Import in Progress",
+        `Invoices imported: ${invoiceResults.created} created. Starting payments...`,
+        { 
+          phase: 4, 
+          step: "payments",
+          progress: 80,
+          totalPhases: 5,
+          productGroups: productGroupResults.created,
+          products: productResults.created,
+          customers: { created: customerResults.created, updated: customerResults.updated },
+          invoices: invoiceResults.created
+        }
+      );
+    }
 
     console.log("\n💰 Phase 4: Payment Import");
     const paymentResults = await importPayments();
@@ -784,8 +930,43 @@ async function runFullImport() {
     console.log("  2. Add invoice line items manually via CRM UI");
     console.log("  3. Reset passwords for relationship manager users");
     console.log("  4. Assign users to teams and regions");
+
+    if (userId) {
+      updateNotification(
+        importNotificationId,
+        userId,
+        "success",
+        "Import Complete! 🎉",
+        `Successfully imported: ${productGroupResults.created} product groups, ${productResults.created} products, ${customerResults.created} customers, ${invoiceResults.created} invoices, ${paymentResults.created} payments`,
+        {
+          progress: 100,
+          summary: {
+            productGroups: productGroupResults.created,
+            products: productResults.created,
+            customers: {
+              created: customerResults.created,
+              updated: customerResults.updated,
+            },
+            invoices: invoiceResults.created,
+            payments: paymentResults.created,
+          },
+        }
+      );
+    }
   } catch (error) {
     console.error("\n❌ Import failed:", error);
+    if (userId) {
+      // Send error as new notification (don't update the progress one)
+      sendNotification(
+        userId,
+        "error",
+        "Import Failed",
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred during import",
+        { error: error instanceof Error ? error.stack : String(error) }
+      );
+    }
     throw error;
   } finally {
     await prisma.$disconnect();

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useSidebar } from "@/hooks/useSidebar";
 
 export default function AdminLayout({
@@ -67,6 +68,7 @@ export default function AdminLayout({
                   🔧 Administration
                 </h1>
                 <div className="flex items-center space-x-4">
+                  <NotificationBell />
                   <span className="text-sm text-gray-600">
                     Admin: {user.fullName}
                   </span>

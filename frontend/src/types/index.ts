@@ -7,6 +7,8 @@ export interface User {
   email: string;
   phone?: string;
   role: string;
+  roleId?: string;
+  permissions?: string[];
   team?: {
     id: string;
     name: string;

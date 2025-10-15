@@ -373,22 +373,30 @@ export class PaymentService {
       }),
     ]);
 
-    // Calculate customer summary
+    // Calculate customer summary - SIMPLIFIED CUSTOMER-LEVEL ACCOUNTING
+    // Total what customer owes (invoices) minus what they've paid = balance
     const totalInvoiced = invoices.reduce(
       (sum, inv) => sum.add(inv.totalAmount),
       new Decimal(0)
     );
-    const totalPaid = payments.reduce(
-      (sum, pay) => sum.add(pay.allocatedAmount),
-      new Decimal(0)
-    );
-    const totalCredit = credits
-      .filter((c) => c.status === "ACTIVE")
-      .reduce((sum, credit) => sum.add(credit.availableAmount), new Decimal(0));
-    const totalBalance = invoices.reduce(
-      (sum, inv) => sum.add(inv.balance),
-      new Decimal(0)
-    );
+
+    // Sum ALL completed payments for this customer (regardless of allocation)
+    const totalPaid = payments
+      .filter((pay) => pay.status === "COMPLETED")
+      .reduce((sum, pay) => sum.add(pay.amount), new Decimal(0));
+
+    // Calculate actual balance: invoices - payments
+    const actualBalance = totalInvoiced.sub(totalPaid);
+
+    // If balance is negative, that's available credit
+    const totalCredit = actualBalance.isNegative()
+      ? actualBalance.abs()
+      : new Decimal(0);
+
+    // Outstanding balance is positive balance only
+    const totalBalance = actualBalance.isPositive()
+      ? actualBalance
+      : new Decimal(0);
 
     return {
       invoices,

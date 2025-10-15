@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -24,8 +22,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
-import { useNotifications } from "@/hooks/useNotifications";
-import Badge from "./Badge";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -51,41 +47,9 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
-  const { counts } = useNotifications();
 
   const handleLogout = () => {
     logout();
-  };
-
-  // Get badge count for navigation item
-  const getBadgeCount = (href: string): number => {
-    const route = href.replace("/", "");
-    return counts[route as keyof typeof counts] || 0;
-  };
-
-  // Get badge variant based on route and count
-  const getBadgeVariant = (
-    href: string,
-    count: number
-  ): "default" | "danger" | "warning" | "success" => {
-    if (count === 0) return "default";
-
-    const route = href.replace("/", "");
-    switch (route) {
-      case "dashboard":
-        return count > 5 ? "danger" : "warning";
-      case "inventory":
-        return count > 0 ? "warning" : "default";
-      case "invoices":
-        return count > 3 ? "danger" : "warning";
-      case "payments":
-        return "success"; // Credits available
-      case "users":
-      case "admin":
-        return count > 0 ? "warning" : "default";
-      default:
-        return "default";
-    }
   };
 
   return (
@@ -137,8 +101,6 @@ export default function Sidebar() {
         <div className="space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
-            const badgeCount = getBadgeCount(item.href);
-            const badgeVariant = getBadgeVariant(item.href, badgeCount);
 
             return (
               <Link
@@ -148,7 +110,7 @@ export default function Sidebar() {
                 className={`
                   group flex items-center ${
                     isCollapsed ? "justify-center px-2" : "px-3"
-                  } py-2 text-sm font-medium rounded-lg transition-colors relative
+                  } py-2 text-sm font-medium rounded-lg transition-colors
                   ${
                     isActive
                       ? "bg-blue-50 border-blue-500 text-blue-700"
@@ -167,21 +129,6 @@ export default function Sidebar() {
                   `}
                 />
                 {!isCollapsed && <span className="flex-1">{item.name}</span>}
-
-                {/* Notification Badge */}
-                {badgeCount > 0 && (
-                  <div
-                    className={
-                      isCollapsed ? "absolute -top-1 -right-1" : "ml-auto"
-                    }
-                  >
-                    <Badge
-                      count={badgeCount}
-                      variant={badgeVariant}
-                      size="small"
-                    />
-                  </div>
-                )}
               </Link>
             );
           })}
@@ -198,8 +145,6 @@ export default function Sidebar() {
               {adminNavigation.map((item) => {
                 const isActive =
                   pathname === item.href || pathname.startsWith(item.href);
-                const badgeCount = getBadgeCount(item.href);
-                const badgeVariant = getBadgeVariant(item.href, badgeCount);
 
                 return (
                   <Link
@@ -209,7 +154,7 @@ export default function Sidebar() {
                     className={`
                       group flex items-center ${
                         isCollapsed ? "justify-center px-2" : "px-3"
-                      } py-2 text-sm font-medium rounded-lg transition-colors relative
+                      } py-2 text-sm font-medium rounded-lg transition-colors
                       ${
                         isActive
                           ? "bg-red-50 border-red-500 text-red-700"
@@ -229,21 +174,6 @@ export default function Sidebar() {
                     />
                     {!isCollapsed && (
                       <span className="flex-1">{item.name}</span>
-                    )}
-
-                    {/* Notification Badge */}
-                    {badgeCount > 0 && (
-                      <div
-                        className={
-                          isCollapsed ? "absolute -top-1 -right-1" : "ml-auto"
-                        }
-                      >
-                        <Badge
-                          count={badgeCount}
-                          variant={badgeVariant}
-                          size="small"
-                        />
-                      </div>
                     )}
                   </Link>
                 );

@@ -28,6 +28,11 @@ export default function AdminPage() {
     message: string;
     type: "success" | "error" | "info";
   } | null>(null);
+  const [isFixingPayments, setIsFixingPayments] = useState(false);
+  const [fixPaymentStatus, setFixPaymentStatus] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
 
   const handleGoogleSheetsImport = async () => {
     if (isImporting) return;
@@ -73,6 +78,54 @@ export default function AdminPage() {
       setIsImporting(false);
     }
   };
+
+  const handleFixPaymentAllocations = async () => {
+    if (isFixingPayments) return;
+
+    if (
+      !confirm(
+        "This will recalculate allocatedAmount and creditAmount for all existing payments based on their applications. You'll receive real-time notifications on progress. Continue?"
+      )
+    ) {
+      return;
+    }
+
+    setIsFixingPayments(true);
+    setFixPaymentStatus({
+      message: "Starting payment allocation fix...",
+      type: "info",
+    });
+
+    try {
+      const response = await apiClient.post(
+        "/admin-import/fix-payment-allocations"
+      );
+      setFixPaymentStatus({
+        message:
+          response.data.message ||
+          "Payment fix started! Check the notification bell for real-time progress.",
+        type: "success",
+      });
+    } catch (error: unknown) {
+      console.error("Fix payment error:", error);
+      let errorMessage = "Failed to start payment fix. Please try again.";
+
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as {
+          response?: { data?: { message?: string } };
+        };
+        errorMessage = axiosError.response?.data?.message || errorMessage;
+      }
+
+      setFixPaymentStatus({
+        message: errorMessage,
+        type: "error",
+      });
+    } finally {
+      setIsFixingPayments(false);
+    }
+  };
+
   // Fetch recent audit logs
   const { data: auditLogsData, isLoading: auditLogsLoading } = useQuery({
     queryKey: ["audit-logs", "recent"],
@@ -205,6 +258,52 @@ export default function AdminPage() {
                 }`}
               >
                 {importStatus.message}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Fix Payment Allocations - DATA FIX TOOL */}
+        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg shadow-lg border-2 border-amber-400">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-10 h-10 bg-amber-500 rounded-md flex items-center justify-center shadow-md">
+                <span className="text-white text-2xl">🔧</span>
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                Fix Payment Allocations
+              </h3>
+              <p className="text-sm text-gray-600 font-medium">
+                Recalculate allocatedAmount & creditAmount (with real-time notifications)
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button
+              onClick={handleFixPaymentAllocations}
+              disabled={isFixingPayments}
+              className={`w-full inline-flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-bold rounded-md shadow-md text-white ${
+                isFixingPayments
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transform hover:scale-105 transition-transform"
+              }`}
+            >
+              <span className="mr-2">🔧</span>
+              {isFixingPayments ? "Fixing..." : "Fix Payments"}
+            </button>
+            {fixPaymentStatus && (
+              <div
+                className={`mt-3 p-3 rounded-md text-sm font-medium ${
+                  fixPaymentStatus.type === "success"
+                    ? "bg-green-50 text-green-800 border border-green-200"
+                    : fixPaymentStatus.type === "error"
+                    ? "bg-red-50 text-red-800 border border-red-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
+                }`}
+              >
+                {fixPaymentStatus.message}
               </div>
             )}
           </div>

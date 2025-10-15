@@ -145,16 +145,16 @@ router.get(
       asOfDate.setHours(23, 59, 59, 999);
 
       // Build base filters for open A/R
+      // Use FIFO (First In, First Out) payment allocation
       const where: any = {
         status: { in: ["OPEN", "PARTIAL"] },
-        balance: { gt: 0 },
       };
 
       if (teamId) where.teamId = teamId;
       if (regionId) where.regionId = regionId;
       if (customerId) where.customerId = customerId;
 
-      // Fetch only fields we need for aging
+      // Fetch all invoices for filtered customers
       const invoices = await prisma.invoice.findMany({
         where,
         select: {
@@ -163,10 +163,37 @@ router.get(
           customerName: true,
           date: true,
           dueDate: true,
-          balance: true,
+          totalAmount: true,
         },
-        orderBy: { dueDate: "asc" },
+        orderBy: { date: "asc" }, // Sort by date for FIFO
       });
+
+      // Get all payments grouped by customer
+      const customerIds = [...new Set(invoices.map((inv) => inv.customerId))];
+
+      // Helper function to convert Prisma Decimal to number
+      const toNumber = (val: any): number => {
+        if (val == null) return 0;
+        const n =
+          typeof val === "object" && "toNumber" in val
+            ? val.toNumber()
+            : Number(val);
+        return Number.isFinite(n) ? n : 0;
+      };
+
+      const payments = await prisma.customerPayment.groupBy({
+        by: ["customerId"],
+        where: {
+          customerId: { in: customerIds },
+          status: "COMPLETED",
+        },
+        _sum: { amount: true },
+      });
+
+      // Create a map of customer payments
+      const customerPayments = new Map(
+        payments.map((p) => [p.customerId, toNumber(p._sum.amount || 0)])
+      );
 
       // Aging buckets definition
       type BucketKey = "current" | "d1_30" | "d31_60" | "d61_90" | "d90_plus";
@@ -218,19 +245,38 @@ router.get(
         }
       > = {};
 
-      const toNumber = (val: any): number => {
-        // Prisma Decimal may come through; convert safely to number for sums
-        if (val == null) return 0;
-        const n =
-          typeof val === "object" && "toNumber" in val
-            ? val.toNumber()
-            : Number(val);
-        return Number.isFinite(n) ? n : 0;
-      };
+      // Apply FIFO logic per customer to calculate invoice balances
+      const invoiceBalances = new Map<string, number>();
 
+      for (const cId of customerIds) {
+        let remainingPayment = customerPayments.get(cId) || 0;
+        const customerInvoices = invoices
+          .filter((inv) => inv.customerId === cId)
+          .sort((a, b) => a.date.getTime() - b.date.getTime()); // Oldest first (FIFO)
+
+        for (const inv of customerInvoices) {
+          const invoiceAmount = toNumber(inv.totalAmount);
+
+          if (remainingPayment >= invoiceAmount) {
+            // Fully paid
+            invoiceBalances.set(inv.id, 0);
+            remainingPayment -= invoiceAmount;
+          } else if (remainingPayment > 0) {
+            // Partially paid
+            invoiceBalances.set(inv.id, invoiceAmount - remainingPayment);
+            remainingPayment = 0;
+          } else {
+            // Unpaid
+            invoiceBalances.set(inv.id, invoiceAmount);
+          }
+        }
+      }
+
+      // Now process invoices for aging buckets
       for (const inv of invoices) {
-        const balance = toNumber(inv.balance);
-        if (balance <= 0) continue;
+        const balance = invoiceBalances.get(inv.id) || 0;
+
+        if (balance <= 0) continue; // Invoice fully paid, skip
 
         let metric = 0; // days past due or outstanding depending on mode
         if (mode === "outstanding") {
@@ -421,12 +467,13 @@ router.get("/inventory", async (req, res, next) => {
 // @access  Private
 router.get("/overdue-invoices", async (req, res, next) => {
   try {
-    // Overdue = dueDate in the past, balance > 0, and not PAID/CANCELLED
+    // Overdue = dueDate in the past and not PAID/CANCELLED
+    // Use FIFO (First In, First Out) payment allocation to calculate balance
     const today = new Date();
-    const overdueInvoices = await prisma.invoice.findMany({
+
+    const invoices = await prisma.invoice.findMany({
       where: {
         dueDate: { lt: today },
-        balance: { gt: 0 },
         NOT: { status: { in: ["PAID", "CANCELLED"] } },
       },
       include: {
@@ -434,28 +481,79 @@ router.get("/overdue-invoices", async (req, res, next) => {
         team: { select: { id: true, name: true } },
         billedBy: { select: { id: true, fullName: true } },
       },
-      orderBy: { dueDate: "asc" },
+      orderBy: { date: "asc" }, // Sort by date for FIFO
     });
 
-    // Map to response format
-    const result = overdueInvoices.map((inv) => ({
-      id: inv.id,
-      invoiceNumber: inv.invoiceNumber,
-      customer: inv.customer?.name || inv.customerName,
-      team: inv.team?.name || null,
-      billedBy: inv.billedBy?.fullName || null,
-      totalAmount: inv.totalAmount,
-      balance: inv.balance,
-      dueDate: inv.dueDate,
-      daysOverdue: inv.dueDate
-        ? Math.floor(
-            (today.getTime() - inv.dueDate.getTime()) / (1000 * 60 * 60 * 24)
-          )
-        : null,
-      status: inv.status,
-    }));
+    // Get all payments grouped by customer
+    const customerIds = [...new Set(invoices.map((inv) => inv.customerId))];
+    const payments = await prisma.customerPayment.groupBy({
+      by: ["customerId"],
+      where: {
+        customerId: { in: customerIds },
+        status: "COMPLETED",
+      },
+      _sum: { amount: true },
+    });
 
-    res.json({ success: true, data: result });
+    // Create a map of customer payments
+    const customerPayments = new Map(
+      payments.map((p) => [p.customerId, Number(p._sum.amount || 0)])
+    );
+
+    // Apply FIFO logic to calculate balance for each invoice
+    const invoiceBalances = new Map<string, number>();
+
+    // Process each customer's invoices with FIFO
+    for (const cId of customerIds) {
+      let remainingPayment = customerPayments.get(cId) || 0;
+      const customerInvoices = invoices
+        .filter((inv) => inv.customerId === cId)
+        .sort((a, b) => a.date.getTime() - b.date.getTime()); // Oldest first
+
+      for (const inv of customerInvoices) {
+        const invoiceAmount = Number(inv.totalAmount);
+
+        if (remainingPayment >= invoiceAmount) {
+          // Fully paid
+          invoiceBalances.set(inv.id, 0);
+          remainingPayment -= invoiceAmount;
+        } else if (remainingPayment > 0) {
+          // Partially paid
+          invoiceBalances.set(inv.id, invoiceAmount - remainingPayment);
+          remainingPayment = 0;
+        } else {
+          // Unpaid
+          invoiceBalances.set(inv.id, invoiceAmount);
+        }
+      }
+    }
+
+    // Filter to only overdue invoices with outstanding balance
+    const overdueInvoices = invoices
+      .map((inv) => {
+        const balance = invoiceBalances.get(inv.id) || 0;
+
+        return {
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          customer: inv.customer?.name || inv.customerName,
+          team: inv.team?.name || null,
+          billedBy: inv.billedBy?.fullName || null,
+          totalAmount: inv.totalAmount,
+          balance,
+          dueDate: inv.dueDate,
+          daysOverdue: inv.dueDate
+            ? Math.floor(
+                (today.getTime() - inv.dueDate.getTime()) /
+                  (1000 * 60 * 60 * 24)
+              )
+            : null,
+          status: inv.status,
+        };
+      })
+      .filter((inv) => inv.balance > 0); // Only include invoices with outstanding balance
+
+    res.json({ success: true, data: overdueInvoices });
   } catch (error) {
     logger.error("Error fetching overdue invoices:", error);
     next(error);

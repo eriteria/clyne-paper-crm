@@ -21,11 +21,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Info,
-  Award,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
-import { useNotifications } from "@/hooks/useNotifications";
-import Badge from "@/components/Badge";
 
 interface UserProfile {
   id: string;
@@ -97,7 +94,6 @@ export default function SettingsPage() {
   } | null>(null);
 
   const queryClient = useQueryClient();
-  const { counts, meta, refresh: refreshNotifications } = useNotifications();
 
   // Fetch user profile
   const { data: profileData, isLoading: profileLoading } = useQuery({
@@ -209,7 +205,6 @@ export default function SettingsPage() {
     { id: "profile", name: "Profile", icon: User },
     { id: "company", name: "Company", icon: Building },
     { id: "notifications", name: "Notifications", icon: Bell },
-    { id: "badges", name: "Badges", icon: Award },
     { id: "data", name: "Data Management", icon: Database },
     { id: "security", name: "Security", icon: Shield },
     { id: "system", name: "System", icon: Settings },
@@ -830,171 +825,6 @@ export default function SettingsPage() {
                       />
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Badges Tab */}
-            {activeTab === "badges" && (
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Notification Badges
-                  </h2>
-                  <button
-                    onClick={refreshNotifications}
-                    className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Refresh
-                  </button>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium text-blue-800">
-                          About Notification Badges
-                        </h3>
-                        <p className="text-sm text-blue-700 mt-1">
-                          Badges appear on navigation items to alert you about
-                          items that need your attention, such as overdue
-                          invoices, low stock alerts, and pending approvals.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Badge Overview */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                      {
-                        key: "dashboard",
-                        name: "Dashboard",
-                        description: "Overall system alerts",
-                        count: counts.dashboard,
-                        details: `${meta.overdueInvoices} overdue invoices, ${meta.lowStockItems} low stock items`,
-                      },
-                      {
-                        key: "customers",
-                        name: "Customers",
-                        description: "Pending customer approvals",
-                        count: counts.customers,
-                        details: `${meta.pendingCustomers} customers pending approval`,
-                      },
-                      {
-                        key: "inventory",
-                        name: "Inventory",
-                        description: "Low stock alerts",
-                        count: counts.inventory,
-                        details: `${meta.lowStockItems} items below threshold`,
-                      },
-                      {
-                        key: "invoices",
-                        name: "Invoices",
-                        description: "Overdue and upcoming due invoices",
-                        count: counts.invoices,
-                        details: `${meta.overdueInvoices} overdue, ${meta.upcomingDueInvoices} due soon`,
-                      },
-                      {
-                        key: "payments",
-                        name: "Payments",
-                        description: "Available customer credits",
-                        count: counts.payments,
-                        details: `${meta.availableCredits} available credits`,
-                      },
-                      {
-                        key: "users",
-                        name: "Users",
-                        description: "Inactive user accounts",
-                        count: counts.users,
-                        details: `${meta.inactiveUsers} inactive users`,
-                      },
-                    ].map((module) => (
-                      <div
-                        key={module.key}
-                        className="bg-white border border-gray-200 rounded-lg p-4"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-medium text-gray-900">
-                            {module.name}
-                          </h3>
-                          {module.count > 0 && (
-                            <Badge
-                              count={module.count}
-                              variant={
-                                module.key === "payments"
-                                  ? "success"
-                                  : module.count > 5
-                                  ? "danger"
-                                  : module.count > 0
-                                  ? "warning"
-                                  : "default"
-                              }
-                            />
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {module.description}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {module.details}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Badge Settings */}
-                  <div className="border-t pt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      Badge Settings
-                    </h3>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                        <div>
-                          <h4 className="font-medium text-gray-900">
-                            Auto-refresh badges
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            Automatically update notification counts every
-                            minute
-                          </p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={true}
-                            readOnly
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                        <div>
-                          <h4 className="font-medium text-gray-900">
-                            Show animated badges
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            Add subtle animation to draw attention to badges
-                          </p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={true}
-                            readOnly
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { prisma } from "../server";
 import { logger } from "../utils/logger";
 import { logLogin } from "../utils/auditLogger";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import { parsePermissions } from "../utils/permissions";
 
 const router = express.Router();
 
@@ -110,6 +111,8 @@ router.post("/login", async (req, res, next) => {
           email: user.email,
           phone: user.phone,
           role: user.role.name,
+          roleId: user.role.id,
+          permissions: parsePermissions(user.role.permissions),
           team: user.team
             ? {
                 id: user.team.id,
@@ -223,7 +226,9 @@ router.get("/profile", authenticate, async (req: AuthenticatedRequest, res) => {
         email: user.email,
         phone: user.phone,
         isActive: user.isActive,
-        role: user.role,
+        role: user.role.name,
+        roleId: user.role.id,
+        permissions: parsePermissions(user.role.permissions),
         team: user.team,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

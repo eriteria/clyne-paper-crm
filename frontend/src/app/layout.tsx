@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SidebarProvider } from "@/hooks/useSidebar";
 import { LoadingProvider } from "@/hooks/useLoading";
+import { NotificationProvider } from "@/hooks/useNotificationCenter";
 import ProgressBar from "@/components/ProgressBar";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import "./globals.css";
@@ -51,10 +52,12 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
           <LoadingProvider>
             <AuthProvider>
-              <SidebarProvider>
-                {children}
-                <LoadingIndicator />
-              </SidebarProvider>
+              <NotificationProvider>
+                <SidebarProvider>
+                  {children}
+                  <LoadingIndicator />
+                </SidebarProvider>
+              </NotificationProvider>
             </AuthProvider>
           </LoadingProvider>
         </QueryClientProvider>
