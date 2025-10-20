@@ -225,3 +225,188 @@ export const getARAging = async (
     ? (response.data.data as ARAgingReport)
     : (response.data as ARAgingReport);
 };
+
+// ============================================
+// DYNAMIC REPORTS API
+// ============================================
+
+export interface DynamicReportFilters {
+  startDate?: string;
+  endDate?: string;
+  dateField?: string;
+  customerIds?: string[];
+  teamIds?: string[];
+  locationIds?: string[];
+  productIds?: string[];
+  statuses?: string[];
+  minAmount?: number;
+  maxAmount?: number;
+  amountField?: string;
+  search?: string;
+}
+
+export interface DynamicReportRequest {
+  model: string;
+  filters?: DynamicReportFilters;
+  groupBy?: string[];
+  aggregations?: string[];
+  include?: Record<string, unknown>;
+  orderBy?: {
+    field: string;
+    direction: "asc" | "desc";
+    aggregate?: string;
+  };
+  limit?: number;
+}
+
+export interface DynamicReportResponse {
+  success: boolean;
+  model: string;
+  queryType: "groupBy" | "aggregate";
+  resultCount?: number;
+  sampleCount?: number;
+  data?: any[];
+  aggregation?: Record<string, any>;
+  sampleRecords?: any[];
+}
+
+/**
+ * Execute a dynamic report query
+ * This endpoint allows flexible reporting without hardcoded backend endpoints
+ */
+export const runDynamicReport = async (
+  request: DynamicReportRequest
+): Promise<DynamicReportResponse> => {
+  const response = await apiClient.post("/reports/query", request);
+  return response.data;
+};
+
+/**
+ * Quick report templates for common use cases
+ */
+export const dynamicReportTemplates = {
+  revenueByLocation: (startDate: string, endDate: string) => ({
+    model: "invoice",
+    filters: {
+      startDate,
+      endDate,
+      statuses: ["PAID", "PARTIALLY_PAID"],
+    },
+    groupBy: ["locationId"],
+    aggregations: ["count", "sum:totalAmount", "avg:totalAmount"],
+    orderBy: {
+      aggregate: "_sum",
+      field: "totalAmount",
+      direction: "desc" as const,
+    },
+  }),
+
+  revenueByTeam: (startDate: string, endDate: string) => ({
+    model: "invoice",
+    filters: {
+      startDate,
+      endDate,
+      statuses: ["PAID", "PARTIALLY_PAID"],
+    },
+    groupBy: ["teamId"],
+    aggregations: ["count", "sum:totalAmount", "avg:totalAmount"],
+    orderBy: {
+      aggregate: "_sum",
+      field: "totalAmount",
+      direction: "desc" as const,
+    },
+  }),
+
+  topCustomers: (startDate: string, endDate: string, limit = 10) => ({
+    model: "invoice",
+    filters: {
+      startDate,
+      endDate,
+      statuses: ["PAID", "PARTIALLY_PAID"],
+    },
+    groupBy: ["customerId", "customerName"],
+    aggregations: ["count", "sum:totalAmount", "avg:totalAmount"],
+    orderBy: {
+      aggregate: "_sum",
+      field: "totalAmount",
+      direction: "desc" as const,
+    },
+    limit,
+  }),
+
+  paymentMethodAnalysis: (startDate: string, endDate: string) => ({
+    model: "customerPayment",
+    filters: {
+      startDate,
+      endDate,
+      dateField: "paymentDate",
+      statuses: ["COMPLETED"],
+    },
+    groupBy: ["paymentMethod"],
+    aggregations: ["count", "sum:amount", "avg:amount"],
+    orderBy: {
+      aggregate: "_sum",
+      field: "amount",
+      direction: "desc" as const,
+    },
+  }),
+
+  invoiceStatusSummary: (startDate: string, endDate: string) => ({
+    model: "invoice",
+    filters: {
+      startDate,
+      endDate,
+    },
+    groupBy: ["status"],
+    aggregations: ["count", "sum:totalAmount"],
+    orderBy: {
+      aggregate: "_count",
+      field: "id",
+      direction: "desc" as const,
+    },
+  }),
+
+  totalRevenueSummary: (startDate: string, endDate: string) => ({
+    model: "customerPayment",
+    filters: {
+      startDate,
+      endDate,
+      dateField: "paymentDate",
+      statuses: ["COMPLETED"],
+    },
+    aggregations: ["count", "sum:amount", "avg:amount", "min:amount", "max:amount"],
+  }),
+
+  productSalesAnalysis: (startDate: string, endDate: string) => ({
+    model: "invoiceItem",
+    filters: {
+      startDate,
+      endDate,
+      dateField: "createdAt",
+    },
+    groupBy: ["inventoryItemId"],
+    aggregations: ["count", "sum:quantity", "sum:lineTotal", "avg:unitPrice"],
+    orderBy: {
+      aggregate: "_sum",
+      field: "lineTotal",
+      direction: "desc" as const,
+    },
+    limit: 20,
+  }),
+
+  salesByUser: (startDate: string, endDate: string) => ({
+    model: "invoice",
+    filters: {
+      startDate,
+      endDate,
+      statuses: ["PAID", "PARTIALLY_PAID"],
+    },
+    groupBy: ["billedByUserId"],
+    aggregations: ["count", "sum:totalAmount", "avg:totalAmount"],
+    orderBy: {
+      aggregate: "_sum",
+      field: "totalAmount",
+      direction: "desc" as const,
+    },
+  }),
+};

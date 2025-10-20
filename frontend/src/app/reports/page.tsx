@@ -34,6 +34,10 @@ import {
   getSalesReport,
   getARAging,
   getCustomerReport,
+  runDynamicReport,
+  dynamicReportTemplates,
+  type DynamicReportRequest,
+  type DynamicReportResponse,
 } from "@/lib/reports-api";
 import type {
   OverdueInvoice,
@@ -43,6 +47,7 @@ import type {
 } from "@/types/reports";
 import type { SalesReport } from "@/types/reports";
 import { format } from "date-fns";
+import { useMutation } from "@tanstack/react-query";
 
 // Utility Functions
 const formatCurrency = (amount: number) => {
@@ -942,13 +947,429 @@ function CustomersTab({ data, isLoading }: CustomersTabProps) {
   );
 }
 
+// Custom Reports Tab (using dynamic reports endpoint)
+interface CustomReportsTabProps {
+  startDate: string;
+  endDate: string;
+}
+
+function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [customModel, setCustomModel] = useState("invoice");
+  const [groupByField, setGroupByField] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [aggregations, setAggregations] = useState<string[]>(["count", "sum:totalAmount"]);
+  
+  const { mutate: runReport, data, isLoading, error } = useMutation({
+    mutationFn: async (request: DynamicReportRequest) => {
+      return await runDynamicReport(request);
+    },
+  });
+
+  // Quick report templates
+  const quickReports = [
+    {
+      id: "revenueByLocation",
+      name: "Revenue by Location",
+      icon: Target,
+      description: "Sales breakdown by business location",
+    },
+    {
+      id: "revenueByTeam",
+      name: "Revenue by Team",
+      icon: Users,
+      description: "Team performance comparison",
+    },
+    {
+      id: "topCustomers",
+      name: "Top Customers",
+      icon: TrendingUp,
+      description: "Highest revenue customers",
+    },
+    {
+      id: "paymentMethodAnalysis",
+      name: "Payment Methods",
+      icon: DollarSign,
+      description: "Payment method distribution",
+    },
+    {
+      id: "invoiceStatusSummary",
+      name: "Invoice Status",
+      icon: FileText,
+      description: "Invoice status breakdown",
+    },
+    {
+      id: "totalRevenueSummary",
+      name: "Total Revenue",
+      icon: BarChart3,
+      description: "Actual payments summary",
+    },
+    {
+      id: "productSalesAnalysis",
+      name: "Product Sales",
+      icon: Package,
+      description: "Top selling products",
+    },
+    {
+      id: "salesByUser",
+      name: "Sales by User",
+      icon: Users,
+      description: "Individual performance",
+    },
+  ];
+
+  const handleQuickReport = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    const template = (dynamicReportTemplates as any)[templateId];
+    if (template) {
+      const request = template(startDate, endDate);
+      runReport(request);
+    }
+  };
+
+  const handleCustomReport = () => {
+    const request: DynamicReportRequest = {
+      model: customModel,
+      filters: {
+        startDate,
+        endDate,
+        statuses: filterStatus.length > 0 ? filterStatus : undefined,
+      },
+      groupBy: groupByField ? [groupByField] : undefined,
+      aggregations,
+      limit: 100,
+    };
+    runReport(request);
+  };
+
+  const toggleAggregation = (agg: string) => {
+    if (aggregations.includes(agg)) {
+      setAggregations(aggregations.filter((a) => a !== agg));
+    } else {
+      setAggregations([...aggregations, agg]);
+    }
+  };
+
+  const toggleStatus = (status: string) => {
+    if (filterStatus.includes(status)) {
+      setFilterStatus(filterStatus.filter((s) => s !== status));
+    } else {
+      setFilterStatus([...filterStatus, status]);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Quick Reports */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Reports</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {quickReports.map((report) => (
+            <button
+              key={report.id}
+              onClick={() => handleQuickReport(report.id)}
+              disabled={isLoading}
+              className={`p-4 border rounded-lg text-left transition-all hover:shadow-md hover:border-blue-300 ${
+                selectedTemplate === report.id
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 bg-white hover:bg-gray-50"
+              } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <report.icon className="h-5 w-5 text-blue-600" />
+                {isLoading && selectedTemplate === report.id && (
+                  <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+                )}
+              </div>
+              <div className="font-medium text-sm text-gray-900">{report.name}</div>
+              <div className="text-xs text-gray-500 mt-1">{report.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom Report Builder */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Custom Report Builder</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Model Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Data Model
+            </label>
+            <select
+              value={customModel}
+              onChange={(e) => setCustomModel(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="invoice">Invoices</option>
+              <option value="customerPayment">Payments</option>
+              <option value="customer">Customers</option>
+              <option value="inventoryItem">Inventory</option>
+              <option value="waybill">Waybills</option>
+              <option value="invoiceItem">Invoice Items</option>
+            </select>
+          </div>
+
+          {/* Group By */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Group By
+            </label>
+            <select
+              value={groupByField}
+              onChange={(e) => setGroupByField(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No Grouping (Summary Only)</option>
+              <option value="status">Status</option>
+              <option value="customerId">Customer</option>
+              <option value="customerName">Customer Name</option>
+              <option value="teamId">Team</option>
+              <option value="locationId">Location</option>
+              <option value="paymentMethod">Payment Method</option>
+              <option value="billedByUserId">Sales Person</option>
+            </select>
+          </div>
+
+          {/* Aggregations */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Metrics
+            </label>
+            <div className="space-y-2 border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
+              {["count", "sum:totalAmount", "avg:totalAmount", "sum:amount", "avg:amount", "min:amount", "max:amount"].map((agg) => (
+                <label key={agg} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={aggregations.includes(agg)}
+                    onChange={() => toggleAggregation(agg)}
+                    className="mr-2 rounded"
+                  />
+                  <span className="text-sm text-gray-700">
+                    {agg.replace(":", " ")}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Status Filters (for invoice/payment models) */}
+          {(customModel === "invoice" || customModel === "customerPayment") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status Filter
+              </label>
+              <div className="space-y-2 border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
+                {customModel === "invoice" 
+                  ? ["PAID", "PARTIALLY_PAID", "OPEN", "PARTIAL", "CANCELLED"].map((status) => (
+                      <label key={status} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={filterStatus.includes(status)}
+                          onChange={() => toggleStatus(status)}
+                          className="mr-2 rounded"
+                        />
+                        <span className="text-sm text-gray-700">{status}</span>
+                      </label>
+                    ))
+                  : ["COMPLETED", "PENDING", "FAILED"].map((status) => (
+                      <label key={status} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={filterStatus.includes(status)}
+                          onChange={() => toggleStatus(status)}
+                          className="mr-2 rounded"
+                        />
+                        <span className="text-sm text-gray-700">{status}</span>
+                      </label>
+                    ))
+                }
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={handleCustomReport}
+          disabled={isLoading || aggregations.length === 0}
+          className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+        >
+          {isLoading ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Running Report...
+            </>
+          ) : (
+            <>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Run Custom Report
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <AlertTriangle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-red-800 font-semibold">Error Running Report</h3>
+              <p className="text-red-700 text-sm mt-1">{(error as any).message || "An unexpected error occurred"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results Display */}
+      {data && (
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Report Results</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {data.queryType === "groupBy" 
+                  ? `${data.resultCount || 0} groups` 
+                  : `Summary aggregation`}
+                {" • "}Model: {data.model}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                const dataStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `report-${new Date().toISOString()}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="flex items-center px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export JSON
+            </button>
+          </div>
+
+          <div className="p-6">
+            {/* GroupBy Results */}
+            {data.queryType === "groupBy" && data.data && data.data.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {Object.keys(data.data[0]).map((key) => (
+                        <th
+                          key={key}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          {key.replace("_", " ")}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {data.data.map((row: any, idx: number) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        {Object.entries(row).map(([key, value]: [string, any], cellIdx) => (
+                          <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {typeof value === "object" && value !== null
+                              ? Object.entries(value).map(([k, v]) => (
+                                  <div key={k}>
+                                    <span className="text-gray-500">{k}:</span>{" "}
+                                    {typeof v === "number" 
+                                      ? (k.includes("amount") || k.includes("Amount") || k.includes("total") || k.includes("Total")
+                                          ? formatCurrency(v)
+                                          : formatNumber(v))
+                                      : String(v)}
+                                  </div>
+                                ))
+                              : typeof value === "number"
+                              ? formatNumber(value)
+                              : String(value)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Aggregate Results */}
+            {data.queryType === "aggregate" && data.aggregation && (
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {Object.entries(data.aggregation).map(([key, value]: [string, any]) => (
+                  <div key={key} className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-sm text-gray-500 mb-1 uppercase">
+                      {key.replace("_", " ")}
+                    </div>
+                    {typeof value === "object" && value !== null ? (
+                      Object.entries(value).map(([k, v]) => (
+                        <div key={k}>
+                          <div className="text-xs text-gray-400">{k}</div>
+                          <div className="text-xl font-bold text-gray-900">
+                            {typeof v === "number"
+                              ? (k.includes("amount") || k.includes("Amount") || k.includes("total") || k.includes("Total")
+                                  ? formatCurrency(v)
+                                  : formatNumber(v))
+                              : String(v)}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-2xl font-bold text-gray-900">
+                        {typeof value === "number" ? formatNumber(value) : String(value)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* No Results */}
+            {((data.queryType === "groupBy" && (!data.data || data.data.length === 0)) ||
+              (data.queryType === "aggregate" && !data.aggregation)) && (
+              <div className="text-center py-12 text-gray-500">
+                <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p>No data available for the selected criteria</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Help Text */}
+      {!data && !isLoading && !error && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="flex items-start">
+            <Target className="h-6 w-6 text-blue-600 mr-3 flex-shrink-0" />
+            <div>
+              <h3 className="text-blue-900 font-semibold mb-2">How to Use Custom Reports</h3>
+              <ul className="text-blue-800 text-sm space-y-1 list-disc list-inside">
+                <li><strong>Quick Reports:</strong> Click any template above for instant insights</li>
+                <li><strong>Custom Builder:</strong> Select model, grouping, and metrics for flexible analysis</li>
+                <li><strong>Date Range:</strong> Use the filters at the top to set your reporting period</li>
+                <li><strong>Export:</strong> Download results as JSON for further analysis</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const [filters, setFilters] = useState({
     startDate: "2000-01-01",
     endDate: new Date().toISOString().split("T")[0],
   });
 
-  const [activeTab, setActiveTab] = useState("executive");
+  const [activeTab, setActiveTab] = useState("custom");
 
   // Data queries
   const { data: overdueData, isLoading: overdueLoading } = useQuery({
@@ -976,12 +1397,12 @@ export default function ReportsPage() {
   });
 
   const tabs = [
-    { id: "executive", name: "Executive Summary", icon: BarChart3 },
+    { id: "custom", name: "Custom Reports", icon: BarChart3 },
     { id: "sales", name: "Sales Performance", icon: TrendingUp },
     { id: "overdue", name: "Overdue Invoices", icon: Target },
     { id: "aging", name: "A/R Aging", icon: FileText },
-    { id: "inventory", name: "Inventory", icon: Package },
     { id: "customers", name: "Customers", icon: Users },
+    { id: "inventory", name: "Inventory", icon: Package },
   ];
 
   const handleExport = async () => {
@@ -1099,6 +1520,14 @@ export default function ReportsPage() {
 
       {/* Tab Content */}
       <div className="space-y-8">
+        {/* Custom Reports (Dynamic) */}
+        {activeTab === "custom" && (
+          <CustomReportsTab
+            startDate={filters.startDate}
+            endDate={filters.endDate}
+          />
+        )}
+
         {/* Sales Performance */}
         {activeTab === "sales" && (
           <SalesTab data={salesData} isLoading={salesLoading} />
@@ -1120,7 +1549,7 @@ export default function ReportsPage() {
         )}
 
         {/* Other tabs placeholder */}
-        {!["sales", "overdue", "aging", "customers"].includes(activeTab) && (
+        {!["custom", "sales", "overdue", "aging", "customers"].includes(activeTab) && (
           <div className="text-center text-gray-500 h-64 flex items-center justify-center">
             {tabs.find((t) => t.id === activeTab)?.name} implementation coming
             soon...
