@@ -147,7 +147,8 @@ export default function UsersPage() {
       !searchTerm ||
       user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.phone && user.phone.toLowerCase().includes(searchTerm.toLowerCase()));
+      (user.phone &&
+        user.phone.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Role filter
     const matchesRole = !filterRole || user.role.name === filterRole;

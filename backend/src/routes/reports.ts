@@ -5,6 +5,103 @@ import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 
 const router = express.Router();
 
+// Helper function to build dynamic where clause from filters
+function buildWhereClause(filters: any): any {
+  const where: any = {};
+
+  if (!filters) return where;
+
+  // Date range filters
+  if (filters.startDate || filters.endDate) {
+    const dateField = filters.dateField || "date"; // Default to 'date', can be 'createdAt', etc.
+    where[dateField] = {};
+    if (filters.startDate) {
+      where[dateField].gte = new Date(filters.startDate);
+    }
+    if (filters.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999); // End of day
+      where[dateField].lte = endDate;
+    }
+  }
+
+  // Array filters (in operator)
+  if (filters.customerIds && Array.isArray(filters.customerIds)) {
+    where.customerId = { in: filters.customerIds };
+  }
+  if (filters.teamIds && Array.isArray(filters.teamIds)) {
+    where.teamId = { in: filters.teamIds };
+  }
+  if (filters.locationIds && Array.isArray(filters.locationIds)) {
+    where.locationId = { in: filters.locationIds };
+  }
+  if (filters.productIds && Array.isArray(filters.productIds)) {
+    where.inventoryItemId = { in: filters.productIds };
+  }
+  if (filters.statuses && Array.isArray(filters.statuses)) {
+    where.status = { in: filters.statuses };
+  }
+
+  // Numeric range filters
+  if (filters.minAmount !== undefined || filters.maxAmount !== undefined) {
+    const amountField = filters.amountField || "totalAmount";
+    where[amountField] = {};
+    if (filters.minAmount !== undefined) {
+      where[amountField].gte = Number(filters.minAmount);
+    }
+    if (filters.maxAmount !== undefined) {
+      where[amountField].lte = Number(filters.maxAmount);
+    }
+  }
+
+  // String search filters (contains)
+  if (filters.search) {
+    where.OR = [
+      { customerName: { contains: filters.search, mode: "insensitive" } },
+      { invoiceNumber: { contains: filters.search, mode: "insensitive" } },
+    ];
+  }
+
+  return where;
+}
+
+// Helper function to parse aggregation requests
+function parseAggregations(aggregations: string[]): any {
+  const result: any = {};
+
+  if (!aggregations || !Array.isArray(aggregations)) {
+    return { _count: true };
+  }
+
+  aggregations.forEach((agg) => {
+    const [operation, field] = agg.split(":");
+
+    switch (operation) {
+      case "sum":
+        if (!result._sum) result._sum = {};
+        result._sum[field] = true;
+        break;
+      case "avg":
+        if (!result._avg) result._avg = {};
+        result._avg[field] = true;
+        break;
+      case "min":
+        if (!result._min) result._min = {};
+        result._min[field] = true;
+        break;
+      case "max":
+        if (!result._max) result._max = {};
+        result._max[field] = true;
+        break;
+      case "count":
+        result._count = true;
+        break;
+    }
+  });
+
+  return result;
+}
+
 // @desc    Get dashboard overview metrics
 // @route   GET /api/reports/dashboard
 // @access  Private
@@ -111,6 +208,134 @@ router.get("/dashboard", async (req, res, next) => {
     next(error);
   }
 });
+
+// @desc    Dynamic report query endpoint - flexible reporting without hardcoded endpoints
+// @route   POST /api/reports/query
+// @access  Private
+// @body    { model, filters, groupBy, aggregations, include, orderBy, limit }
+router.post(
+  "/query",
+  authenticate,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const {
+        model,
+        filters = {},
+        groupBy = [],
+        aggregations = ["count"],
+        include = {},
+        orderBy = {},
+        limit = 1000,
+      } = req.body;
+
+      logger.info(
+        `[DYNAMIC QUERY] Model: ${model}, Filters: ${JSON.stringify(filters)}, GroupBy: ${JSON.stringify(groupBy)}`
+      );
+
+      // Validate model name (security: prevent arbitrary model access)
+      const allowedModels = [
+        "invoice",
+        "customerPayment",
+        "customer",
+        "inventoryItem",
+        "waybill",
+        "invoiceItem",
+        "team",
+        "location",
+        "product",
+        "productGroup",
+      ];
+
+      if (!allowedModels.includes(model)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid model. Allowed models: ${allowedModels.join(", ")}`,
+        });
+      }
+
+      // Build where clause from filters
+      const where = buildWhereClause(filters);
+
+      logger.info(`[DYNAMIC QUERY] Built where clause: ${JSON.stringify(where)}`);
+
+      // Determine if this is a groupBy query or a regular query
+      if (groupBy && groupBy.length > 0) {
+        // GroupBy aggregation query
+        const aggregationFields = parseAggregations(aggregations);
+
+        logger.info(
+          `[DYNAMIC QUERY] Executing groupBy with aggregations: ${JSON.stringify(aggregationFields)}`
+        );
+
+        const data = await (prisma as any)[model].groupBy({
+          by: groupBy,
+          where,
+          ...aggregationFields,
+          orderBy: orderBy.field
+            ? { [orderBy.aggregate || "_count"]: { [orderBy.field]: orderBy.direction || "desc" } }
+            : undefined,
+          take: Math.min(limit, 1000), // Cap at 1000 for safety
+        });
+
+        logger.info(`[DYNAMIC QUERY] GroupBy returned ${data.length} groups`);
+
+        res.json({
+          success: true,
+          model,
+          queryType: "groupBy",
+          resultCount: data.length,
+          data,
+        });
+      } else {
+        // Regular find query with aggregation
+        const aggregationFields = parseAggregations(aggregations);
+
+        logger.info(
+          `[DYNAMIC QUERY] Executing aggregate: ${JSON.stringify(aggregationFields)}`
+        );
+
+        const aggregateResult = await (prisma as any)[model].aggregate({
+          where,
+          ...aggregationFields,
+        });
+
+        // Also fetch sample records if requested
+        let records = [];
+        if (include && Object.keys(include).length > 0) {
+          records = await (prisma as any)[model].findMany({
+            where,
+            include,
+            orderBy: orderBy.field
+              ? { [orderBy.field]: orderBy.direction || "desc" }
+              : undefined,
+            take: Math.min(limit, 100), // Limit sample records to 100
+          });
+        }
+
+        logger.info(
+          `[DYNAMIC QUERY] Aggregate complete, sample records: ${records.length}`
+        );
+
+        res.json({
+          success: true,
+          model,
+          queryType: "aggregate",
+          aggregation: aggregateResult,
+          sampleRecords: records,
+          sampleCount: records.length,
+        });
+      }
+    } catch (error: any) {
+      logger.error(`[DYNAMIC QUERY] Error: ${error.message}`, error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "Error executing dynamic query",
+        details:
+          process.env.NODE_ENV === "development" ? error.stack : undefined,
+      });
+    }
+  }
+);
 
 // @desc    Accounts Receivable Aging report
 // @route   GET /api/reports/ar-aging
