@@ -48,7 +48,6 @@ interface User {
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,46 +57,25 @@ export default function UsersPage() {
 
   const queryClient = useQueryClient();
 
-  // Debounce search term to avoid refetching on every keystroke
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500); // Wait 500ms after user stops typing
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // Fetch users with pagination
+  // Fetch ALL users once (no server-side filtering)
   const {
     data: usersData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: [
-      "users",
-      debouncedSearchTerm,
-      filterRole,
-      filterStatus,
-      currentPage,
-      usersPerPage,
-    ],
+    queryKey: ["users", "all"],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
-      if (filterRole) params.append("role", filterRole);
-      if (filterStatus) params.append("status", filterStatus);
-      params.append("page", currentPage.toString());
-      params.append("limit", usersPerPage.toString());
-
-      const response = await apiClient.get(`/users?${params}`);
+      // Fetch all users without pagination or filters
+      const response = await apiClient.get("/users?limit=1000");
       return response.data;
     },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   // Reset to first page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm, filterRole, filterStatus]);
+  }, [searchTerm, filterRole, filterStatus]);
 
   // Fetch all roles for filter dropdown
   const { data: rolesData } = useQuery({
@@ -162,20 +140,45 @@ export default function UsersPage() {
     ? usersData.data.users
     : [];
 
-  const pagination = usersData?.data?.pagination || {
-    page: 1,
+  // Client-side filtering - instant, no page refresh!
+  const filteredUsers = users.filter((user: User) => {
+    // Search filter (name, email, phone)
+    const matchesSearch =
+      !searchTerm ||
+      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.phone && user.phone.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // Role filter
+    const matchesRole = !filterRole || user.role.name === filterRole;
+
+    // Status filter
+    const matchesStatus =
+      !filterStatus ||
+      (filterStatus === "active" && user.isActive) ||
+      (filterStatus === "inactive" && !user.isActive);
+
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  // Client-side pagination
+  const totalFiltered = filteredUsers.length;
+  const totalPages = Math.ceil(totalFiltered / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const endIndex = startIndex + usersPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  const pagination = {
+    page: currentPage,
     limit: usersPerPage,
-    total: 0,
-    pages: 1,
+    total: totalFiltered,
+    pages: totalPages,
   };
 
   // Get roles from separate roles endpoint
   const roles: string[] = Array.isArray(rolesData?.data)
     ? rolesData.data.map((role: { name: string }) => role.name)
     : [];
-
-  // Since backend handles filtering, we don't need client-side filtering
-  const filteredUsers = users;
 
   return (
     <div className="p-6 space-y-6">
@@ -254,7 +257,7 @@ export default function UsersPage() {
 
       {/* Users Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredUsers.map((user: User) => (
+        {paginatedUsers.map((user: User) => (
           <div
             key={user.id}
             className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
