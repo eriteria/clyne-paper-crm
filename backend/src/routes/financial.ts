@@ -13,10 +13,10 @@ router.get(
   authenticate,
   async (req: AuthenticatedRequest, res, next) => {
     try {
-      // Get total revenue
-      const totalRevenue = await prisma.invoice.aggregate({
-        where: { status: { in: ["PAID", "PARTIALLY_PAID"] } },
-        _sum: { totalAmount: true },
+      // Get total revenue (sum of all completed payments, not invoices)
+      const totalRevenue = await prisma.customerPayment.aggregate({
+        where: { status: "COMPLETED" },
+        _sum: { amount: true },
       });
 
       // Get outstanding invoices
@@ -92,7 +92,7 @@ router.get(
       res.json({
         success: true,
         data: {
-          totalRevenue: Number(totalRevenue._sum?.totalAmount || 0),
+          totalRevenue: Number(totalRevenue._sum?.amount || 0),
           outstandingAmount: Number(outstandingInvoices._sum?.totalAmount || 0),
           outstandingCount: outstandingInvoices._count || 0,
           recentPayments: serializedRecentPayments,
