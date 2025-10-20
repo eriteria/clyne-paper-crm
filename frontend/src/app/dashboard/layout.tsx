@@ -17,7 +17,7 @@ export default function DashboardLayout({
     <ProtectedRoute>
       <div className="flex h-screen bg-gray-50">
         <Sidebar />
-        <div 
+        <div
           className={`flex-1 flex flex-col transition-all duration-300 ${
             isCollapsed ? "ml-16" : "ml-64"
           }`}

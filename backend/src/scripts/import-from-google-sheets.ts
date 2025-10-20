@@ -810,7 +810,7 @@ async function runFullImport(userId?: string) {
   try {
     // Create a single notification ID for all progress updates
     const importNotificationId = `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Import in order: Product Groups → Products → Customers → Invoices → Payments
     console.log("\n📦 Phase 1: Product Setup");
     if (userId) {
@@ -819,12 +819,12 @@ async function runFullImport(userId?: string) {
         "progress",
         "Import in Progress",
         "Starting product groups import...",
-        { 
+        {
           id: importNotificationId,
-          phase: 1, 
+          phase: 1,
           step: "product-groups",
           progress: 10,
-          totalPhases: 5
+          totalPhases: 5,
         }
       );
     }
@@ -842,7 +842,7 @@ async function runFullImport(userId?: string) {
           step: "products",
           progress: 20,
           totalPhases: 5,
-          productGroups: productGroupResults.created
+          productGroups: productGroupResults.created,
         }
       );
     }
@@ -855,13 +855,13 @@ async function runFullImport(userId?: string) {
         "progress",
         "Import in Progress",
         `Products imported: ${productResults.created} created. Starting customers...`,
-        { 
-          phase: 2, 
+        {
+          phase: 2,
           step: "customers",
           progress: 40,
           totalPhases: 5,
           productGroups: productGroupResults.created,
-          products: productResults.created
+          products: productResults.created,
         }
       );
     }
@@ -882,7 +882,10 @@ async function runFullImport(userId?: string) {
           totalPhases: 5,
           productGroups: productGroupResults.created,
           products: productResults.created,
-          customers: { created: customerResults.created, updated: customerResults.updated }
+          customers: {
+            created: customerResults.created,
+            updated: customerResults.updated,
+          },
         }
       );
     }
@@ -896,15 +899,18 @@ async function runFullImport(userId?: string) {
         "progress",
         "Import in Progress",
         `Invoices imported: ${invoiceResults.created} created. Starting payments...`,
-        { 
-          phase: 4, 
+        {
+          phase: 4,
           step: "payments",
           progress: 80,
           totalPhases: 5,
           productGroups: productGroupResults.created,
           products: productResults.created,
-          customers: { created: customerResults.created, updated: customerResults.updated },
-          invoices: invoiceResults.created
+          customers: {
+            created: customerResults.created,
+            updated: customerResults.updated,
+          },
+          invoices: invoiceResults.created,
         }
       );
     }

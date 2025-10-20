@@ -106,9 +106,7 @@ export function NotificationBell() {
                 Notifications
               </h3>
               {unreadCount > 0 && (
-                <p className="text-sm text-gray-500">
-                  {unreadCount} unread
-                </p>
+                <p className="text-sm text-gray-500">{unreadCount} unread</p>
               )}
             </div>
 
@@ -142,9 +140,7 @@ export function NotificationBell() {
             {notifications.length === 0 ? (
               <div className="p-8 text-center">
                 <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">
-                  No notifications yet
-                </p>
+                <p className="text-gray-500">No notifications yet</p>
                 <p className="text-sm text-gray-400 mt-1">
                   We&apos;ll notify you when something happens
                 </p>
@@ -178,7 +174,6 @@ export function NotificationBell() {
                           </button>
                         </div>
 
-
                         <p className="text-sm text-gray-600 mt-1 break-words max-w-full whitespace-pre-line">
                           {notification.message}
                         </p>
@@ -189,15 +184,21 @@ export function NotificationBell() {
                             <div className="mt-2 max-w-full">
                               <div className="flex items-center justify-between text-xs text-gray-600 mb-1 max-w-full">
                                 <span className="truncate max-w-[70%]">
-                                  Phase {(notification.data as any).phase || "?"} of { (notification.data as any).totalPhases || 5}
+                                  Phase{" "}
+                                  {(notification.data as any).phase || "?"} of{" "}
+                                  {(notification.data as any).totalPhases || 5}
                                 </span>
-                                <span className="whitespace-nowrap">{(notification.data as any).progress}%</span>
+                                <span className="whitespace-nowrap">
+                                  {(notification.data as any).progress}%
+                                </span>
                               </div>
                               <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                                 <div
                                   className="bg-blue-500 h-full transition-all duration-500 ease-out"
                                   style={{
-                                    width: `${(notification.data as any).progress}%`,
+                                    width: `${
+                                      (notification.data as any).progress
+                                    }%`,
                                   }}
                                 />
                               </div>
@@ -211,35 +212,51 @@ export function NotificationBell() {
                               <div className="font-semibold text-green-700">
                                 Import Summary:
                               </div>
-                              {(notification.data as any).summary.productGroups !==
-                                undefined && (
+                              {(notification.data as any).summary
+                                .productGroups !== undefined && (
                                 <div className="text-gray-700 break-words max-w-full">
-                                  📦 Product Groups: {(notification.data as any).summary.productGroups}
+                                  📦 Product Groups:{" "}
+                                  {
+                                    (notification.data as any).summary
+                                      .productGroups
+                                  }
                                 </div>
                               )}
                               {(notification.data as any).summary.products !==
                                 undefined && (
                                 <div className="text-gray-700 break-words max-w-full">
-                                  📦 Products: {(notification.data as any).summary.products}
+                                  📦 Products:{" "}
+                                  {(notification.data as any).summary.products}
                                 </div>
                               )}
                               {(notification.data as any).summary.customers && (
                                 <div className="text-gray-700 break-words max-w-full">
-                                  👥 Customers: {(notification.data as any).summary.customers.created} created
-                                  {(notification.data as any).summary.customers.updated > 0 &&
-                                    `, ${(notification.data as any).summary.customers.updated} updated`}
+                                  👥 Customers:{" "}
+                                  {
+                                    (notification.data as any).summary.customers
+                                      .created
+                                  }{" "}
+                                  created
+                                  {(notification.data as any).summary.customers
+                                    .updated > 0 &&
+                                    `, ${
+                                      (notification.data as any).summary
+                                        .customers.updated
+                                    } updated`}
                                 </div>
                               )}
                               {(notification.data as any).summary.invoices !==
                                 undefined && (
                                 <div className="text-gray-700 break-words max-w-full">
-                                  📄 Invoices: {(notification.data as any).summary.invoices}
+                                  📄 Invoices:{" "}
+                                  {(notification.data as any).summary.invoices}
                                 </div>
                               )}
                               {(notification.data as any).summary.payments !==
                                 undefined && (
                                 <div className="text-gray-700 break-words max-w-full">
-                                  💰 Payments: {(notification.data as any).summary.payments}
+                                  💰 Payments:{" "}
+                                  {(notification.data as any).summary.payments}
                                 </div>
                               )}
                             </div>

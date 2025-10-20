@@ -48,6 +48,7 @@ interface User {
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,6 +58,15 @@ export default function UsersPage() {
 
   const queryClient = useQueryClient();
 
+  // Debounce search term to avoid refetching on every keystroke
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   // Fetch users with pagination
   const {
     data: usersData,
@@ -65,7 +75,7 @@ export default function UsersPage() {
   } = useQuery({
     queryKey: [
       "users",
-      searchTerm,
+      debouncedSearchTerm,
       filterRole,
       filterStatus,
       currentPage,
@@ -73,7 +83,7 @@ export default function UsersPage() {
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (searchTerm) params.append("search", searchTerm);
+      if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
       if (filterRole) params.append("role", filterRole);
       if (filterStatus) params.append("status", filterStatus);
       params.append("page", currentPage.toString());
@@ -87,7 +97,7 @@ export default function UsersPage() {
   // Reset to first page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterRole, filterStatus]);
+  }, [debouncedSearchTerm, filterRole, filterStatus]);
 
   // Fetch all roles for filter dropdown
   const { data: rolesData } = useQuery({

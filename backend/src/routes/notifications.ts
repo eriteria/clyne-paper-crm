@@ -35,7 +35,7 @@ router.get("/stream", async (req, res) => {
     // Verify JWT token
     const jwt = require("jsonwebtoken");
     let decoded: { userId: string };
-    
+
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
         userId: string;
@@ -101,13 +101,15 @@ router.get("/stream", async (req, res) => {
     };
     console.log(`📤 Sending connected message:`, connectedMsg);
     res.write(`data: ${JSON.stringify(connectedMsg)}\n\n`);
-    
+
     // Force flush the response to ensure message is sent immediately
     if (res.flush) res.flush();
 
     // Store this connection
     activeConnections.set(userId, res);
-    console.log(`📝 Stored connection for user ${userId}. Total connections: ${activeConnections.size}`);
+    console.log(
+      `📝 Stored connection for user ${userId}. Total connections: ${activeConnections.size}`
+    );
 
     // Listen for notifications for this user
     const notificationHandler = (notification: any) => {
@@ -145,7 +147,7 @@ router.get("/stream", async (req, res) => {
  */
 router.post("/test", authenticate, (req: AuthenticatedRequest, res) => {
   const userId = req.user!.id;
-  
+
   sendNotification(
     userId,
     "info",
@@ -153,7 +155,7 @@ router.post("/test", authenticate, (req: AuthenticatedRequest, res) => {
     "This is a test notification to verify the SSE system is working correctly.",
     { test: true, timestamp: new Date().toISOString() }
   );
-  
+
   res.json({
     success: true,
     message: "Test notification sent. Check your notification bell!",
@@ -180,7 +182,7 @@ export function sendNotification(
     timestamp: new Date().toISOString(),
     read: false,
   };
-  
+
   console.log(`📤 Sending notification to user ${userId}:`, notification);
   notificationEmitter.emit("notification", notification);
   return notification;
@@ -209,8 +211,11 @@ export function updateNotification(
     read: false,
     isUpdate: true, // Flag to indicate this is an update
   };
-  
-  console.log(`🔄 Updating notification ${notificationId} for user ${userId}:`, notification);
+
+  console.log(
+    `🔄 Updating notification ${notificationId} for user ${userId}:`,
+    notification
+  );
   notificationEmitter.emit("notification", notification);
   return notification;
 }

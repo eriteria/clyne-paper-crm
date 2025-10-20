@@ -276,7 +276,8 @@ export default function AdminPage() {
                 Fix Payment Allocations
               </h3>
               <p className="text-sm text-gray-600 font-medium">
-                Recalculate allocatedAmount & creditAmount (with real-time notifications)
+                Recalculate allocatedAmount & creditAmount (with real-time
+                notifications)
               </p>
             </div>
           </div>

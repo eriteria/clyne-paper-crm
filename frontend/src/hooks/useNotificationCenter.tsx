@@ -44,35 +44,42 @@ export function NotificationProvider({
   const [isConnected, setIsConnected] = useState(false);
 
   // Add notification (or update if it's an update message)
-  const addNotification = useCallback((notification: Notification & { isUpdate?: boolean }) => {
-    setNotifications((prev) => {
-      // If this is an update, replace existing notification with same ID
-      if (notification.isUpdate) {
-        const existingIndex = prev.findIndex(n => n.id === notification.id);
-        if (existingIndex !== -1) {
-          // Update existing notification - remove isUpdate property
-          const updated = [...prev];
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { isUpdate, ...notificationWithoutUpdate } = notification;
-          updated[existingIndex] = notificationWithoutUpdate as Notification;
-          console.log(`🔄 Updated notification ${notification.id}`);
-          return updated;
+  const addNotification = useCallback(
+    (notification: Notification & { isUpdate?: boolean }) => {
+      setNotifications((prev) => {
+        // If this is an update, replace existing notification with same ID
+        if (notification.isUpdate) {
+          const existingIndex = prev.findIndex((n) => n.id === notification.id);
+          if (existingIndex !== -1) {
+            // Update existing notification - remove isUpdate property
+            const updated = [...prev];
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { isUpdate, ...notificationWithoutUpdate } = notification;
+            updated[existingIndex] = notificationWithoutUpdate as Notification;
+            console.log(`🔄 Updated notification ${notification.id}`);
+            return updated;
+          }
         }
-      }
-      
-      // Otherwise, add as new notification
-      return [notification, ...prev];
-    });
 
-    // Show browser notification only for new notifications (not updates)
-    if (!notification.isUpdate && "Notification" in window && Notification.permission === "granted") {
-      new Notification(notification.title, {
-        body: notification.message,
-        icon: "/favicon.ico",
-        badge: "/favicon.ico",
+        // Otherwise, add as new notification
+        return [notification, ...prev];
       });
-    }
-  }, []);
+
+      // Show browser notification only for new notifications (not updates)
+      if (
+        !notification.isUpdate &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        new Notification(notification.title, {
+          body: notification.message,
+          icon: "/favicon.ico",
+          badge: "/favicon.ico",
+        });
+      }
+    },
+    []
+  );
 
   // Mark as read
   const markAsRead = useCallback((id: string) => {
@@ -122,9 +129,10 @@ export function NotificationProvider({
         }
 
         console.log("🔄 Attempting to refresh access token...");
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
         const baseUrl = apiUrl.replace(/\/api\/?$/, "");
-        
+
         const response = await fetch(`${baseUrl}/api/auth/refresh`, {
           method: "POST",
           headers: {
@@ -139,10 +147,10 @@ export function NotificationProvider({
 
         const data = await response.json();
         const newAccessToken = data.data.accessToken;
-        
+
         localStorage.setItem("accessToken", newAccessToken);
         console.log("✅ Access token refreshed successfully");
-        
+
         return newAccessToken;
       } catch (error) {
         console.error("❌ Failed to refresh token:", error);
@@ -225,7 +233,7 @@ export function NotificationProvider({
             if (!tokenRefreshed && isMounted) {
               tokenRefreshed = true;
               const newToken = await refreshAccessToken();
-              
+
               if (newToken && isMounted) {
                 console.log("🔄 Token refreshed, reconnecting immediately...");
                 connect();

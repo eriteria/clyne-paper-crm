@@ -9,6 +9,7 @@ Implemented a **single persistent notification** system that updates progress in
 ### Backend Changes
 
 1. **New Function: `updateNotification`** (`backend/src/routes/notifications.ts`)
+
    ```typescript
    export function updateNotification(
      notificationId: string,
@@ -17,13 +18,15 @@ Implemented a **single persistent notification** system that updates progress in
      title: string,
      message: string,
      data?: any
-   )
+   );
    ```
+
    - Uses the **same notification ID** to update existing notification
    - Adds `isUpdate: true` flag to indicate it's an update
    - Emits through existing EventEmitter system
 
 2. **Import Script Updates** (`backend/src/scripts/import-from-google-sheets.ts`)
+
    - Creates **one notification ID** at start: `import-${Date.now()}-${random}`
    - Initial notification with `sendNotification()` (creates new)
    - Subsequent updates with `updateNotification()` (updates existing)
@@ -37,20 +40,24 @@ Implemented a **single persistent notification** system that updates progress in
 ### Frontend Changes
 
 1. **Enhanced Hook** (`frontend/src/hooks/useNotificationCenter.tsx`)
+
    ```typescript
-   const addNotification = useCallback((notification: Notification & { isUpdate?: boolean }) => {
-     if (notification.isUpdate) {
-       // Find and replace existing notification by ID
-       const existingIndex = prev.findIndex(n => n.id === notification.id);
-       if (existingIndex !== -1) {
-         updated[existingIndex] = notification;
+   const addNotification = useCallback(
+     (notification: Notification & { isUpdate?: boolean }) => {
+       if (notification.isUpdate) {
+         // Find and replace existing notification by ID
+         const existingIndex = prev.findIndex((n) => n.id === notification.id);
+         if (existingIndex !== -1) {
+           updated[existingIndex] = notification;
+         }
+       } else {
+         // Add as new notification
+         return [notification, ...prev];
        }
-     } else {
-       // Add as new notification
-       return [notification, ...prev];
      }
-   });
+   );
    ```
+
    - Checks for `isUpdate` flag
    - Replaces notification with matching ID
    - Only shows browser notification for **new** notifications (not updates)
@@ -65,6 +72,7 @@ Implemented a **single persistent notification** system that updates progress in
 ## User Experience
 
 ### Before (Spam)
+
 ```
 🔔 Import Progress - Starting product groups... (1)
 🔔 Import Progress - Product groups done (2)
@@ -76,6 +84,7 @@ Badge: 11 unread
 ```
 
 ### After (Clean)
+
 ```
 🔔 Import in Progress - Starting product groups... [10%]
    ↓ (updates to)
@@ -98,22 +107,21 @@ Badge: 1 unread (stays at 1!)
 ## Implementation Pattern
 
 ### 1. Create Initial Notification
+
 ```typescript
 const notificationId = `operation-${Date.now()}-${random()}`;
 
-sendNotification(
-  userId,
-  "progress",
-  "Operation in Progress",
-  "Starting...",
-  { id: notificationId, progress: 0 }
-);
+sendNotification(userId, "progress", "Operation in Progress", "Starting...", {
+  id: notificationId,
+  progress: 0,
+});
 ```
 
 ### 2. Update During Progress
+
 ```typescript
 updateNotification(
-  notificationId,  // Same ID!
+  notificationId, // Same ID!
   userId,
   "progress",
   "Operation in Progress",
@@ -123,6 +131,7 @@ updateNotification(
 ```
 
 ### 3. Final Success/Error
+
 ```typescript
 updateNotification(
   notificationId,  // Same ID!
@@ -137,6 +146,7 @@ updateNotification(
 ## Data Structure
 
 ### Progress Notification Data
+
 ```typescript
 {
   progress: 60,          // 0-100 (for progress bar)
@@ -148,6 +158,7 @@ updateNotification(
 ```
 
 ### Success Notification Data
+
 ```typescript
 {
   progress: 100,

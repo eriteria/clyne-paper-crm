@@ -32,9 +32,8 @@ router.post("/google-sheets", authenticate, async (req: any, res) => {
     }
 
     // Import the function dynamically to avoid loading it on every request
-    const { runFullImport, setNotificationSender, setNotificationUpdater } = await import(
-      "../scripts/import-from-google-sheets"
-    );
+    const { runFullImport, setNotificationSender, setNotificationUpdater } =
+      await import("../scripts/import-from-google-sheets");
 
     // Set up notification sender and updater
     setNotificationSender(sendNotification);
