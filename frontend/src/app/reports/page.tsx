@@ -958,9 +958,17 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
   const [customModel, setCustomModel] = useState("invoice");
   const [groupByField, setGroupByField] = useState("");
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
-  const [aggregations, setAggregations] = useState<string[]>(["count", "sum:totalAmount"]);
-  
-  const { mutate: runReport, data, isLoading, error } = useMutation({
+  const [aggregations, setAggregations] = useState<string[]>([
+    "count",
+    "sum:totalAmount",
+  ]);
+
+  const {
+    mutate: runReport,
+    data,
+    isLoading,
+    error,
+  } = useMutation({
     mutationFn: async (request: DynamicReportRequest) => {
       return await runDynamicReport(request);
     },
@@ -1064,7 +1072,10 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
       <div>
         <div className="mb-4">
           <h2 className="text-2xl font-bold text-gray-900">Quick Reports</h2>
-          <p className="text-sm text-gray-600 mt-1">Pre-configured reports for common insights. Click any card to generate instantly.</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Pre-configured reports for common insights. Click any card to
+            generate instantly.
+          </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickReports.map((report) => (
@@ -1079,15 +1090,31 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
               } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex items-start justify-between mb-3">
-                <div className={`p-2 rounded-lg ${selectedTemplate === report.id ? "bg-blue-100" : "bg-gray-100 group-hover:bg-blue-100"}`}>
-                  <report.icon className={`h-6 w-6 ${selectedTemplate === report.id ? "text-blue-600" : "text-gray-600 group-hover:text-blue-600"}`} />
+                <div
+                  className={`p-2 rounded-lg ${
+                    selectedTemplate === report.id
+                      ? "bg-blue-100"
+                      : "bg-gray-100 group-hover:bg-blue-100"
+                  }`}
+                >
+                  <report.icon
+                    className={`h-6 w-6 ${
+                      selectedTemplate === report.id
+                        ? "text-blue-600"
+                        : "text-gray-600 group-hover:text-blue-600"
+                    }`}
+                  />
                 </div>
                 {isLoading && selectedTemplate === report.id && (
                   <RefreshCw className="h-5 w-5 animate-spin text-blue-600" />
                 )}
               </div>
-              <div className="font-semibold text-gray-900 mb-1">{report.name}</div>
-              <div className="text-xs text-gray-600 leading-relaxed">{report.description}</div>
+              <div className="font-semibold text-gray-900 mb-1">
+                {report.name}
+              </div>
+              <div className="text-xs text-gray-600 leading-relaxed">
+                {report.description}
+              </div>
             </button>
           ))}
         </div>
@@ -1096,10 +1123,14 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
       {/* Custom Report Builder */}
       <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md border-2 border-gray-200 p-6">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Build Your Own Report</h2>
-          <p className="text-sm text-gray-600 mt-1">Customize filters and metrics to create exactly the report you need</p>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Build Your Own Report
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Customize filters and metrics to create exactly the report you need
+          </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Model Selection */}
           <div className="bg-white rounded-lg p-4 border border-gray-200">
@@ -1154,9 +1185,12 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
                 { value: "sum:amount", label: "💵 Total Paid (Sum)" },
                 { value: "avg:amount", label: "📊 Average Paid" },
                 { value: "min:amount", label: "📉 Minimum Amount" },
-                { value: "max:amount", label: "📈 Maximum Amount" }
+                { value: "max:amount", label: "📈 Maximum Amount" },
               ].map((agg) => (
-                <label key={agg.value} className="flex items-center p-2 hover:bg-white rounded cursor-pointer transition-colors">
+                <label
+                  key={agg.value}
+                  className="flex items-center p-2 hover:bg-white rounded cursor-pointer transition-colors"
+                >
                   <input
                     type="checkbox"
                     checked={aggregations.includes(agg.value)}
@@ -1178,28 +1212,53 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
                 🔍 Filter by Status
               </label>
               <div className="space-y-2 bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto border border-gray-200">
-                {(customModel === "invoice" 
+                {(customModel === "invoice"
                   ? [
                       { value: "PAID", label: "✅ Paid", color: "green" },
-                      { value: "PARTIALLY_PAID", label: "🟡 Partially Paid", color: "yellow" },
+                      {
+                        value: "PARTIALLY_PAID",
+                        label: "🟡 Partially Paid",
+                        color: "yellow",
+                      },
                       { value: "OPEN", label: "📂 Open", color: "blue" },
-                      { value: "PARTIAL", label: "🟠 Partial", color: "orange" },
-                      { value: "CANCELLED", label: "❌ Cancelled", color: "red" }
+                      {
+                        value: "PARTIAL",
+                        label: "🟠 Partial",
+                        color: "orange",
+                      },
+                      {
+                        value: "CANCELLED",
+                        label: "❌ Cancelled",
+                        color: "red",
+                      },
                     ]
                   : [
-                      { value: "COMPLETED", label: "✅ Completed", color: "green" },
-                      { value: "PENDING", label: "⏳ Pending", color: "yellow" },
-                      { value: "FAILED", label: "❌ Failed", color: "red" }
+                      {
+                        value: "COMPLETED",
+                        label: "✅ Completed",
+                        color: "green",
+                      },
+                      {
+                        value: "PENDING",
+                        label: "⏳ Pending",
+                        color: "yellow",
+                      },
+                      { value: "FAILED", label: "❌ Failed", color: "red" },
                     ]
                 ).map((status) => (
-                  <label key={status.value} className="flex items-center p-2 hover:bg-white rounded cursor-pointer transition-colors">
+                  <label
+                    key={status.value}
+                    className="flex items-center p-2 hover:bg-white rounded cursor-pointer transition-colors"
+                  >
                     <input
                       type="checkbox"
                       checked={filterStatus.includes(status.value)}
                       onChange={() => toggleStatus(status.value)}
                       className="mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-900 font-medium">{status.label}</span>
+                    <span className="text-sm text-gray-900 font-medium">
+                      {status.label}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -1209,8 +1268,16 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
 
         <div className="mt-6 flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            {aggregations.length === 0 && <span className="text-amber-600 font-medium">⚠️ Please select at least one metric</span>}
-            {aggregations.length > 0 && <span className="text-green-600 font-medium">✓ Ready to generate report</span>}
+            {aggregations.length === 0 && (
+              <span className="text-amber-600 font-medium">
+                ⚠️ Please select at least one metric
+              </span>
+            )}
+            {aggregations.length > 0 && (
+              <span className="text-green-600 font-medium">
+                ✓ Ready to generate report
+              </span>
+            )}
           </p>
           <button
             onClick={handleCustomReport}
@@ -1238,8 +1305,12 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
           <div className="flex items-start">
             <AlertTriangle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-red-800 font-semibold">Error Running Report</h3>
-              <p className="text-red-700 text-sm mt-1">{(error as any).message || "An unexpected error occurred"}</p>
+              <h3 className="text-red-800 font-semibold">
+                Error Running Report
+              </h3>
+              <p className="text-red-700 text-sm mt-1">
+                {(error as any).message || "An unexpected error occurred"}
+              </p>
             </div>
           </div>
         </div>
@@ -1256,8 +1327,10 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
                   Report Results
                 </h2>
                 <p className="text-sm text-gray-600 mt-2">
-                  {data.queryType === "groupBy" 
-                    ? `📊 Showing ${data.resultCount || 0} ${data.resultCount === 1 ? 'group' : 'groups'}` 
+                  {data.queryType === "groupBy"
+                    ? `📊 Showing ${data.resultCount || 0} ${
+                        data.resultCount === 1 ? "group" : "groups"
+                      }`
                     : `📈 Summary totals`}
                   {" • "}
                   {data.model === "invoice" && "💰 Invoices"}
@@ -1269,7 +1342,9 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
               <button
                 onClick={() => {
                   const dataStr = JSON.stringify(data, null, 2);
-                  const blob = new Blob([dataStr], { type: "application/json" });
+                  const blob = new Blob([dataStr], {
+                    type: "application/json",
+                  });
                   const url = URL.createObjectURL(blob);
                   const link = document.createElement("a");
                   link.href = url;
@@ -1287,134 +1362,209 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
 
           <div className="p-6">
             {/* GroupBy Results */}
-            {data.queryType === "groupBy" && data.data && data.data.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
-                    <tr>
-                      {Object.keys(data.data[0]).map((key) => {
-                        // Make headers more readable
-                        const friendlyLabel = key
-                          .replace(/([A-Z])/g, ' $1')
-                          .replace(/_/g, ' ')
-                          .replace(/^./, (str) => str.toUpperCase())
-                          .replace('Id', 'ID')
-                          .trim();
-                        
-                        return (
-                          <th
-                            key={key}
-                            className="px-6 py-4 text-left text-sm font-bold text-gray-900 uppercase tracking-wide"
-                          >
-                            {friendlyLabel}
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {data.data.map((row: Record<string, unknown>, idx: number) => (
-                      <tr key={idx} className="hover:bg-blue-50 transition-colors">
-                        {Object.entries(row).map(([_key, value]: [string, unknown], cellIdx) => (
-                          <td key={cellIdx} className="px-6 py-4 text-sm">
-                            {typeof value === "object" && value !== null
-                              ? Object.entries(value as Record<string, unknown>).map(([k, v]) => {
-                                  const isAmount = k.toLowerCase().includes("amount") || k.toLowerCase().includes("total");
-                                  const friendlyKey = k.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
-                                  
-                                  return (
-                                    <div key={k} className="mb-1">
-                                      <span className="font-medium text-gray-700">{friendlyKey}:</span>{" "}
-                                      <span className="text-gray-900 font-semibold">
-                                        {typeof v === "number" 
-                                          ? (isAmount ? formatCurrency(v) : formatNumber(v))
-                                          : String(v)}
-                                      </span>
-                                    </div>
-                                  );
-                                })
-                              : typeof value === "number"
-                              ? <span className="font-semibold text-gray-900">{formatNumber(value)}</span>
-                              : <span className="text-gray-900">{String(value)}</span>}
-                          </td>
-                        ))}
+            {data.queryType === "groupBy" &&
+              data.data &&
+              data.data.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-300">
+                    <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
+                      <tr>
+                        {Object.keys(data.data[0]).map((key) => {
+                          // Make headers more readable and human-friendly
+                          let friendlyLabel = key
+                            .replace(/([A-Z])/g, " $1")
+                            .replace(/_/g, " ")
+                            .replace(/^./, (str) => str.toUpperCase())
+                            .trim();
+
+                          // Special handling for common aggregation labels
+                          if (key === "_count") friendlyLabel = "Count";
+                          if (key === "_sum") friendlyLabel = "Total";
+                          if (key === "_avg") friendlyLabel = "Average";
+                          if (key === "_min") friendlyLabel = "Minimum";
+                          if (key === "_max") friendlyLabel = "Maximum";
+                          
+                          // Improve specific field names
+                          if (key === "customerName") friendlyLabel = "Customer";
+                          if (key === "teamName") friendlyLabel = "Team";
+                          if (key === "regionName") friendlyLabel = "Region";
+                          if (key === "locationName") friendlyLabel = "Location";
+                          if (key === "productName") friendlyLabel = "Product";
+                          if (key === "salesPerson") friendlyLabel = "Sales Person";
+                          if (key === "paymentMethod") friendlyLabel = "Payment Method";
+
+                          return (
+                            <th
+                              key={key}
+                              className="px-6 py-4 text-left text-sm font-bold text-gray-900 uppercase tracking-wide"
+                            >
+                              {friendlyLabel}
+                            </th>
+                          );
+                        })}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {data.data.map(
+                        (row: Record<string, unknown>, idx: number) => (
+                          <tr
+                            key={idx}
+                            className="hover:bg-blue-50 transition-colors"
+                          >
+                            {Object.entries(row).map(
+                              ([key, value]: [string, unknown], cellIdx) => {
+                                // Determine if this column contains amounts/currency
+                                const isAmountColumn =
+                                  key.toLowerCase().includes("amount") ||
+                                  key.toLowerCase().includes("total") ||
+                                  key.toLowerCase().includes("revenue") ||
+                                  key.toLowerCase().includes("price");
+
+                                return (
+                                  <td key={cellIdx} className="px-6 py-4 text-sm">
+                                    {typeof value === "object" &&
+                                    value !== null ? (
+                                      // For nested objects (aggregations like _sum, _avg)
+                                      <div className="space-y-1">
+                                        {Object.entries(
+                                          value as Record<string, unknown>
+                                        ).map(([k, v]) => {
+                                          const isAmount =
+                                            k.toLowerCase().includes("amount") ||
+                                            k.toLowerCase().includes("total") ||
+                                            k.toLowerCase().includes("revenue") ||
+                                            k.toLowerCase().includes("price") ||
+                                            k.toLowerCase().includes("balance");
+
+                                          return (
+                                            <div
+                                              key={k}
+                                              className="font-semibold text-gray-900"
+                                            >
+                                              {typeof v === "number"
+                                                ? isAmount
+                                                  ? formatCurrency(v)
+                                                  : formatNumber(v)
+                                                : String(v)}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : typeof value === "number" ? (
+                                      <span className="font-semibold text-gray-900">
+                                        {isAmountColumn
+                                          ? formatCurrency(value)
+                                          : formatNumber(value)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-900">
+                                        {String(value)}
+                                      </span>
+                                    )}
+                                  </td>
+                                );
+                              }
+                            )}
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
             {/* Aggregate Results */}
             {data.queryType === "aggregate" && data.aggregation && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {Object.entries(data.aggregation).map(([key, value]: [string, unknown]) => {
-                  // Make labels more friendly
-                  const friendlyLabel = key
-                    .replace(/_/g, ' ')
-                    .replace(/^./, (str) => str.toUpperCase());
-                  
-                  const icons: Record<string, string> = {
-                    '_count': '📊',
-                    '_sum': '💰',
-                    '_avg': '📈',
-                    '_min': '📉',
-                    '_max': '📈'
-                  };
-                  
-                  const icon = icons[key] || '📊';
-                  
-                  return (
-                    <div key={key} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="text-sm font-bold text-gray-700 uppercase tracking-wide">
-                          {friendlyLabel}
+                {Object.entries(data.aggregation).map(
+                  ([key, value]: [string, unknown]) => {
+                    // Make labels more friendly
+                    const friendlyLabel = key
+                      .replace(/_/g, " ")
+                      .replace(/^./, (str) => str.toUpperCase());
+
+                    const icons: Record<string, string> = {
+                      _count: "📊",
+                      _sum: "💰",
+                      _avg: "📈",
+                      _min: "📉",
+                      _max: "📈",
+                    };
+
+                    const icon = icons[key] || "📊";
+
+                    return (
+                      <div
+                        key={key}
+                        className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+                            {friendlyLabel}
+                          </div>
+                          <span className="text-2xl">{icon}</span>
                         </div>
-                        <span className="text-2xl">{icon}</span>
-                      </div>
-                      {typeof value === "object" && value !== null ? (
-                        <div className="space-y-2">
-                          {Object.entries(value as Record<string, unknown>).map(([k, v]) => {
-                            const isAmount = k.toLowerCase().includes("amount") || k.toLowerCase().includes("total");
-                            const friendlyKey = k
-                              .replace(/([A-Z])/g, ' $1')
-                              .replace(/_/g, ' ')
-                              .trim()
-                              .replace(/^./, (str) => str.toUpperCase());
-                            
-                            return (
-                              <div key={k} className="bg-white rounded-lg p-3 border border-blue-200">
-                                <div className="text-xs font-semibold text-gray-600 mb-1">{friendlyKey}</div>
-                                <div className="text-2xl font-bold text-gray-900">
-                                  {typeof v === "number"
-                                    ? (isAmount ? formatCurrency(v) : formatNumber(v))
-                                    : String(v)}
+                        {typeof value === "object" && value !== null ? (
+                          <div className="space-y-2">
+                            {Object.entries(
+                              value as Record<string, unknown>
+                            ).map(([k, v]) => {
+                              const isAmount =
+                                k.toLowerCase().includes("amount") ||
+                                k.toLowerCase().includes("total");
+                              const friendlyKey = k
+                                .replace(/([A-Z])/g, " $1")
+                                .replace(/_/g, " ")
+                                .trim()
+                                .replace(/^./, (str) => str.toUpperCase());
+
+                              return (
+                                <div
+                                  key={k}
+                                  className="bg-white rounded-lg p-3 border border-blue-200"
+                                >
+                                  <div className="text-xs font-semibold text-gray-600 mb-1">
+                                    {friendlyKey}
+                                  </div>
+                                  <div className="text-2xl font-bold text-gray-900">
+                                    {typeof v === "number"
+                                      ? isAmount
+                                        ? formatCurrency(v)
+                                        : formatNumber(v)
+                                      : String(v)}
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-3xl font-bold text-gray-900 mt-2">
-                          {typeof value === "number" ? formatNumber(value) : String(value)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-3xl font-bold text-gray-900 mt-2">
+                            {typeof value === "number"
+                              ? formatNumber(value)
+                              : String(value)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                )}
               </div>
             )}
 
             {/* No Results */}
-            {((data.queryType === "groupBy" && (!data.data || data.data.length === 0)) ||
+            {((data.queryType === "groupBy" &&
+              (!data.data || data.data.length === 0)) ||
               (data.queryType === "aggregate" && !data.aggregation)) && (
               <div className="text-center py-16">
                 <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
                   <BarChart3 className="h-12 w-12 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Data Found</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  No Data Found
+                </h3>
                 <p className="text-gray-600 max-w-md mx-auto">
-                  No data matches your selected criteria. Try adjusting the date range or filters.
+                  No data matches your selected criteria. Try adjusting the date
+                  range or filters.
                 </p>
               </div>
             )}
@@ -1430,33 +1580,49 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
               <Target className="h-8 w-8 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">💡 Getting Started with Custom Reports</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                💡 Getting Started with Custom Reports
+              </h3>
               <p className="text-gray-700 mb-4">
-                Generate any report you need in seconds! Choose from quick templates or build your own custom analysis.
+                Generate any report you need in seconds! Choose from quick
+                templates or build your own custom analysis.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <h4 className="font-semibold text-gray-900 mb-2">⚡ Quick Reports</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    ⚡ Quick Reports
+                  </h4>
                   <p className="text-sm text-gray-600">
-                    Click any card above for instant insights. Perfect for common questions like "Revenue by location" or "Top customers".
+                    Click any card above for instant insights. Perfect for
+                    common questions like "Revenue by location" or "Top
+                    customers".
                   </p>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <h4 className="font-semibold text-gray-900 mb-2">🎨 Custom Builder</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    🎨 Custom Builder
+                  </h4>
                   <p className="text-sm text-gray-600">
-                    Create exactly what you need. Pick your data source, choose how to group it, and select the metrics to calculate.
+                    Create exactly what you need. Pick your data source, choose
+                    how to group it, and select the metrics to calculate.
                   </p>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <h4 className="font-semibold text-gray-900 mb-2">📅 Date Filters</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    📅 Date Filters
+                  </h4>
                   <p className="text-sm text-gray-600">
-                    Use the date range selector at the top of the page to focus on specific time periods.
+                    Use the date range selector at the top of the page to focus
+                    on specific time periods.
                   </p>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <h4 className="font-semibold text-gray-900 mb-2">💾 Export Results</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    💾 Export Results
+                  </h4>
                   <p className="text-sm text-gray-600">
-                    Download your report data as JSON for further analysis in Excel or other tools.
+                    Download your report data as JSON for further analysis in
+                    Excel or other tools.
                   </p>
                 </div>
               </div>
@@ -1654,7 +1820,9 @@ export default function ReportsPage() {
         )}
 
         {/* Other tabs placeholder */}
-        {!["custom", "sales", "overdue", "aging", "customers"].includes(activeTab) && (
+        {!["custom", "sales", "overdue", "aging", "customers"].includes(
+          activeTab
+        ) && (
           <div className="text-center text-gray-500 h-64 flex items-center justify-center">
             {tabs.find((t) => t.id === activeTab)?.name} implementation coming
             soon...

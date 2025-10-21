@@ -32,12 +32,12 @@ function buildWhereClause(filters: any, model?: string): any {
   // Date range filters - only apply if the model has a date field
   if (filters.startDate || filters.endDate) {
     let dateField = filters.dateField; // Allow explicit override
-    
+
     // If no explicit dateField and model provided, use model's default date field
     if (!dateField && model && MODEL_DATE_FIELDS[model]) {
       dateField = MODEL_DATE_FIELDS[model];
     }
-    
+
     // Only add date filter if we have a valid date field
     if (dateField) {
       where[dateField] = {};
@@ -127,6 +127,108 @@ function parseAggregations(aggregations: string[]): any {
   });
 
   return result;
+}
+
+// Helper function to enrich grouped data with human-readable names
+async function enrichGroupedData(
+  data: any[],
+  model: string,
+  groupByFields: string[]
+): Promise<any[]> {
+  if (!data || data.length === 0) return data;
+
+  const enriched = await Promise.all(
+    data.map(async (row) => {
+      const enrichedRow = { ...row };
+
+      // Look for ID fields in the grouped data and replace with readable names
+      for (const field of groupByFields) {
+        const value = row[field];
+        
+        // Skip if value is null, undefined, or not a string (not an ID)
+        if (!value || typeof value !== "string") continue;
+
+        // Enrich based on field name patterns
+        if (field === "customerId" && value) {
+          const customer = await prisma.customer.findUnique({
+            where: { id: value },
+            select: { name: true },
+          });
+          if (customer) {
+            enrichedRow.customerName = customer.name;
+            delete enrichedRow.customerId; // Remove the ID
+          }
+        } else if (field === "teamId" && value) {
+          const team = await prisma.team.findUnique({
+            where: { id: value },
+            select: { name: true },
+          });
+          if (team) {
+            enrichedRow.teamName = team.name;
+            delete enrichedRow.teamId;
+          }
+        } else if (field === "regionId" && value) {
+          const region = await prisma.region.findUnique({
+            where: { id: value },
+            select: { name: true },
+          });
+          if (region) {
+            enrichedRow.regionName = region.name;
+            delete enrichedRow.regionId;
+          }
+        } else if (field === "locationId" && value) {
+          const location = await prisma.location.findUnique({
+            where: { id: value },
+            select: { name: true },
+          });
+          if (location) {
+            enrichedRow.locationName = location.name;
+            delete enrichedRow.locationId;
+          }
+        } else if (field === "inventoryItemId" && value) {
+          const item = await prisma.inventoryItem.findUnique({
+            where: { id: value },
+            select: { name: true, sku: true },
+          });
+          if (item) {
+            enrichedRow.productName = `${item.name} (${item.sku})`;
+            delete enrichedRow.inventoryItemId;
+          }
+        } else if (field === "billedByUserId" && value) {
+          const user = await prisma.user.findUnique({
+            where: { id: value },
+            select: { fullName: true },
+          });
+          if (user) {
+            enrichedRow.salesPerson = user.fullName;
+            delete enrichedRow.billedByUserId;
+          }
+        } else if (field === "productId" && value) {
+          const product = await prisma.product.findUnique({
+            where: { id: value },
+            select: { name: true },
+          });
+          if (product) {
+            enrichedRow.productName = product.name;
+            delete enrichedRow.productId;
+          }
+        } else if (field === "productGroupId" && value) {
+          const group = await prisma.productGroup.findUnique({
+            where: { id: value },
+            select: { name: true },
+          });
+          if (group) {
+            enrichedRow.productGroupName = group.name;
+            delete enrichedRow.productGroupId;
+          }
+        }
+      }
+
+      return enrichedRow;
+    })
+  );
+
+  return enriched;
 }
 
 // @desc    Get dashboard overview metrics
@@ -283,7 +385,9 @@ router.post(
       // Build where clause from filters (pass model for date field mapping)
       const where = buildWhereClause(filters, model);
 
-      logger.info(`[DYNAMIC QUERY] Built where clause: ${JSON.stringify(where)}`);
+      logger.info(
+        `[DYNAMIC QUERY] Built where clause: ${JSON.stringify(where)}`
+      );
 
       // Determine if this is a groupBy query or a regular query
       if (groupBy && groupBy.length > 0) {
@@ -299,8 +403,16 @@ router.post(
         let groupByOrderBy;
         if (orderBy && orderBy.field && orderBy.aggregate) {
           // Order by aggregation result (e.g., _sum, _count, _avg)
-          groupByOrderBy = { [orderBy.aggregate]: { [orderBy.field]: orderBy.direction || "desc" } };
-        } else if (orderBy && orderBy.field && groupBy.includes(orderBy.field)) {
+          groupByOrderBy = {
+            [orderBy.aggregate]: {
+              [orderBy.field]: orderBy.direction || "desc",
+            },
+          };
+        } else if (
+          orderBy &&
+          orderBy.field &&
+          groupBy.includes(orderBy.field)
+        ) {
           // Order by a field that's in the groupBy
           groupByOrderBy = { [orderBy.field]: orderBy.direction || "desc" };
         }
@@ -316,12 +428,15 @@ router.post(
 
         logger.info(`[DYNAMIC QUERY] GroupBy returned ${data.length} groups`);
 
+        // Enrich data with human-readable names for IDs
+        const enrichedData = await enrichGroupedData(data, model, groupBy);
+
         res.json({
           success: true,
           model,
           queryType: "groupBy",
-          resultCount: data.length,
-          data,
+          resultCount: enrichedData.length,
+          data: enrichedData,
         });
       } else {
         // Regular find query with aggregation
