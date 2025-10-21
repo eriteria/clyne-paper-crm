@@ -6,22 +6,49 @@ import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 const router = express.Router();
 
 // Helper function to build dynamic where clause from filters
-function buildWhereClause(filters: any): any {
+// Model-aware date field mapping
+const MODEL_DATE_FIELDS: Record<string, string | null> = {
+  invoice: "date",
+  customerPayment: "paymentDate",
+  payment: "paymentDate",
+  customer: "createdAt",
+  inventoryItem: "createdAt",
+  waybill: "date",
+  salesReturn: "returnDate",
+  team: "createdAt",
+  location: "createdAt",
+  product: "createdAt",
+  productGroup: "createdAt",
+  // Models without date fields (will skip date filtering)
+  invoiceItem: null,
+  waybillItem: null,
+};
+
+function buildWhereClause(filters: any, model?: string): any {
   const where: any = {};
 
   if (!filters) return where;
 
-  // Date range filters
+  // Date range filters - only apply if the model has a date field
   if (filters.startDate || filters.endDate) {
-    const dateField = filters.dateField || "date"; // Default to 'date', can be 'createdAt', etc.
-    where[dateField] = {};
-    if (filters.startDate) {
-      where[dateField].gte = new Date(filters.startDate);
+    let dateField = filters.dateField; // Allow explicit override
+    
+    // If no explicit dateField and model provided, use model's default date field
+    if (!dateField && model && MODEL_DATE_FIELDS[model]) {
+      dateField = MODEL_DATE_FIELDS[model];
     }
-    if (filters.endDate) {
-      const endDate = new Date(filters.endDate);
-      endDate.setHours(23, 59, 59, 999); // End of day
-      where[dateField].lte = endDate;
+    
+    // Only add date filter if we have a valid date field
+    if (dateField) {
+      where[dateField] = {};
+      if (filters.startDate) {
+        where[dateField].gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        where[dateField].lte = endDate;
+      }
     }
   }
 
@@ -253,8 +280,8 @@ router.post(
         });
       }
 
-      // Build where clause from filters
-      const where = buildWhereClause(filters);
+      // Build where clause from filters (pass model for date field mapping)
+      const where = buildWhereClause(filters, model);
 
       logger.info(`[DYNAMIC QUERY] Built where clause: ${JSON.stringify(where)}`);
 
