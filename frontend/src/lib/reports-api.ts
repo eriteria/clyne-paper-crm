@@ -376,7 +376,13 @@ export const dynamicReportTemplates = {
       dateField: "paymentDate",
       statuses: ["COMPLETED"],
     },
-    aggregations: ["count", "sum:amount", "avg:amount", "min:amount", "max:amount"],
+    aggregations: [
+      "count",
+      "sum:amount",
+      "avg:amount",
+      "min:amount",
+      "max:amount",
+    ],
   }),
 
   productSalesAnalysis: (startDate: string, endDate: string) => ({

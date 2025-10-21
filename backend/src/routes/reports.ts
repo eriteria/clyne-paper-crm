@@ -234,19 +234,24 @@ async function enrichGroupedData(
 // Helper function to convert Prisma Decimal values to regular numbers for JSON serialization
 function serializeDecimals(obj: any): any {
   if (obj === null || obj === undefined) return obj;
-  
+
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => serializeDecimals(item));
+    return obj.map((item) => serializeDecimals(item));
   }
-  
+
   // Handle Prisma Decimal objects
-  if (obj && typeof obj === 'object' && obj.constructor && obj.constructor.name === 'Decimal') {
+  if (
+    obj &&
+    typeof obj === "object" &&
+    obj.constructor &&
+    obj.constructor.name === "Decimal"
+  ) {
     return Number(obj.toString());
   }
-  
+
   // Handle regular objects
-  if (typeof obj === 'object') {
+  if (typeof obj === "object") {
     const result: any = {};
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
@@ -255,7 +260,7 @@ function serializeDecimals(obj: any): any {
     }
     return result;
   }
-  
+
   return obj;
 }
 

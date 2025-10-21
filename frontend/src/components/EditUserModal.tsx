@@ -96,7 +96,7 @@ export default function EditUserModal({
   const { data: rolesData } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
-      const response = await apiClient.get("/roles");
+      const response = await apiClient.get("/users/roles");
       return response.data;
     },
   });
@@ -237,7 +237,7 @@ export default function EditUserModal({
 
   if (!isOpen) return null;
 
-  const roles: Role[] = rolesData?.data || [];
+  const roles: Role[] = rolesData?.data?.roles || [];
   const teams: Team[] = Array.isArray(teamsData?.data) ? teamsData.data : [];
   const regions: Region[] = regionsData?.data || [];
 

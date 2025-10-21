@@ -81,7 +81,7 @@ export default function UsersPage() {
   const { data: rolesData } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
-      const response = await apiClient.get("/roles");
+      const response = await apiClient.get("/users/roles");
       return response.data;
     },
   });

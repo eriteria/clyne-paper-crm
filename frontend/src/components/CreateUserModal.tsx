@@ -44,7 +44,7 @@ export default function CreateUserModal({
   const { data: rolesData } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
-      const response = await apiClient.get("/roles");
+      const response = await apiClient.get("/users/roles");
       return response.data;
     },
   });
@@ -154,7 +154,7 @@ export default function CreateUserModal({
 
   if (!isOpen) return null;
 
-  const roles = Array.isArray(rolesData?.data) ? rolesData.data : [];
+  const roles = Array.isArray(rolesData?.data?.roles) ? rolesData.data.roles : [];
   const teams = Array.isArray(teamsData?.data) ? teamsData.data : [];
   const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
 
