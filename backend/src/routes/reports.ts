@@ -267,13 +267,23 @@ router.post(
           `[DYNAMIC QUERY] Executing groupBy with aggregations: ${JSON.stringify(aggregationFields)}`
         );
 
+        // Build orderBy clause for groupBy queries
+        // When using groupBy, can only order by grouped fields or aggregations
+        let groupByOrderBy;
+        if (orderBy && orderBy.field && orderBy.aggregate) {
+          // Order by aggregation result (e.g., _sum, _count, _avg)
+          groupByOrderBy = { [orderBy.aggregate]: { [orderBy.field]: orderBy.direction || "desc" } };
+        } else if (orderBy && orderBy.field && groupBy.includes(orderBy.field)) {
+          // Order by a field that's in the groupBy
+          groupByOrderBy = { [orderBy.field]: orderBy.direction || "desc" };
+        }
+        // Otherwise, no orderBy (Prisma will use natural order)
+
         const data = await (prisma as any)[model].groupBy({
           by: groupBy,
           where,
           ...aggregationFields,
-          orderBy: orderBy.field
-            ? { [orderBy.aggregate || "_count"]: { [orderBy.field]: orderBy.direction || "desc" } }
-            : undefined,
+          orderBy: groupByOrderBy,
           take: Math.min(limit, 1000), // Cap at 1000 for safety
         });
 
