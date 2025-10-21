@@ -970,9 +970,9 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
   const quickReports = [
     {
       id: "revenueByLocation",
-      name: "Revenue by Location",
+      name: "Revenue by Region",
       icon: Target,
-      description: "Sales breakdown by business location",
+      description: "Sales breakdown by region",
     },
     {
       id: "revenueByTeam",
@@ -1134,8 +1134,8 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
               <option value="status">📌 By Status</option>
               <option value="customerId">👤 By Customer ID</option>
               <option value="customerName">👥 By Customer Name</option>
-              <option value="teamId">🏢 By Team ID</option>
-              <option value="locationId">📍 By Location</option>
+              <option value="teamId">🏢 By Team</option>
+              <option value="regionId">�️ By Region</option>
               <option value="paymentMethod">💳 By Payment Method</option>
               <option value="billedByUserId">👨‍💼 By Sales Person</option>
             </select>

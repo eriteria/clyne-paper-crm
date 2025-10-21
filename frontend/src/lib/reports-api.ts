@@ -285,6 +285,8 @@ export const runDynamicReport = async (
  * Quick report templates for common use cases
  */
 export const dynamicReportTemplates = {
+  // Note: Invoice doesn't have locationId directly, so we use teamId or regionId
+  // For location-based reporting, need to join through Customer
   revenueByLocation: (startDate: string, endDate: string) => ({
     model: "invoice",
     filters: {
@@ -292,7 +294,7 @@ export const dynamicReportTemplates = {
       endDate,
       statuses: ["PAID", "PARTIALLY_PAID"],
     },
-    groupBy: ["locationId"],
+    groupBy: ["regionId"], // Use regionId instead of locationId
     aggregations: ["count", "sum:totalAmount", "avg:totalAmount"],
     orderBy: {
       aggregate: "_sum",
