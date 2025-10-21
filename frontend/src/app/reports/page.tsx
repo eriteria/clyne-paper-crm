@@ -53,13 +53,14 @@ import { useMutation } from "@tanstack/react-query";
 const formatCurrency = (amount: number) => {
   // Handle invalid numbers
   if (isNaN(amount) || !isFinite(amount)) {
-    return "₦0";
+    return "₦0.00";
   }
 
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 };
 
@@ -431,7 +432,8 @@ function AgingTab({
     new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(n || 0);
 
   return (
