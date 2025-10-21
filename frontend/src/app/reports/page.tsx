@@ -1059,96 +1059,112 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Quick Reports */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Reports</h2>
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">Quick Reports</h2>
+          <p className="text-sm text-gray-600 mt-1">Pre-configured reports for common insights. Click any card to generate instantly.</p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickReports.map((report) => (
             <button
               key={report.id}
               onClick={() => handleQuickReport(report.id)}
               disabled={isLoading}
-              className={`p-4 border rounded-lg text-left transition-all hover:shadow-md hover:border-blue-300 ${
+              className={`group p-5 border-2 rounded-xl text-left transition-all hover:shadow-lg ${
                 selectedTemplate === report.id
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 bg-white hover:bg-gray-50"
+                  ? "border-blue-500 bg-blue-50 shadow-md"
+                  : "border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-400"
               } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              <div className="flex items-start justify-between mb-2">
-                <report.icon className="h-5 w-5 text-blue-600" />
+              <div className="flex items-start justify-between mb-3">
+                <div className={`p-2 rounded-lg ${selectedTemplate === report.id ? "bg-blue-100" : "bg-gray-100 group-hover:bg-blue-100"}`}>
+                  <report.icon className={`h-6 w-6 ${selectedTemplate === report.id ? "text-blue-600" : "text-gray-600 group-hover:text-blue-600"}`} />
+                </div>
                 {isLoading && selectedTemplate === report.id && (
-                  <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+                  <RefreshCw className="h-5 w-5 animate-spin text-blue-600" />
                 )}
               </div>
-              <div className="font-medium text-sm text-gray-900">{report.name}</div>
-              <div className="text-xs text-gray-500 mt-1">{report.description}</div>
+              <div className="font-semibold text-gray-900 mb-1">{report.name}</div>
+              <div className="text-xs text-gray-600 leading-relaxed">{report.description}</div>
             </button>
           ))}
         </div>
       </div>
 
       {/* Custom Report Builder */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Custom Report Builder</h2>
+      <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md border-2 border-gray-200 p-6">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Build Your Own Report</h2>
+          <p className="text-sm text-gray-600 mt-1">Customize filters and metrics to create exactly the report you need</p>
+        </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Model Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Data Model
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
+              📊 What data do you want to analyze?
             </label>
             <select
               value={customModel}
               onChange={(e) => setCustomModel(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border-2 border-gray-300 bg-white rounded-lg px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
             >
-              <option value="invoice">Invoices</option>
-              <option value="customerPayment">Payments</option>
-              <option value="customer">Customers</option>
-              <option value="inventoryItem">Inventory</option>
-              <option value="waybill">Waybills</option>
-              <option value="invoiceItem">Invoice Items</option>
+              <option value="invoice">💰 Invoices & Sales</option>
+              <option value="customerPayment">💳 Payments Received</option>
+              <option value="customer">👥 Customers</option>
+              <option value="inventoryItem">📦 Inventory & Stock</option>
+              <option value="waybill">🚚 Waybills & Deliveries</option>
+              <option value="invoiceItem">📝 Invoice Line Items</option>
             </select>
           </div>
 
           {/* Group By */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Group By
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
+              📂 How do you want to break it down?
             </label>
             <select
               value={groupByField}
               onChange={(e) => setGroupByField(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border-2 border-gray-300 bg-white rounded-lg px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
             >
-              <option value="">No Grouping (Summary Only)</option>
-              <option value="status">Status</option>
-              <option value="customerId">Customer</option>
-              <option value="customerName">Customer Name</option>
-              <option value="teamId">Team</option>
-              <option value="locationId">Location</option>
-              <option value="paymentMethod">Payment Method</option>
-              <option value="billedByUserId">Sales Person</option>
+              <option value="">📊 Summary Total (No Grouping)</option>
+              <option value="status">📌 By Status</option>
+              <option value="customerId">👤 By Customer ID</option>
+              <option value="customerName">👥 By Customer Name</option>
+              <option value="teamId">🏢 By Team ID</option>
+              <option value="locationId">📍 By Location</option>
+              <option value="paymentMethod">💳 By Payment Method</option>
+              <option value="billedByUserId">👨‍💼 By Sales Person</option>
             </select>
           </div>
 
           {/* Aggregations */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Metrics
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
+              📈 What metrics do you want to see?
             </label>
-            <div className="space-y-2 border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
-              {["count", "sum:totalAmount", "avg:totalAmount", "sum:amount", "avg:amount", "min:amount", "max:amount"].map((agg) => (
-                <label key={agg} className="flex items-center">
+            <div className="space-y-2 bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto border border-gray-200">
+              {[
+                { value: "count", label: "📊 Count (Number of Records)" },
+                { value: "sum:totalAmount", label: "💰 Total Amount (Sum)" },
+                { value: "avg:totalAmount", label: "📊 Average Amount" },
+                { value: "sum:amount", label: "💵 Total Paid (Sum)" },
+                { value: "avg:amount", label: "📊 Average Paid" },
+                { value: "min:amount", label: "📉 Minimum Amount" },
+                { value: "max:amount", label: "📈 Maximum Amount" }
+              ].map((agg) => (
+                <label key={agg.value} className="flex items-center p-2 hover:bg-white rounded cursor-pointer transition-colors">
                   <input
                     type="checkbox"
-                    checked={aggregations.includes(agg)}
-                    onChange={() => toggleAggregation(agg)}
-                    className="mr-2 rounded"
+                    checked={aggregations.includes(agg.value)}
+                    onChange={() => toggleAggregation(agg.value)}
+                    className="mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  <span className="text-sm text-gray-700">
-                    {agg.replace(":", " ")}
+                  <span className="text-sm text-gray-900 font-medium">
+                    {agg.label}
                   </span>
                 </label>
               ))}
@@ -1157,57 +1173,63 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
 
           {/* Status Filters (for invoice/payment models) */}
           {(customModel === "invoice" || customModel === "customerPayment") && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status Filter
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <label className="block text-sm font-semibold text-gray-900 mb-3">
+                🔍 Filter by Status
               </label>
-              <div className="space-y-2 border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
-                {customModel === "invoice" 
-                  ? ["PAID", "PARTIALLY_PAID", "OPEN", "PARTIAL", "CANCELLED"].map((status) => (
-                      <label key={status} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={filterStatus.includes(status)}
-                          onChange={() => toggleStatus(status)}
-                          className="mr-2 rounded"
-                        />
-                        <span className="text-sm text-gray-700">{status}</span>
-                      </label>
-                    ))
-                  : ["COMPLETED", "PENDING", "FAILED"].map((status) => (
-                      <label key={status} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={filterStatus.includes(status)}
-                          onChange={() => toggleStatus(status)}
-                          className="mr-2 rounded"
-                        />
-                        <span className="text-sm text-gray-700">{status}</span>
-                      </label>
-                    ))
-                }
+              <div className="space-y-2 bg-gray-50 rounded-lg p-3 max-h-48 overflow-y-auto border border-gray-200">
+                {(customModel === "invoice" 
+                  ? [
+                      { value: "PAID", label: "✅ Paid", color: "green" },
+                      { value: "PARTIALLY_PAID", label: "🟡 Partially Paid", color: "yellow" },
+                      { value: "OPEN", label: "📂 Open", color: "blue" },
+                      { value: "PARTIAL", label: "🟠 Partial", color: "orange" },
+                      { value: "CANCELLED", label: "❌ Cancelled", color: "red" }
+                    ]
+                  : [
+                      { value: "COMPLETED", label: "✅ Completed", color: "green" },
+                      { value: "PENDING", label: "⏳ Pending", color: "yellow" },
+                      { value: "FAILED", label: "❌ Failed", color: "red" }
+                    ]
+                ).map((status) => (
+                  <label key={status.value} className="flex items-center p-2 hover:bg-white rounded cursor-pointer transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={filterStatus.includes(status.value)}
+                      onChange={() => toggleStatus(status.value)}
+                      className="mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-900 font-medium">{status.label}</span>
+                  </label>
+                ))}
               </div>
             </div>
           )}
         </div>
 
-        <button
-          onClick={handleCustomReport}
-          disabled={isLoading || aggregations.length === 0}
-          className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
-        >
-          {isLoading ? (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Running Report...
-            </>
-          ) : (
-            <>
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Run Custom Report
-            </>
-          )}
-        </button>
+        <div className="mt-6 flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            {aggregations.length === 0 && <span className="text-amber-600 font-medium">⚠️ Please select at least one metric</span>}
+            {aggregations.length > 0 && <span className="text-green-600 font-medium">✓ Ready to generate report</span>}
+          </p>
+          <button
+            onClick={handleCustomReport}
+            disabled={isLoading || aggregations.length === 0}
+            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center shadow-lg hover:shadow-xl transition-all"
+          >
+            {isLoading ? (
+              <>
+                <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                Generating Report...
+              </>
+            ) : (
+              <>
+                <BarChart3 className="h-5 w-5 mr-2" />
+                Generate Report
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Error Display */}
@@ -1225,71 +1247,95 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
 
       {/* Results Display */}
       {data && (
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Report Results</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {data.queryType === "groupBy" 
-                  ? `${data.resultCount || 0} groups` 
-                  : `Summary aggregation`}
-                {" • "}Model: {data.model}
-              </p>
+        <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200">
+          <div className="px-6 py-5 border-b-2 border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                  <BarChart3 className="h-6 w-6 mr-2 text-blue-600" />
+                  Report Results
+                </h2>
+                <p className="text-sm text-gray-600 mt-2">
+                  {data.queryType === "groupBy" 
+                    ? `📊 Showing ${data.resultCount || 0} ${data.resultCount === 1 ? 'group' : 'groups'}` 
+                    : `📈 Summary totals`}
+                  {" • "}
+                  {data.model === "invoice" && "💰 Invoices"}
+                  {data.model === "customerPayment" && "💳 Payments"}
+                  {data.model === "customer" && "👥 Customers"}
+                  {data.model === "inventoryItem" && "📦 Inventory"}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const dataStr = JSON.stringify(data, null, 2);
+                  const blob = new Blob([dataStr], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = `report-${new Date().toISOString()}.json`;
+                  link.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex items-center px-5 py-2.5 text-sm font-medium border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm hover:shadow-md"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Data
+              </button>
             </div>
-            <button
-              onClick={() => {
-                const dataStr = JSON.stringify(data, null, 2);
-                const blob = new Blob([dataStr], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `report-${new Date().toISOString()}.json`;
-                link.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="flex items-center px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export JSON
-            </button>
           </div>
 
           <div className="p-6">
             {/* GroupBy Results */}
             {data.queryType === "groupBy" && data.data && data.data.length > 0 && (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
                     <tr>
-                      {Object.keys(data.data[0]).map((key) => (
-                        <th
-                          key={key}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          {key.replace("_", " ")}
-                        </th>
-                      ))}
+                      {Object.keys(data.data[0]).map((key) => {
+                        // Make headers more readable
+                        const friendlyLabel = key
+                          .replace(/([A-Z])/g, ' $1')
+                          .replace(/_/g, ' ')
+                          .replace(/^./, (str) => str.toUpperCase())
+                          .replace('Id', 'ID')
+                          .trim();
+                        
+                        return (
+                          <th
+                            key={key}
+                            className="px-6 py-4 text-left text-sm font-bold text-gray-900 uppercase tracking-wide"
+                          >
+                            {friendlyLabel}
+                          </th>
+                        );
+                      })}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {data.data.map((row: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        {Object.entries(row).map(([key, value]: [string, any], cellIdx) => (
-                          <td key={cellIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {data.data.map((row: Record<string, unknown>, idx: number) => (
+                      <tr key={idx} className="hover:bg-blue-50 transition-colors">
+                        {Object.entries(row).map(([_key, value]: [string, unknown], cellIdx) => (
+                          <td key={cellIdx} className="px-6 py-4 text-sm">
                             {typeof value === "object" && value !== null
-                              ? Object.entries(value).map(([k, v]) => (
-                                  <div key={k}>
-                                    <span className="text-gray-500">{k}:</span>{" "}
-                                    {typeof v === "number" 
-                                      ? (k.includes("amount") || k.includes("Amount") || k.includes("total") || k.includes("Total")
-                                          ? formatCurrency(v)
-                                          : formatNumber(v))
-                                      : String(v)}
-                                  </div>
-                                ))
+                              ? Object.entries(value as Record<string, unknown>).map(([k, v]) => {
+                                  const isAmount = k.toLowerCase().includes("amount") || k.toLowerCase().includes("total");
+                                  const friendlyKey = k.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
+                                  
+                                  return (
+                                    <div key={k} className="mb-1">
+                                      <span className="font-medium text-gray-700">{friendlyKey}:</span>{" "}
+                                      <span className="text-gray-900 font-semibold">
+                                        {typeof v === "number" 
+                                          ? (isAmount ? formatCurrency(v) : formatNumber(v))
+                                          : String(v)}
+                                      </span>
+                                    </div>
+                                  );
+                                })
                               : typeof value === "number"
-                              ? formatNumber(value)
-                              : String(value)}
+                              ? <span className="font-semibold text-gray-900">{formatNumber(value)}</span>
+                              : <span className="text-gray-900">{String(value)}</span>}
                           </td>
                         ))}
                       </tr>
@@ -1301,41 +1347,75 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
 
             {/* Aggregate Results */}
             {data.queryType === "aggregate" && data.aggregation && (
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {Object.entries(data.aggregation).map(([key, value]: [string, any]) => (
-                  <div key={key} className="bg-gray-50 rounded-lg p-4">
-                    <div className="text-sm text-gray-500 mb-1 uppercase">
-                      {key.replace("_", " ")}
-                    </div>
-                    {typeof value === "object" && value !== null ? (
-                      Object.entries(value).map(([k, v]) => (
-                        <div key={k}>
-                          <div className="text-xs text-gray-400">{k}</div>
-                          <div className="text-xl font-bold text-gray-900">
-                            {typeof v === "number"
-                              ? (k.includes("amount") || k.includes("Amount") || k.includes("total") || k.includes("Total")
-                                  ? formatCurrency(v)
-                                  : formatNumber(v))
-                              : String(v)}
-                          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {Object.entries(data.aggregation).map(([key, value]: [string, unknown]) => {
+                  // Make labels more friendly
+                  const friendlyLabel = key
+                    .replace(/_/g, ' ')
+                    .replace(/^./, (str) => str.toUpperCase());
+                  
+                  const icons: Record<string, string> = {
+                    '_count': '📊',
+                    '_sum': '💰',
+                    '_avg': '📈',
+                    '_min': '📉',
+                    '_max': '📈'
+                  };
+                  
+                  const icon = icons[key] || '📊';
+                  
+                  return (
+                    <div key={key} className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+                          {friendlyLabel}
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-2xl font-bold text-gray-900">
-                        {typeof value === "number" ? formatNumber(value) : String(value)}
+                        <span className="text-2xl">{icon}</span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {typeof value === "object" && value !== null ? (
+                        <div className="space-y-2">
+                          {Object.entries(value as Record<string, unknown>).map(([k, v]) => {
+                            const isAmount = k.toLowerCase().includes("amount") || k.toLowerCase().includes("total");
+                            const friendlyKey = k
+                              .replace(/([A-Z])/g, ' $1')
+                              .replace(/_/g, ' ')
+                              .trim()
+                              .replace(/^./, (str) => str.toUpperCase());
+                            
+                            return (
+                              <div key={k} className="bg-white rounded-lg p-3 border border-blue-200">
+                                <div className="text-xs font-semibold text-gray-600 mb-1">{friendlyKey}</div>
+                                <div className="text-2xl font-bold text-gray-900">
+                                  {typeof v === "number"
+                                    ? (isAmount ? formatCurrency(v) : formatNumber(v))
+                                    : String(v)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-3xl font-bold text-gray-900 mt-2">
+                          {typeof value === "number" ? formatNumber(value) : String(value)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
             {/* No Results */}
             {((data.queryType === "groupBy" && (!data.data || data.data.length === 0)) ||
               (data.queryType === "aggregate" && !data.aggregation)) && (
-              <div className="text-center py-12 text-gray-500">
-                <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <p>No data available for the selected criteria</p>
+              <div className="text-center py-16">
+                <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                  <BarChart3 className="h-12 w-12 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Data Found</h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  No data matches your selected criteria. Try adjusting the date range or filters.
+                </p>
               </div>
             )}
           </div>
@@ -1344,17 +1424,42 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
 
       {/* Help Text */}
       {!data && !isLoading && !error && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-8 shadow-md">
           <div className="flex items-start">
-            <Target className="h-6 w-6 text-blue-600 mr-3 flex-shrink-0" />
+            <div className="bg-blue-100 rounded-full p-3 mr-4 flex-shrink-0">
+              <Target className="h-8 w-8 text-blue-600" />
+            </div>
             <div>
-              <h3 className="text-blue-900 font-semibold mb-2">How to Use Custom Reports</h3>
-              <ul className="text-blue-800 text-sm space-y-1 list-disc list-inside">
-                <li><strong>Quick Reports:</strong> Click any template above for instant insights</li>
-                <li><strong>Custom Builder:</strong> Select model, grouping, and metrics for flexible analysis</li>
-                <li><strong>Date Range:</strong> Use the filters at the top to set your reporting period</li>
-                <li><strong>Export:</strong> Download results as JSON for further analysis</li>
-              </ul>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">💡 Getting Started with Custom Reports</h3>
+              <p className="text-gray-700 mb-4">
+                Generate any report you need in seconds! Choose from quick templates or build your own custom analysis.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-2">⚡ Quick Reports</h4>
+                  <p className="text-sm text-gray-600">
+                    Click any card above for instant insights. Perfect for common questions like "Revenue by location" or "Top customers".
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-2">🎨 Custom Builder</h4>
+                  <p className="text-sm text-gray-600">
+                    Create exactly what you need. Pick your data source, choose how to group it, and select the metrics to calculate.
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-2">📅 Date Filters</h4>
+                  <p className="text-sm text-gray-600">
+                    Use the date range selector at the top of the page to focus on specific time periods.
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-2">💾 Export Results</h4>
+                  <p className="text-sm text-gray-600">
+                    Download your report data as JSON for further analysis in Excel or other tools.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
