@@ -1385,15 +1385,19 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
                           if (key === "_avg") friendlyLabel = "Average";
                           if (key === "_min") friendlyLabel = "Minimum";
                           if (key === "_max") friendlyLabel = "Maximum";
-                          
+
                           // Improve specific field names
-                          if (key === "customerName") friendlyLabel = "Customer";
+                          if (key === "customerName")
+                            friendlyLabel = "Customer";
                           if (key === "teamName") friendlyLabel = "Team";
                           if (key === "regionName") friendlyLabel = "Region";
-                          if (key === "locationName") friendlyLabel = "Location";
+                          if (key === "locationName")
+                            friendlyLabel = "Location";
                           if (key === "productName") friendlyLabel = "Product";
-                          if (key === "salesPerson") friendlyLabel = "Sales Person";
-                          if (key === "paymentMethod") friendlyLabel = "Payment Method";
+                          if (key === "salesPerson")
+                            friendlyLabel = "Sales Person";
+                          if (key === "paymentMethod")
+                            friendlyLabel = "Payment Method";
 
                           return (
                             <th
@@ -1423,7 +1427,10 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
                                   key.toLowerCase().includes("price");
 
                                 return (
-                                  <td key={cellIdx} className="px-6 py-4 text-sm">
+                                  <td
+                                    key={cellIdx}
+                                    className="px-6 py-4 text-sm"
+                                  >
                                     {typeof value === "object" &&
                                     value !== null ? (
                                       // For nested objects (aggregations like _sum, _avg)
@@ -1432,21 +1439,34 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
                                           value as Record<string, unknown>
                                         ).map(([k, v]) => {
                                           const isAmount =
-                                            k.toLowerCase().includes("amount") ||
+                                            k
+                                              .toLowerCase()
+                                              .includes("amount") ||
                                             k.toLowerCase().includes("total") ||
-                                            k.toLowerCase().includes("revenue") ||
+                                            k
+                                              .toLowerCase()
+                                              .includes("revenue") ||
                                             k.toLowerCase().includes("price") ||
                                             k.toLowerCase().includes("balance");
+
+                                          // Convert to number if it's a numeric string (Prisma Decimal)
+                                          const numValue =
+                                            typeof v === "string" &&
+                                            !isNaN(Number(v))
+                                              ? Number(v)
+                                              : typeof v === "number"
+                                              ? v
+                                              : null;
 
                                           return (
                                             <div
                                               key={k}
                                               className="font-semibold text-gray-900"
                                             >
-                                              {typeof v === "number"
+                                              {numValue !== null
                                                 ? isAmount
-                                                  ? formatCurrency(v)
-                                                  : formatNumber(v)
+                                                  ? formatCurrency(numValue)
+                                                  : formatNumber(numValue)
                                                 : String(v)}
                                             </div>
                                           );
@@ -1457,6 +1477,15 @@ function CustomReportsTab({ startDate, endDate }: CustomReportsTabProps) {
                                         {isAmountColumn
                                           ? formatCurrency(value)
                                           : formatNumber(value)}
+                                      </span>
+                                    ) : typeof value === "string" &&
+                                      !isNaN(Number(value)) &&
+                                      value.trim() !== "" ? (
+                                      // Handle numeric strings (Prisma Decimal values)
+                                      <span className="font-semibold text-gray-900">
+                                        {isAmountColumn
+                                          ? formatCurrency(Number(value))
+                                          : formatNumber(Number(value))}
                                       </span>
                                     ) : (
                                       <span className="text-gray-900">

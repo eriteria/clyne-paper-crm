@@ -144,7 +144,7 @@ async function enrichGroupedData(
       // Look for ID fields in the grouped data and replace with readable names
       for (const field of groupByFields) {
         const value = row[field];
-        
+
         // Skip if value is null, undefined, or not a string (not an ID)
         if (!value || typeof value !== "string") continue;
 
@@ -229,6 +229,34 @@ async function enrichGroupedData(
   );
 
   return enriched;
+}
+
+// Helper function to convert Prisma Decimal values to regular numbers for JSON serialization
+function serializeDecimals(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => serializeDecimals(item));
+  }
+  
+  // Handle Prisma Decimal objects
+  if (obj && typeof obj === 'object' && obj.constructor && obj.constructor.name === 'Decimal') {
+    return Number(obj.toString());
+  }
+  
+  // Handle regular objects
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        result[key] = serializeDecimals(obj[key]);
+      }
+    }
+    return result;
+  }
+  
+  return obj;
 }
 
 // @desc    Get dashboard overview metrics
@@ -431,12 +459,15 @@ router.post(
         // Enrich data with human-readable names for IDs
         const enrichedData = await enrichGroupedData(data, model, groupBy);
 
+        // Serialize Decimal values to numbers for proper JSON formatting
+        const serializedData = serializeDecimals(enrichedData);
+
         res.json({
           success: true,
           model,
           queryType: "groupBy",
-          resultCount: enrichedData.length,
-          data: enrichedData,
+          resultCount: serializedData.length,
+          data: serializedData,
         });
       } else {
         // Regular find query with aggregation
@@ -468,13 +499,17 @@ router.post(
           `[DYNAMIC QUERY] Aggregate complete, sample records: ${records.length}`
         );
 
+        // Serialize Decimal values to numbers
+        const serializedAggregation = serializeDecimals(aggregateResult);
+        const serializedRecords = serializeDecimals(records);
+
         res.json({
           success: true,
           model,
           queryType: "aggregate",
-          aggregation: aggregateResult,
-          sampleRecords: records,
-          sampleCount: records.length,
+          aggregation: serializedAggregation,
+          sampleRecords: serializedRecords,
+          sampleCount: serializedRecords.length,
         });
       }
     } catch (error: any) {
