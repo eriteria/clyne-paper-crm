@@ -2,45 +2,37 @@ import { PrismaClient, type Region } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { seedCustomers } from "./customers";
 import { seedInvoices } from "./invoices";
+import { DEFAULT_ROLES, stringifyPermissions } from "../utils/permissions";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting database seeding...");
 
-  // Create Roles
+  // Create Roles using proper permission format
   const adminRole = await prisma.role.upsert({
-    where: { name: "Admin" },
-    update: {},
+    where: { name: DEFAULT_ROLES.SUPER_ADMIN.name },
+    update: {
+      permissions: stringifyPermissions(DEFAULT_ROLES.SUPER_ADMIN.permissions),
+    },
     create: {
-      name: "Admin",
-      permissions: JSON.stringify({
-        users: ["create", "read", "update", "delete"],
-        teams: ["create", "read", "update", "delete"],
-        regions: ["create", "read", "update", "delete"],
-        inventory: ["create", "read", "update", "delete"],
-        waybills: ["create", "read", "update", "delete"],
-        invoices: ["create", "read", "update", "delete"],
-        reports: ["read"],
-        admin: ["full-access"],
-      }),
+      name: DEFAULT_ROLES.SUPER_ADMIN.name,
+      permissions: stringifyPermissions(DEFAULT_ROLES.SUPER_ADMIN.permissions),
     },
   });
 
   const managerRole = await prisma.role.upsert({
-    where: { name: "Manager" },
-    update: {},
+    where: { name: DEFAULT_ROLES.SALES_MANAGER.name },
+    update: {
+      permissions: stringifyPermissions(
+        DEFAULT_ROLES.SALES_MANAGER.permissions
+      ),
+    },
     create: {
-      name: "Manager",
-      permissions: JSON.stringify({
-        users: ["read", "update"],
-        teams: ["read"],
-        regions: ["read"],
-        inventory: ["read"],
-        waybills: ["read"],
-        invoices: ["read"],
-        reports: ["read"],
-      }),
+      name: DEFAULT_ROLES.SALES_MANAGER.name,
+      permissions: stringifyPermissions(
+        DEFAULT_ROLES.SALES_MANAGER.permissions
+      ),
     },
   });
 
@@ -49,86 +41,69 @@ async function main() {
     update: {},
     create: {
       name: "TeamLeader",
-      permissions: JSON.stringify({
-        users: ["read"],
-        teams: ["read"],
-        regions: ["read"],
-        inventory: ["read"],
-        waybills: ["read"],
-        invoices: ["create", "read", "update"],
-        reports: ["read"],
-      }),
+      permissions: stringifyPermissions(
+        DEFAULT_ROLES.SALES_MANAGER.permissions
+      ), // Use sales manager permissions for now
     },
   });
 
   const salesRole = await prisma.role.upsert({
-    where: { name: "Sales" },
-    update: {},
+    where: { name: DEFAULT_ROLES.SALES_REP.name },
+    update: {
+      permissions: stringifyPermissions(DEFAULT_ROLES.SALES_REP.permissions),
+    },
     create: {
-      name: "Sales",
-      permissions: JSON.stringify({
-        inventory: ["read"],
-        invoices: ["create", "read", "update"],
-        reports: ["read"],
-      }),
+      name: DEFAULT_ROLES.SALES_REP.name,
+      permissions: stringifyPermissions(DEFAULT_ROLES.SALES_REP.permissions),
     },
   });
 
   const warehouseRole = await prisma.role.upsert({
-    where: { name: "Warehouse" },
-    update: {},
+    where: { name: DEFAULT_ROLES.INVENTORY_MANAGER.name },
+    update: {
+      permissions: stringifyPermissions(
+        DEFAULT_ROLES.INVENTORY_MANAGER.permissions
+      ),
+    },
     create: {
-      name: "Warehouse",
-      permissions: JSON.stringify({
-        inventory: ["create", "read", "update"],
-        waybills: ["create", "read", "update"],
-        invoices: ["read"],
-        reports: ["read"],
-      }),
+      name: DEFAULT_ROLES.INVENTORY_MANAGER.name,
+      permissions: stringifyPermissions(
+        DEFAULT_ROLES.INVENTORY_MANAGER.permissions
+      ),
     },
   });
 
   const viewerRole = await prisma.role.upsert({
-    where: { name: "Viewer" },
-    update: {},
+    where: { name: DEFAULT_ROLES.VIEWER.name },
+    update: {
+      permissions: stringifyPermissions(DEFAULT_ROLES.VIEWER.permissions),
+    },
     create: {
-      name: "Viewer",
-      permissions: JSON.stringify({
-        inventory: ["read"],
-        waybills: ["read"],
-        invoices: ["read"],
-        reports: ["read"],
-      }),
+      name: DEFAULT_ROLES.VIEWER.name,
+      permissions: stringifyPermissions(DEFAULT_ROLES.VIEWER.permissions),
     },
   });
 
   const accountantRole = await prisma.role.upsert({
-    where: { name: "Accountant" },
-    update: {},
+    where: { name: DEFAULT_ROLES.ACCOUNTANT.name },
+    update: {
+      permissions: stringifyPermissions(DEFAULT_ROLES.ACCOUNTANT.permissions),
+    },
     create: {
-      name: "Accountant",
-      permissions: JSON.stringify({
-        invoices: ["read", "export"],
-        customers: ["read"],
-        financial: ["read", "export"],
-        reports: ["read", "export"],
-        quickbooks: ["export"],
-        payments: ["read", "update"],
-        taxReports: ["read", "generate"],
-      }),
+      name: DEFAULT_ROLES.ACCOUNTANT.name,
+      permissions: stringifyPermissions(DEFAULT_ROLES.ACCOUNTANT.permissions),
     },
   });
 
+  // Employee role - basic viewer access
   const employeeRole = await prisma.role.upsert({
     where: { name: "Employee" },
-    update: {},
+    update: {
+      permissions: stringifyPermissions(DEFAULT_ROLES.VIEWER.permissions),
+    },
     create: {
       name: "Employee",
-      permissions: JSON.stringify({
-        inventory: ["read"],
-        invoices: ["read"],
-        reports: ["read"],
-      }),
+      permissions: stringifyPermissions(DEFAULT_ROLES.VIEWER.permissions),
     },
   });
 

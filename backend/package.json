@@ -23,7 +23,9 @@
     "format": "prettier --write src/**/*.ts",
     "sheets:test": "ts-node src/scripts/test-google-sheets.ts",
     "sheets:import": "ts-node src/scripts/import-from-google-sheets.ts",
-    "sheets:sync": "ts-node src/scripts/import-from-google-sheets.ts"
+    "sheets:sync": "ts-node src/scripts/import-from-google-sheets.ts",
+    "update-roles": "ts-node update-roles.ts",
+    "update-roles:prod": "ts-node update-production-roles.ts"
   },
   "keywords": [
     "crm",
