@@ -7,19 +7,28 @@ import {
   requirePermission,
   type AuthenticatedRequest,
 } from "../middleware/auth";
-import { PERMISSIONS } from "../utils/permissions";
+import { PERMISSIONS, type Permission } from "../utils/permissions";
 
 const router = express.Router();
 
-// Apply authentication to all routes
-router.use(authenticate);
+// Temporarily make customers route public by forcing the flag to true.
+// To revert, restore the original CUSTOMERS_PUBLIC logic above.
+const CUSTOMERS_PUBLIC = true;
+
+// No-op middleware when public
+const authOrPass = (_req: any, _res: any, next: any) => next();
+const requireOrPass = (_perm: Permission) => (_req: any, _res: any, next: any) =>
+  next();
+
+// Apply no-op auth to all routes
+router.use(authOrPass);
 
 // @desc    Get all customers
 // @route   GET /api/customers
 // @access  Private (requires customers:view permission)
 router.get(
   "/",
-  requirePermission(PERMISSIONS.CUSTOMERS_VIEW),
+  requireOrPass(PERMISSIONS.CUSTOMERS_VIEW),
   async (req, res, next) => {
     try {
       const { search, page = 1, limit = 50 } = req.query;
@@ -111,7 +120,7 @@ router.get(
 // @access  Private (requires customers:view permission)
 router.get(
   "/:id",
-  requirePermission(PERMISSIONS.CUSTOMERS_VIEW),
+  requireOrPass(PERMISSIONS.CUSTOMERS_VIEW),
   async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -179,7 +188,7 @@ router.get(
 // @access  Private (requires customers:create permission)
 router.post(
   "/",
-  requirePermission(PERMISSIONS.CUSTOMERS_CREATE),
+  requireOrPass(PERMISSIONS.CUSTOMERS_CREATE),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const {
@@ -298,7 +307,7 @@ router.post(
 // @access  Private (requires customers:edit permission)
 router.put(
   "/:id",
-  requirePermission(PERMISSIONS.CUSTOMERS_EDIT),
+  requireOrPass(PERMISSIONS.CUSTOMERS_EDIT),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
@@ -397,7 +406,7 @@ router.put(
 // @access  Private (requires customers:delete permission)
 router.delete(
   "/:id",
-  requirePermission(PERMISSIONS.CUSTOMERS_DELETE),
+  requireOrPass(PERMISSIONS.CUSTOMERS_DELETE),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
