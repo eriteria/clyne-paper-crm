@@ -2,9 +2,15 @@ import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
+import multer from "multer";
+import csvParser from "csv-parser";
+import { Readable } from "stream";
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// Configure multer for CSV upload
+const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * GET /admin/roles - Get all roles with user counts
@@ -1325,6 +1331,191 @@ router.delete(
       console.error("Error removing team member:", error);
       res.status(500).json({
         error: "Failed to remove team member",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+);
+
+/**
+ * POST /admin/opening-balance-import - Import opening balances from CSV
+ * This is a DESTRUCTIVE operation that:
+ * 1. Deletes ALL invoices and payments
+ * 2. Sets opening balances on customers from CSV
+ * 3. Creates new customers if they don't exist
+ */
+router.post(
+  "/opening-balance-import",
+  authenticate,
+  upload.single("csvFile"),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const userRole = req.user!.role;
+      const userId = req.user!.id;
+
+      // Admin-only access
+      if (userRole !== "Admin" && userRole !== "ADMIN") {
+        return res.status(403).json({
+          error:
+            "Insufficient permissions. Only administrators can import opening balances.",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          error: "CSV file is required",
+        });
+      }
+
+      // Default location ID for new customers (you may want to make this configurable)
+      const defaultLocationId = req.body.defaultLocationId;
+
+      if (!defaultLocationId) {
+        return res.status(400).json({
+          error: "Default location ID is required for new customers",
+        });
+      }
+
+      // Verify location exists
+      const location = await prisma.location.findUnique({
+        where: { id: defaultLocationId },
+      });
+
+      if (!location) {
+        return res.status(404).json({
+          error: "Default location not found",
+        });
+      }
+
+      // Parse CSV
+      const csvData: Array<{ name: string; balance: number }> = [];
+      const fileBuffer = req.file.buffer.toString("utf-8");
+      const stream = Readable.from(fileBuffer);
+
+      await new Promise<void>((resolve, reject) => {
+        stream
+          .pipe(csvParser())
+          .on("data", (row) => {
+            // Parse the CSV row
+            // Expected format: S/N, "Debtors closing Balances as at 23rd October, 2025", Closing Balance
+            const customerName = row["Debtors closing Balances as at 23rd October, 2025"]?.trim();
+            const balanceStr = row["Closing Balance"]?.trim() || "0";
+
+            if (customerName) {
+              // Remove commas from balance string and parse
+              const balance = parseFloat(balanceStr.replace(/,/g, "")) || 0;
+              csvData.push({ name: customerName, balance });
+            }
+          })
+          .on("end", resolve)
+          .on("error", reject);
+      });
+
+      console.log(`Parsed ${csvData.length} rows from CSV`);
+
+      // Group by customer name and sum balances for duplicates
+      const customerBalances = new Map<string, number>();
+      for (const { name, balance } of csvData) {
+        const normalizedName = name.toUpperCase().trim();
+        const currentBalance = customerBalances.get(normalizedName) || 0;
+        customerBalances.set(normalizedName, currentBalance + balance);
+      }
+
+      console.log(
+        `Consolidated to ${customerBalances.size} unique customers`
+      );
+
+      // Start transaction
+      const result = await prisma.$transaction(async (tx) => {
+        // STEP 1: Delete all payments and invoices
+        console.log("Deleting all payments and invoices...");
+        const deletedPayments = await tx.payment.deleteMany({});
+        const deletedCustomerPayments = await tx.customerPayment.deleteMany({});
+        const deletedInvoices = await tx.invoice.deleteMany({});
+
+        console.log(`Deleted ${deletedPayments.count} payments`);
+        console.log(
+          `Deleted ${deletedCustomerPayments.count} customer payments`
+        );
+        console.log(`Deleted ${deletedInvoices.count} invoices`);
+
+        // STEP 2: Get all existing customers
+        const existingCustomers = await tx.customer.findMany({
+          select: { id: true, name: true, locationId: true },
+        });
+
+        const customerMap = new Map<string, { id: string; locationId: string }>();
+        for (const customer of existingCustomers) {
+          customerMap.set(customer.name.toUpperCase().trim(), {
+            id: customer.id,
+            locationId: customer.locationId,
+          });
+        }
+
+        console.log(`Found ${customerMap.size} existing customers`);
+
+        // STEP 3: Update existing customers and create new ones
+        let updatedCount = 0;
+        let createdCount = 0;
+
+        for (const [normalizedName, balance] of customerBalances.entries()) {
+          const existing = customerMap.get(normalizedName);
+
+          if (existing) {
+            // Update existing customer
+            await tx.customer.update({
+              where: { id: existing.id },
+              data: { openingBalance: balance },
+            });
+            updatedCount++;
+          } else {
+            // Create new customer
+            // Find original casing from CSV data
+            const originalName =
+              csvData.find((d) => d.name.toUpperCase().trim() === normalizedName)
+                ?.name || normalizedName;
+
+            await tx.customer.create({
+              data: {
+                name: originalName,
+                locationId: defaultLocationId,
+                openingBalance: balance,
+              },
+            });
+            createdCount++;
+          }
+        }
+
+        console.log(`Updated ${updatedCount} customers`);
+        console.log(`Created ${createdCount} customers`);
+
+        return {
+          deletedPayments: deletedPayments.count,
+          deletedCustomerPayments: deletedCustomerPayments.count,
+          deletedInvoices: deletedInvoices.count,
+          updatedCustomers: updatedCount,
+          createdCustomers: createdCount,
+          totalCustomers: customerBalances.size,
+        };
+      });
+
+      // Log the operation
+      await logCreate(userId, "OPENING_BALANCE_IMPORT", userId, {
+        action: "OPENING_BALANCE_IMPORT",
+        ...result,
+        importedBy: req.user!.fullName,
+        defaultLocation: location.name,
+      });
+
+      res.json({
+        success: true,
+        message: "Opening balances imported successfully",
+        data: result,
+      });
+    } catch (error) {
+      console.error("Error importing opening balances:", error);
+      res.status(500).json({
+        error: "Failed to import opening balances",
         details: error instanceof Error ? error.message : "Unknown error",
       });
     }

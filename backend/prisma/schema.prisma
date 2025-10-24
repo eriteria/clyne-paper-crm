@@ -192,6 +192,7 @@ model Customer {
   relationshipManagerName String? @map("relationship_manager_name") // Temporary field for import
   defaultPaymentTermDays Int      @default(30) @map("default_payment_term_days") // Default payment term in days
   returnPolicyDays      Int       @default(30) @map("return_policy_days") // Days allowed for returns
+  openingBalance        Decimal   @default(0) @map("opening_balance") @db.Decimal(12, 2) // Opening balance for ledger
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   invoices              Invoice[]

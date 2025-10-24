@@ -384,32 +384,54 @@ export function parsePermissions(permissionsJson: string | null): Permission[] {
 
 /**
  * Check if a permission set includes a specific permission
+ * Supports wildcards: "roles:*" matches "roles:view", "roles:create", etc.
  */
 export function hasPermission(
-  userPermissions: Permission[],
+  userPermissions: Permission[] | string[],
   requiredPermission: Permission
 ): boolean {
-  return userPermissions.includes(requiredPermission);
+  // Check for exact match
+  if (userPermissions.includes(requiredPermission)) {
+    return true;
+  }
+
+  // Check for wildcard match (e.g., "roles:*" matches "roles:view")
+  const [resource, action] = requiredPermission.split(":");
+  const wildcardPermission = `${resource}:*`;
+  if (userPermissions.includes(wildcardPermission as Permission)) {
+    return true;
+  }
+
+  // Check for global wildcard (e.g., "*" matches everything)
+  if (userPermissions.includes("*" as Permission)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
  * Check if a permission set includes ANY of the required permissions
  */
 export function hasAnyPermission(
-  userPermissions: Permission[],
+  userPermissions: Permission[] | string[],
   requiredPermissions: Permission[]
 ): boolean {
-  return requiredPermissions.some((perm) => userPermissions.includes(perm));
+  return requiredPermissions.some((perm) =>
+    hasPermission(userPermissions, perm)
+  );
 }
 
 /**
  * Check if a permission set includes ALL of the required permissions
  */
 export function hasAllPermissions(
-  userPermissions: Permission[],
+  userPermissions: Permission[] | string[],
   requiredPermissions: Permission[]
 ): boolean {
-  return requiredPermissions.every((perm) => userPermissions.includes(perm));
+  return requiredPermissions.every((perm) =>
+    hasPermission(userPermissions, perm)
+  );
 }
 
 /**

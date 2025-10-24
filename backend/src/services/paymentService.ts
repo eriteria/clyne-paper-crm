@@ -319,7 +319,11 @@ export class PaymentService {
    * Get customer ledger (invoices, payments, credits)
    */
   async getCustomerLedger(customerId: string) {
-    const [invoices, payments, credits] = await Promise.all([
+    const [customer, invoices, payments, credits] = await Promise.all([
+      prisma.customer.findUnique({
+        where: { id: customerId },
+        select: { openingBalance: true },
+      }),
       prisma.invoice.findMany({
         where: { customerId },
         include: {
@@ -373,8 +377,10 @@ export class PaymentService {
       }),
     ]);
 
+    const openingBalance = customer?.openingBalance || new Decimal(0);
+
     // Calculate customer summary - SIMPLIFIED CUSTOMER-LEVEL ACCOUNTING
-    // Total what customer owes (invoices) minus what they've paid = balance
+    // Opening balance + Total invoiced - Total paid = Current balance
     const totalInvoiced = invoices.reduce(
       (sum, inv) => sum.add(inv.totalAmount),
       new Decimal(0)
@@ -385,8 +391,8 @@ export class PaymentService {
       .filter((pay) => pay.status === "COMPLETED")
       .reduce((sum, pay) => sum.add(pay.amount), new Decimal(0));
 
-    // Calculate actual balance: invoices - payments
-    const actualBalance = totalInvoiced.sub(totalPaid);
+    // Calculate actual balance: opening balance + invoices - payments
+    const actualBalance = openingBalance.add(totalInvoiced).sub(totalPaid);
 
     // If balance is negative, that's available credit
     const totalCredit = actualBalance.isNegative()
@@ -403,6 +409,7 @@ export class PaymentService {
       payments,
       credits,
       summary: {
+        openingBalance,
         totalInvoiced,
         totalPaid,
         totalCredit,
