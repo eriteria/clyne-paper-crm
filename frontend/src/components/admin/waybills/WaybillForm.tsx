@@ -17,6 +17,7 @@ import { Waybill, CreateWaybillRequest } from "@/types/waybill";
 import { toast } from "@/lib/toast";
 import { useLocation } from "@/contexts/LocationContext";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface FormWaybillItem {
   productId: string; // ID of selected product
@@ -48,9 +49,16 @@ export default function WaybillForm({
   const [products, setProducts] = useState<Product[]>([]);
   const { selectedLocationId, availableLocations } = useLocation();
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const [transferType, setTransferType] = useState<"RECEIVING" | "SENDING">(
     initialData?.transferType || "RECEIVING"
   );
+
+  // Check if user can manage multiple locations (Admin/Super Admin or has explicit permission)
+  const canManageMultipleLocations =
+    hasPermission("*") ||
+    hasPermission("inventory:manage_all_locations") ||
+    hasPermission("waybills:manage_all_locations");
 
   const [formData, setFormData] = useState({
     waybillNumber: initialData?.waybillNumber || "",
@@ -471,8 +479,8 @@ export default function WaybillForm({
                   <div className="space-y-2">
                     <Label htmlFor="location">
                       Destination Location *
-                      {selectedLocationId && (
-                        <span className="text-xs text-blue-600 ml-2">(Auto-selected: Your Location)</span>
+                      {!canManageMultipleLocations && selectedLocationId && (
+                        <span className="text-xs text-blue-600 ml-2 font-semibold">(Locked to Your Location)</span>
                       )}
                     </Label>
                     <Select
@@ -485,11 +493,11 @@ export default function WaybillForm({
                       }
                       className={errors.locationId ? "border-red-500" : ""}
                       style={{
-                        backgroundColor: "#ffffff",
+                        backgroundColor: canManageMultipleLocations ? "#ffffff" : "#f3f4f6",
                         color: "#111827",
                         borderColor: errors.locationId ? "#ef4444" : "#9ca3af",
                       }}
-                      disabled={!!selectedLocationId && availableLocations.length === 1}
+                      disabled={!canManageMultipleLocations}
                     >
                       <SelectItem value="">Select location</SelectItem>
                       {(availableLocations.length > 0 ? availableLocations : locations).map((location) => (
@@ -498,6 +506,11 @@ export default function WaybillForm({
                         </SelectItem>
                       ))}
                     </Select>
+                    {!canManageMultipleLocations && (
+                      <p className="text-xs text-gray-600 italic">
+                        📍 You can only receive items to your assigned location
+                      </p>
+                    )}
                     {errors.locationId && (
                       <p className="text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle className="h-4 w-4" />
@@ -514,8 +527,8 @@ export default function WaybillForm({
                   <div className="space-y-2">
                     <Label htmlFor="sourceLocation">
                       Source Location *
-                      {selectedLocationId && (
-                        <span className="text-xs text-green-600 ml-2">(Auto-selected: Your Location)</span>
+                      {!canManageMultipleLocations && selectedLocationId && (
+                        <span className="text-xs text-green-600 ml-2 font-semibold">(Locked to Your Location)</span>
                       )}
                     </Label>
                     <Select
@@ -528,11 +541,11 @@ export default function WaybillForm({
                       }
                       className={errors.sourceLocationId ? "border-red-500" : ""}
                       style={{
-                        backgroundColor: "#ffffff",
+                        backgroundColor: canManageMultipleLocations ? "#ffffff" : "#f3f4f6",
                         color: "#111827",
                         borderColor: errors.sourceLocationId ? "#ef4444" : "#9ca3af",
                       }}
-                      disabled={!!selectedLocationId && availableLocations.length === 1}
+                      disabled={!canManageMultipleLocations}
                     >
                       <SelectItem value="">Select source location</SelectItem>
                       {(availableLocations.length > 0 ? availableLocations : locations).map((location) => (
@@ -541,6 +554,11 @@ export default function WaybillForm({
                         </SelectItem>
                       ))}
                     </Select>
+                    {!canManageMultipleLocations && (
+                      <p className="text-xs text-gray-600 italic">
+                        📍 You can only send items from your assigned location
+                      </p>
+                    )}
                     {errors.sourceLocationId && (
                       <p className="text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle className="h-4 w-4" />
@@ -573,6 +591,11 @@ export default function WaybillForm({
                         </SelectItem>
                       ))}
                     </Select>
+                    {!canManageMultipleLocations && (
+                      <p className="text-xs text-gray-600 italic">
+                        ✈️ Choose where to send the items
+                      </p>
+                    )}
                     {errors.locationId && (
                       <p className="text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle className="h-4 w-4" />

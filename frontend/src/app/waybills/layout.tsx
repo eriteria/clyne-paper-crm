@@ -23,7 +23,7 @@ export default function WaybillsLayout({
           }`}
         >
           <DashboardHeader />
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="flex-1 overflow-auto p-6">{children}</main>
         </div>
       </div>
     </ProtectedRoute>
