@@ -19,6 +19,7 @@ import {
   CreditCard,
   BarChart3,
   RotateCcw,
+  Truck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
@@ -29,6 +30,7 @@ const navigation = [
   { name: "Customers", href: "/customers", icon: UserCheck, permission: "customers:view" },
   { name: "Products", href: "/products", icon: ShoppingCart, permission: "products:view" },
   { name: "Inventory", href: "/inventory", icon: Package, permission: "inventory:view" },
+  { name: "Waybills", href: "/waybills", icon: Truck, permission: "waybills:view" },
   { name: "Invoices", href: "/invoices", icon: FileText, permission: "invoices:view" },
   { name: "Sales Returns", href: "/sales-returns", icon: RotateCcw, permission: "returns:view" },
   { name: "Payments", href: "/payments", icon: CreditCard, permission: "payments:view" },

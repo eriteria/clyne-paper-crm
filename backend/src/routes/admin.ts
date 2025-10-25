@@ -28,32 +28,40 @@ router.get(
   requirePermission(PERMISSIONS.ROLES_VIEW),
   async (req: AuthenticatedRequest, res) => {
     try {
-
-    const roles = await prisma.role.findMany({
-      include: {
-        _count: {
-          select: {
-            users: true,
+      const roles = await prisma.role.findMany({
+        include: {
+          _count: {
+            select: {
+              users: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
 
-    res.json({
-      success: true,
-      data: roles,
-    });
-  } catch (error) {
-    console.error("Error fetching roles:", error);
-    res.status(500).json({
-      error: "Failed to fetch roles",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
+      // Parse permissions from JSON string to array
+      const rolesWithParsedPermissions = roles.map((role) => ({
+        ...role,
+        permissions: typeof role.permissions === "string"
+          ? JSON.parse(role.permissions)
+          : role.permissions,
+      }));
+
+      res.json({
+        success: true,
+        data: rolesWithParsedPermissions,
+      });
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      res.status(500).json({
+        error: "Failed to fetch roles",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
-});
+);
 
 /**
  * POST /admin/roles - Create a new role

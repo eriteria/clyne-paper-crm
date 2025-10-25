@@ -417,9 +417,9 @@ export default function AdminPage() {
           </div>
         </Link>
 
-        {/* Waybill Management */}
+        {/* Waybill Management - Now in main navigation */}
         <Link
-          href="/admin/waybills"
+          href="/waybills"
           className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200"
         >
           <div className="flex items-center">
@@ -433,7 +433,7 @@ export default function AdminPage() {
                 Waybill Management
               </h3>
               <p className="text-sm text-gray-500">
-                Process waybills and manage location-based inventory
+                Process waybills and manage location-based inventory (moved to main navigation)
               </p>
             </div>
           </div>
