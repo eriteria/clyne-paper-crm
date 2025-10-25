@@ -36,6 +36,7 @@ import zohoAuthRoutes from "./routes/auth-zoho";
 import salesReturnsRoutes from "./routes/sales-returns";
 import adminImportRoutes from "./routes/admin-import";
 import adminMaintenanceRoutes from "./routes/admin-maintenance";
+import debugRoutes from "./routes/debug";
 
 /**
  * Creates and configures the Express application
@@ -118,6 +119,7 @@ export function createApp(options: { enableRateLimit?: boolean } = {}) {
   app.use("/api/sales-returns", salesReturnsRoutes);
   app.use("/api/admin-import", adminImportRoutes);
   app.use("/api/admin-maintenance", adminMaintenanceRoutes);
+  app.use("/api/debug", debugRoutes); // Debug routes (dev only)
 
   // Error handling middleware
   app.use(notFound);

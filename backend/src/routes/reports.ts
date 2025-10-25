@@ -1,9 +1,17 @@
 import express from "express";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  authenticate,
+  requirePermission,
+  AuthenticatedRequest,
+} from "../middleware/auth";
+import { PERMISSIONS } from "../utils/permissions";
 
 const router = express.Router();
+
+// Apply authentication to all report routes
+router.use(authenticate);
 
 // Helper function to build dynamic where clause from filters
 // Model-aware date field mapping
@@ -266,8 +274,11 @@ function serializeDecimals(obj: any): any {
 
 // @desc    Get dashboard overview metrics
 // @route   GET /api/reports/dashboard
-// @access  Private
-router.get("/dashboard", async (req, res, next) => {
+// @access  Private (requires reports:view_dashboard permission)
+router.get(
+  "/dashboard",
+  requirePermission(PERMISSIONS.REPORTS_VIEW_DASHBOARD),
+  async (req, res, next) => {
   try {
     const startTime = Date.now();
 
@@ -373,11 +384,11 @@ router.get("/dashboard", async (req, res, next) => {
 
 // @desc    Dynamic report query endpoint - flexible reporting without hardcoded endpoints
 // @route   POST /api/reports/query
-// @access  Private
+// @access  Private (requires reports:view_sales permission)
 // @body    { model, filters, groupBy, aggregations, include, orderBy, limit }
 router.post(
   "/query",
-  authenticate,
+  requirePermission(PERMISSIONS.REPORTS_VIEW_SALES),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const {
@@ -541,7 +552,7 @@ router.post(
 // - teamId, regionId, customerId: optional filters
 router.get(
   "/ar-aging",
-  authenticate,
+  requirePermission(PERMISSIONS.REPORTS_VIEW_FINANCIAL),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const {
@@ -785,8 +796,11 @@ router.get(
 
 // @desc    Get inventory analytics
 // @route   GET /api/reports/inventory
-// @access  Private
-router.get("/inventory", async (req, res, next) => {
+// @access  Private (requires reports:view_inventory permission)
+router.get(
+  "/inventory",
+  requirePermission(PERMISSIONS.REPORTS_VIEW_INVENTORY),
+  async (req, res, next) => {
   try {
     // Get inventory statistics
     const [totalItems, totalValue, lowStockItems] = await Promise.all([
@@ -979,8 +993,11 @@ router.get("/overdue-invoices", async (req, res, next) => {
 
 // @desc    Get sales analytics
 // @route   GET /api/reports/sales
-// @access  Private
-router.get("/sales", async (req, res, next) => {
+// @access  Private (requires reports:view_sales permission)
+router.get(
+  "/sales",
+  requirePermission(PERMISSIONS.REPORTS_VIEW_SALES),
+  async (req, res, next) => {
   // DEBUG: Run a raw SQL query to print all invoice IDs and dates
   try {
     const rawInvoices =

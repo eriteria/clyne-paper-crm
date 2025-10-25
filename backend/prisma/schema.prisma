@@ -33,17 +33,17 @@ model Region {
 }
 
 model Team {
-  id           String    @id @default(cuid())
-  name         String    @unique
-  leaderUserId String?   @map("leader_user_id")
+  id           String         @id @default(cuid())
+  name         String         @unique
+  leaderUserId String?        @map("leader_user_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
   description  String?
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  customers    Customer[]     @relation("TeamCustomers")
   invoices     Invoice[]
-  customers    Customer[] @relation("TeamCustomers")
-  leader       User?     @relation("TeamLeader", fields: [leaderUserId], references: [id])
-  members      User[]    @relation("TeamMembers")
   locations    TeamLocation[]
+  leader       User?          @relation("TeamLeader", fields: [leaderUserId], references: [id])
+  members      User[]         @relation("TeamMembers")
 
   @@map("teams")
 }
@@ -51,64 +51,78 @@ model Team {
 model TeamLocation {
   teamId     String
   locationId String
-  team       Team     @relation(fields: [teamId], references: [id])
-  location   Location @relation(fields: [locationId], references: [id])
   assignedAt DateTime @default(now())
+  location   Location @relation(fields: [locationId], references: [id])
+  team       Team     @relation(fields: [teamId], references: [id])
 
   @@id([teamId, locationId])
   @@map("team_locations")
 }
 
+model UserLocation {
+  userId     String
+  locationId String
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, locationId])
+  @@map("user_locations")
+}
+
 model User {
-  id                    String                @id @default(cuid())
-  fullName              String                @map("full_name")
-  email                 String                @unique
-  phone                 String?
-  passwordHash          String                @map("password_hash")
-  roleId                String                @map("role_id")
-  teamId                String?               @map("team_id")
-  regionId              String?               @map("region_id")
-  isActive              Boolean               @default(true) @map("is_active")
-  createdAt             DateTime              @default(now()) @map("created_at")
-  updatedAt             DateTime              @updatedAt @map("updated_at")
-  auditLogs             AuditLog[]
-  invoices              Invoice[]
-  ledTeams              Team[]                @relation("TeamLeader")
-  managedCustomers      Customer[]            @relation("CustomerRelationshipManager")
-  monthlySalesTargets   MonthlySalesTarget[]
-  recordedPayments      Payment[]             @relation("PaymentRecordedBy")
-  recordedCustomerPayments CustomerPayment[]  @relation("CustomerPaymentRecordedBy")
-  createdCredits        Credit[]              @relation("CreditCreatedBy")
-  appliedCredits        CreditApplication[]   @relation("CreditApplicationUser")
-  quickbooksExports     QuickBooksExport[]    @relation("QuickBooksExportUser")
-  region                Region?               @relation(fields: [regionId], references: [id])
-  role                  Role                  @relation(fields: [roleId], references: [id])
-  team                  Team?                 @relation("TeamMembers", fields: [teamId], references: [id])
-  waybills              Waybill[]
+  id                       String               @id @default(cuid())
+  fullName                 String               @map("full_name")
+  email                    String               @unique
+  phone                    String?
+  passwordHash             String               @map("password_hash")
+  roleId                   String               @map("role_id")
+  teamId                   String?              @map("team_id")
+  regionId                 String?              @map("region_id")
+  primaryLocationId        String?              @map("primary_location_id")
+  isActive                 Boolean              @default(true) @map("is_active")
+  createdAt                DateTime             @default(now()) @map("created_at")
+  updatedAt                DateTime             @updatedAt @map("updated_at")
+  auditLogs                AuditLog[]
+  appliedCredits           CreditApplication[]  @relation("CreditApplicationUser")
+  createdCredits           Credit[]             @relation("CreditCreatedBy")
+  recordedCustomerPayments CustomerPayment[]    @relation("CustomerPaymentRecordedBy")
+  managedCustomers         Customer[]           @relation("CustomerRelationshipManager")
+  invoices                 Invoice[]
+  monthlySalesTargets      MonthlySalesTarget[]
+  recordedPayments         Payment[]            @relation("PaymentRecordedBy")
+  quickbooksExports        QuickBooksExport[]   @relation("QuickBooksExportUser")
+  ledTeams                 Team[]               @relation("TeamLeader")
+  assignedLocations        UserLocation[]
+  primaryLocation          Location?            @relation("UserPrimaryLocation", fields: [primaryLocationId], references: [id])
+  region                   Region?              @relation(fields: [regionId], references: [id])
+  role                     Role                 @relation(fields: [roleId], references: [id])
+  team                     Team?                @relation("TeamMembers", fields: [teamId], references: [id])
+  waybills                 Waybill[]
 
   @@map("users")
 }
 
 model InventoryItem {
-  id              String        @id @default(cuid())
-  sku             String        @unique
-  name            String
-  description     String?
-  unit            String
-  unitPrice       Decimal       @map("unit_price") @db.Decimal(10, 2)
-  currentQuantity Decimal       @map("current_quantity") @db.Decimal(10, 2)
-  minStock        Decimal       @map("min_stock") @db.Decimal(10, 2)
-  locationId      String        @map("location_id") // Reference to Location
-  productId       String?       @map("product_id") // Link to Product for sales tracking
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  invoiceItems    InvoiceItem[]
-  waybillItems    WaybillItem[]
+  id               String            @id @default(cuid())
+  sku              String            @unique
+  name             String
+  description      String?
+  unit             String
+  unitPrice        Decimal           @map("unit_price") @db.Decimal(10, 2)
+  currentQuantity  Decimal           @map("current_quantity") @db.Decimal(10, 2)
+  minStock         Decimal           @map("min_stock") @db.Decimal(10, 2)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  productId        String?           @map("product_id")
+  locationId       String            @map("location_id")
+  location         Location          @relation(fields: [locationId], references: [id])
+  product          Product?          @relation(fields: [productId], references: [id])
+  invoiceItems     InvoiceItem[]
   salesReturnItems SalesReturnItem[]
-  location        Location      @relation(fields: [locationId], references: [id])
-  product         Product?      @relation(fields: [productId], references: [id])
+  waybillItems     WaybillItem[]
 
-  @@unique([sku, locationId]) // Same SKU can exist in multiple locations
+  @@unique([sku, locationId])
   @@map("inventory_items")
 }
 
@@ -123,35 +137,38 @@ model ProductGroup {
 }
 
 model Product {
-  id                  String                @id @default(cuid())
+  id                  String               @id @default(cuid())
   name                String
-  productGroupId      String                @map("product_group_id")
-  monthlyTarget       Decimal               @default(0) @map("monthly_target") @db.Decimal(12, 2)
-  createdAt           DateTime              @default(now()) @map("created_at")
-  updatedAt           DateTime              @updatedAt @map("updated_at")
+  productGroupId      String               @map("product_group_id")
+  monthlyTarget       Decimal              @default(0) @map("monthly_target") @db.Decimal(12, 2)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
   inventoryItems      InventoryItem[]
   monthlySalesTargets MonthlySalesTarget[]
-  productGroup        ProductGroup          @relation(fields: [productGroupId], references: [id])
+  productGroup        ProductGroup         @relation(fields: [productGroupId], references: [id])
 
-  @@unique([name, productGroupId]) // Prevent duplicate product names within same group
+  @@unique([name, productGroupId])
   @@map("products")
 }
 
 model Waybill {
-  id               String        @id @default(cuid())
-  waybillNumber    String        @unique @map("waybill_number")
-  date             DateTime
-  supplier         String
-  locationId       String        @map("location_id") // Destination location
-  status           WaybillStatus @default(PENDING)
-  processedAt      DateTime?     @map("processed_at")
-  processedBy      String?       @map("processed_by") // User ID
-  receivedByUserId String        @map("received_by_user_id")
-  notes            String?
-  createdAt        DateTime      @default(now()) @map("created_at")
-  items            WaybillItem[]
-  location         Location      @relation(fields: [locationId], references: [id])
-  receivedBy       User          @relation(fields: [receivedByUserId], references: [id])
+  id                 String        @id @default(cuid())
+  waybillNumber      String        @unique @map("waybill_number")
+  date               DateTime
+  supplier           String
+  receivedByUserId   String        @map("received_by_user_id")
+  notes              String?
+  createdAt          DateTime      @default(now()) @map("created_at")
+  locationId         String        @map("location_id")
+  sourceLocationId   String?       @map("source_location_id")
+  transferType       String        @default("RECEIVING")
+  processedAt        DateTime?     @map("processed_at")
+  processedBy        String?       @map("processed_by")
+  status             WaybillStatus @default(PENDING)
+  items              WaybillItem[]
+  destinationLocation Location     @relation("WaybillDestination", fields: [locationId], references: [id])
+  sourceLocation     Location?     @relation("WaybillSource", fields: [sourceLocationId], references: [id])
+  receivedBy         User          @relation(fields: [receivedByUserId], references: [id])
 
   @@map("waybills")
 }
@@ -159,17 +176,17 @@ model Waybill {
 model WaybillItem {
   id               String            @id @default(cuid())
   waybillId        String            @map("waybill_id")
-  sku              String
-  name             String
-  description      String?
-  unit             String
+  inventoryItemId  String?           @map("inventory_item_id")
   quantityReceived Decimal           @map("quantity_received") @db.Decimal(10, 2)
   unitCost         Decimal           @map("unit_cost") @db.Decimal(10, 2)
   batchNo          String?           @map("batch_no")
   expiryDate       DateTime?         @map("expiry_date")
-  inventoryItemId  String?           @map("inventory_item_id") // Null if needs review
-  status           WaybillItemStatus @default(PENDING)
+  description      String?
+  name             String
   processedAt      DateTime?         @map("processed_at")
+  sku              String
+  status           WaybillItemStatus @default(PENDING)
+  unit             String
   inventoryItem    InventoryItem?    @relation(fields: [inventoryItemId], references: [id])
   waybill          Waybill           @relation(fields: [waybillId], references: [id], onDelete: Cascade)
 
@@ -177,31 +194,31 @@ model WaybillItem {
 }
 
 model Customer {
-  id                    String    @id @default(cuid())
-  name                  String
-  email                 String?
-  phone                 String?
-  address               String?
-  locationId            String    @map("location_id") // Required foreign key to Location table
-  companyName           String?   @map("company_name")
-  contactPerson         String?   @map("contact_person")
-  relationshipManagerId String?   @map("relationship_manager_id")
-  teamId                String?   @map("team_id") // Team assignment based on location
-  onboardingDate        DateTime? @map("onboarding_date") // For DATE OF ONBOARDING from Excel
-  lastOrderDate         DateTime? @map("last_order_date") // For LAST ORDER DATE from Excel
-  relationshipManagerName String? @map("relationship_manager_name") // Temporary field for import
-  defaultPaymentTermDays Int      @default(30) @map("default_payment_term_days") // Default payment term in days
-  returnPolicyDays      Int       @default(30) @map("return_policy_days") // Days allowed for returns
-  openingBalance        Decimal   @default(0) @map("opening_balance") @db.Decimal(12, 2) // Opening balance for ledger
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
-  invoices              Invoice[]
-  payments              CustomerPayment[]
-  credits               Credit[]
-  salesReturns          SalesReturn[]
-  locationRef           Location  @relation(fields: [locationId], references: [id])
-  relationshipManager   User?     @relation("CustomerRelationshipManager", fields: [relationshipManagerId], references: [id])
-  team                  Team?     @relation("TeamCustomers", fields: [teamId], references: [id])
+  id                      String            @id @default(cuid())
+  name                    String
+  email                   String?
+  phone                   String?
+  address                 String?
+  companyName             String?           @map("company_name")
+  contactPerson           String?           @map("contact_person")
+  createdAt               DateTime          @default(now()) @map("created_at")
+  updatedAt               DateTime          @updatedAt @map("updated_at")
+  relationshipManagerId   String?           @map("relationship_manager_id")
+  lastOrderDate           DateTime?         @map("last_order_date")
+  onboardingDate          DateTime?         @map("onboarding_date")
+  relationshipManagerName String?           @map("relationship_manager_name")
+  teamId                  String?           @map("team_id")
+  locationId              String?           @map("location_id")
+  defaultPaymentTermDays  Int               @default(30) @map("default_payment_term_days")
+  openingBalance          Decimal           @default(0) @map("opening_balance") @db.Decimal(12, 2)
+  returnPolicyDays        Int               @default(30) @map("return_policy_days")
+  credits                 Credit[]
+  payments                CustomerPayment[]
+  locationRef             Location?         @relation(fields: [locationId], references: [id])
+  relationshipManager     User?             @relation("CustomerRelationshipManager", fields: [relationshipManagerId], references: [id])
+  team                    Team?             @relation("TeamCustomers", fields: [teamId], references: [id])
+  invoices                Invoice[]
+  salesReturns            SalesReturn[]
 
   @@map("customers")
 }
@@ -210,30 +227,30 @@ model Invoice {
   id                  String               @id @default(cuid())
   invoiceNumber       String               @unique @map("invoice_number")
   date                DateTime
-  customerId          String               @map("customer_id")
-  customerName        String               @map("customer_name") // Keep for backward compatibility
-  customerContact     String?              @map("customer_contact") // Keep for backward compatibility
+  customerName        String               @map("customer_name")
+  customerContact     String?              @map("customer_contact")
   billedByUserId      String               @map("billed_by_user_id")
   teamId              String?              @map("team_id")
   regionId            String?              @map("region_id")
   totalAmount         Decimal              @map("total_amount") @db.Decimal(12, 2)
-  balance             Decimal              @map("balance") @db.Decimal(12, 2) // Remaining balance
-  taxAmount           Decimal              @default(0) @map("tax_amount") @db.Decimal(10, 2)
-  discountAmount      Decimal              @default(0) @map("discount_amount") @db.Decimal(10, 2)
-  notes               String?
-  dueDate             DateTime?            @map("due_date")
-  status              String               @default("DRAFT") // DRAFT, OPEN, PARTIAL, PAID, CANCELLED
+  status              String               @default("DRAFT")
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
-  items               InvoiceItem[]
-  payments            Payment[]
-  paymentApplications PaymentApplication[]
+  customerId          String               @map("customer_id")
+  discountAmount      Decimal              @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  dueDate             DateTime?            @map("due_date")
+  notes               String?
+  taxAmount           Decimal              @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  balance             Decimal              @map("balance") @db.Decimal(12, 2)
   creditApplications  CreditApplication[]  @relation("CreditApplications")
-  salesReturns        SalesReturn[]
-  customer            Customer             @relation(fields: [customerId], references: [id])
+  items               InvoiceItem[]
   billedBy            User                 @relation(fields: [billedByUserId], references: [id])
+  customer            Customer             @relation(fields: [customerId], references: [id])
   region              Region?              @relation(fields: [regionId], references: [id])
   team                Team?                @relation(fields: [teamId], references: [id])
+  paymentApplications PaymentApplication[]
+  payments            Payment[]
+  salesReturns        SalesReturn[]
 
   @@map("invoices")
 }
@@ -266,36 +283,35 @@ model AuditLog {
 }
 
 model Payment {
-  id              String   @id @default(cuid())
-  invoiceId       String   @map("invoice_id")
-  amount          Decimal  @db.Decimal(12, 2)
-  paymentMethod   String   @map("payment_method") // CASH, BANK_TRANSFER, CHEQUE, CARD
-  paymentDate     DateTime @map("payment_date")
-  referenceNumber String?  @map("reference_number")
-  notes           String?
-  recordedByUserId String  @map("recorded_by_user_id")
-  status          String   @default("COMPLETED") // PENDING, COMPLETED, FAILED, CANCELLED
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  invoice         Invoice  @relation(fields: [invoiceId], references: [id])
-  recordedBy      User     @relation("PaymentRecordedBy", fields: [recordedByUserId], references: [id])
+  id               String   @id @default(cuid())
+  invoiceId        String   @map("invoice_id")
+  amount           Decimal  @db.Decimal(12, 2)
+  paymentMethod    String   @map("payment_method")
+  paymentDate      DateTime @map("payment_date")
+  referenceNumber  String?  @map("reference_number")
+  notes            String?
+  recordedByUserId String   @map("recorded_by_user_id")
+  status           String   @default("COMPLETED")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  invoice          Invoice  @relation(fields: [invoiceId], references: [id])
+  recordedBy       User     @relation("PaymentRecordedBy", fields: [recordedByUserId], references: [id])
 
   @@map("payments")
 }
 
-// New comprehensive payment management system
 model CustomerPayment {
   id                  String               @id @default(cuid())
   customerId          String               @map("customer_id")
   amount              Decimal              @db.Decimal(12, 2)
-  paymentMethod       String               @map("payment_method") // CASH, BANK_TRANSFER, CHEQUE, CARD, MOBILE_MONEY
+  paymentMethod       String               @map("payment_method")
   paymentDate         DateTime             @map("payment_date")
   referenceNumber     String?              @map("reference_number")
   notes               String?
   recordedByUserId    String               @map("recorded_by_user_id")
-  status              String               @default("COMPLETED") // PENDING, COMPLETED, FAILED, CANCELLED
-  allocatedAmount     Decimal              @default(0) @map("allocated_amount") @db.Decimal(12, 2) // Amount allocated to invoices
-  creditAmount        Decimal              @default(0) @map("credit_amount") @db.Decimal(12, 2) // Amount converted to credit
+  status              String               @default("COMPLETED")
+  allocatedAmount     Decimal              @default(0) @map("allocated_amount") @db.Decimal(12, 2)
+  creditAmount        Decimal              @default(0) @map("credit_amount") @db.Decimal(12, 2)
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
   customer            Customer             @relation(fields: [customerId], references: [id])
@@ -320,37 +336,37 @@ model PaymentApplication {
 }
 
 model Credit {
-  id                String             @id @default(cuid())
-  customerId        String             @map("customer_id")
-  amount            Decimal            @db.Decimal(12, 2)
-  availableAmount   Decimal            @map("available_amount") @db.Decimal(12, 2) // Remaining available credit
-  sourcePaymentId   String?            @map("source_payment_id") // Reference to payment that created the credit
-  reason            String             @default("OVERPAYMENT") // OVERPAYMENT, RETURN, ADJUSTMENT, OTHER
-  description       String?
-  createdByUserId   String             @map("created_by_user_id")
-  status            String             @default("ACTIVE") // ACTIVE, APPLIED, EXPIRED, CANCELLED
-  expiryDate        DateTime?          @map("expiry_date")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
-  customer          Customer           @relation(fields: [customerId], references: [id])
-  createdBy         User               @relation("CreditCreatedBy", fields: [createdByUserId], references: [id])
+  id                 String              @id @default(cuid())
+  customerId         String              @map("customer_id")
+  amount             Decimal             @db.Decimal(12, 2)
+  availableAmount    Decimal             @map("available_amount") @db.Decimal(12, 2)
+  sourcePaymentId    String?             @map("source_payment_id")
+  reason             String              @default("OVERPAYMENT")
+  description        String?
+  createdByUserId    String              @map("created_by_user_id")
+  status             String              @default("ACTIVE")
+  expiryDate         DateTime?           @map("expiry_date")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
   creditApplications CreditApplication[]
+  createdBy          User                @relation("CreditCreatedBy", fields: [createdByUserId], references: [id])
+  customer           Customer            @relation(fields: [customerId], references: [id])
 
   @@map("credits")
 }
 
 model CreditApplication {
-  id            String   @id @default(cuid())
-  creditId      String   @map("credit_id")
-  invoiceId     String   @map("invoice_id")
-  amountApplied Decimal  @map("amount_applied") @db.Decimal(12, 2)
-  appliedDate   DateTime @default(now()) @map("applied_date")
-  appliedByUserId String @map("applied_by_user_id")
-  notes         String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  credit        Credit   @relation(fields: [creditId], references: [id], onDelete: Cascade)
-  invoice       Invoice  @relation("CreditApplications", fields: [invoiceId], references: [id])
-  appliedBy     User     @relation("CreditApplicationUser", fields: [appliedByUserId], references: [id])
+  id              String   @id @default(cuid())
+  creditId        String   @map("credit_id")
+  invoiceId       String   @map("invoice_id")
+  amountApplied   Decimal  @map("amount_applied") @db.Decimal(12, 2)
+  appliedDate     DateTime @default(now()) @map("applied_date")
+  appliedByUserId String   @map("applied_by_user_id")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  appliedBy       User     @relation("CreditApplicationUser", fields: [appliedByUserId], references: [id])
+  credit          Credit   @relation(fields: [creditId], references: [id], onDelete: Cascade)
+  invoice         Invoice  @relation("CreditApplications", fields: [invoiceId], references: [id])
 
   @@map("credit_applications")
 }
@@ -358,7 +374,7 @@ model CreditApplication {
 model TaxRate {
   id          String   @id @default(cuid())
   name        String   @unique
-  rate        Decimal  @db.Decimal(5, 4) // e.g., 0.075 for 7.5% VAT
+  rate        Decimal  @db.Decimal(5, 4)
   description String?
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -368,17 +384,17 @@ model TaxRate {
 }
 
 model QuickBooksExport {
-  id              String   @id @default(cuid())
-  exportType      String   @map("export_type") // INVOICE, PAYMENT, CUSTOMER
-  entityIds       String[] @map("entity_ids") // Array of invoice/payment/customer IDs
-  exportData      String   @map("export_data") // JSON data for QuickBooks
-  exportedByUserId String  @map("exported_by_user_id")
-  exportDate      DateTime @map("export_date")
-  filename        String?
-  status          String   @default("PENDING") // PENDING, COMPLETED, FAILED
-  notes           String?
-  createdAt       DateTime @default(now()) @map("created_at")
-  exportedBy      User     @relation("QuickBooksExportUser", fields: [exportedByUserId], references: [id])
+  id               String   @id @default(cuid())
+  exportType       String   @map("export_type")
+  entityIds        String[] @map("entity_ids")
+  exportData       String   @map("export_data")
+  exportedByUserId String   @map("exported_by_user_id")
+  exportDate       DateTime @map("export_date")
+  filename         String?
+  status           String   @default("PENDING")
+  notes            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  exportedBy       User     @relation("QuickBooksExportUser", fields: [exportedByUserId], references: [id])
 
   @@map("quickbooks_exports")
 }
@@ -394,118 +410,96 @@ model ReportsCache {
 }
 
 model Location {
-  id           String          @id @default(cuid())
-  name         String          @unique
-  description  String?
-  isActive     Boolean         @default(true) @map("is_active")
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
-  customers    Customer[]
-  teams        TeamLocation[]
-  inventory    InventoryItem[]
-  waybills     Waybill[]
+  id               String          @id @default(cuid())
+  name             String          @unique
+  description      String?
+  isActive         Boolean         @default(true) @map("is_active")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  customers        Customer[]
+  inventory        InventoryItem[]
+  teams            TeamLocation[]
+  primaryUsers     User[]          @relation("UserPrimaryLocation")
+  assignedUsers    UserLocation[]
+  sentWaybills     Waybill[]       @relation("WaybillSource")
+  receivedWaybills Waybill[]       @relation("WaybillDestination")
 
   @@map("locations")
 }
 
 model MonthlySalesTarget {
-  id                String   @id @default(cuid())
-  productId         String   @map("product_id")
-  userId            String   @map("user_id")
-  year              Int
-  month             Int
-  targetQuantity    Decimal  @default(0) @map("target_quantity") @db.Decimal(10, 2)
-  achievedQuantity  Decimal  @default(0) @map("achieved_quantity") @db.Decimal(10, 2)
-  targetAmount      Decimal  @default(0) @map("target_amount") @db.Decimal(12, 2)
-  achievedAmount    Decimal  @default(0) @map("achieved_amount") @db.Decimal(12, 2)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  productId        String   @map("product_id")
+  userId           String   @map("user_id")
+  year             Int
+  month            Int
+  targetQuantity   Decimal  @default(0) @map("target_quantity") @db.Decimal(10, 2)
+  achievedQuantity Decimal  @default(0) @map("achieved_quantity") @db.Decimal(10, 2)
+  targetAmount     Decimal  @default(0) @map("target_amount") @db.Decimal(12, 2)
+  achievedAmount   Decimal  @default(0) @map("achieved_amount") @db.Decimal(12, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([productId, userId, year, month], name: "monthly_sales_targets_product_user_year_month_key")
   @@map("monthly_sales_targets")
 }
 
-enum WaybillStatus {
-  PENDING     // Received but not processed
-  PROCESSING  // Being processed
-  COMPLETED   // All items processed
-  REVIEW      // Has items requiring review
-}
-
-enum WaybillItemStatus {
-  PENDING     // Not processed
-  MATCHED     // Matched to existing inventory
-  NEW_PRODUCT // Needs admin review for new product
-  PROCESSED   // Added to inventory
-}
-
 model SalesReturn {
-  id              String            @id @default(cuid())
-  returnNumber    String            @unique @map("return_number") // e.g., "RET-2025-001"
-  
-  // Link to original invoice
-  invoiceId       String            @map("invoice_id")
-  invoice         Invoice           @relation(fields: [invoiceId], references: [id])
-  
-  // Customer info
-  customerId      String            @map("customer_id")
-  customer        Customer          @relation(fields: [customerId], references: [id])
-  
-  // Return details
-  returnDate      DateTime          @default(now()) @map("return_date")
-  reason          String            // "Damaged", "Wrong product", "Quality issue", "Customer request", etc.
-  notes           String?
-  
-  // Items being returned
-  items           SalesReturnItem[]
-  
-  // Financial impact
-  totalAmount     Decimal           @map("total_amount") @db.Decimal(12, 2)
-  refundMethod    String            @map("refund_method") // "Credit Note", "Bank Transfer"
-  refundStatus    String            @default("Pending") @map("refund_status") // "Pending", "Completed"
-  
-  // Inventory impact
-  restockStatus   String            @default("Pending") @map("restock_status") // "Pending", "Restocked", "Not Restocked"
-  
-  // Processing details
-  processedAt     DateTime?         @map("processed_at")
-  processedBy     String?           @map("processed_by") // User ID
-  
-  // Audit trail
-  createdBy       String            @map("created_by") // User ID
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  id            String            @id @default(cuid())
+  returnNumber  String            @unique @map("return_number")
+  invoiceId     String            @map("invoice_id")
+  customerId    String            @map("customer_id")
+  returnDate    DateTime          @default(now()) @map("return_date")
+  reason        String
+  notes         String?
+  totalAmount   Decimal           @map("total_amount") @db.Decimal(12, 2)
+  refundMethod  String            @map("refund_method")
+  refundStatus  String            @default("Pending") @map("refund_status")
+  restockStatus String            @default("Pending") @map("restock_status")
+  processedAt   DateTime?         @map("processed_at")
+  processedBy   String?           @map("processed_by")
+  createdBy     String            @map("created_by")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  items         SalesReturnItem[]
+  customer      Customer          @relation(fields: [customerId], references: [id])
+  invoice       Invoice           @relation(fields: [invoiceId], references: [id])
 
   @@map("sales_returns")
 }
 
 model SalesReturnItem {
-  id                String      @id @default(cuid())
-  salesReturnId     String      @map("sales_return_id")
-  salesReturn       SalesReturn @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
-  
-  // Original invoice item reference
-  invoiceItemId     String?     @map("invoice_item_id")
-  
-  // Product details (denormalized for history)
-  inventoryItemId   String?     @map("inventory_item_id")
-  inventoryItem     InventoryItem? @relation(fields: [inventoryItemId], references: [id])
-  productName       String      @map("product_name")
-  sku               String
-  
-  // Return quantities and pricing
-  quantityReturned  Decimal     @map("quantity_returned") @db.Decimal(10, 2)
-  unitPrice         Decimal     @map("unit_price") @db.Decimal(10, 2)
-  subtotal          Decimal     @db.Decimal(12, 2)
-  
-  // Condition of returned items
-  condition         String      // "Good", "Damaged", "Defective"
-  restocked         Boolean     @default(false) // Whether this item was restocked
-  
-  createdAt         DateTime    @default(now()) @map("created_at")
-  updatedAt         DateTime    @updatedAt @map("updated_at")
+  id               String         @id @default(cuid())
+  salesReturnId    String         @map("sales_return_id")
+  invoiceItemId    String?        @map("invoice_item_id")
+  inventoryItemId  String?        @map("inventory_item_id")
+  productName      String         @map("product_name")
+  sku              String
+  quantityReturned Decimal        @map("quantity_returned") @db.Decimal(10, 2)
+  unitPrice        Decimal        @map("unit_price") @db.Decimal(10, 2)
+  subtotal         Decimal        @db.Decimal(12, 2)
+  condition        String
+  restocked        Boolean        @default(false)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  inventoryItem    InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+  salesReturn      SalesReturn    @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
 
   @@map("sales_return_items")
+}
+
+enum WaybillStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REVIEW
+}
+
+enum WaybillItemStatus {
+  PENDING
+  MATCHED
+  NEW_PRODUCT
+  PROCESSED
 }

@@ -15,6 +15,8 @@ import { productsService } from "@/lib/services/products";
 import { Location, Product } from "@/types";
 import { Waybill, CreateWaybillRequest } from "@/types/waybill";
 import { toast } from "@/lib/toast";
+import { useLocation } from "@/contexts/LocationContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FormWaybillItem {
   productId: string; // ID of selected product
@@ -44,11 +46,18 @@ export default function WaybillForm({
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const { selectedLocationId, availableLocations } = useLocation();
+  const { user } = useAuth();
+  const [transferType, setTransferType] = useState<"RECEIVING" | "SENDING">(
+    initialData?.transferType || "RECEIVING"
+  );
+
   const [formData, setFormData] = useState({
     waybillNumber: initialData?.waybillNumber || "",
     supplierName: initialData?.supplier || "",
     supplierContact: "", // This field is for creation only, not stored in Waybill
-    locationId: initialData?.locationId || "",
+    locationId: initialData?.locationId || selectedLocationId || "",
+    sourceLocationId: initialData?.sourceLocationId || "",
     notes: initialData?.notes || "",
     items:
       initialData?.items?.map((item) => ({
@@ -83,6 +92,25 @@ export default function WaybillForm({
     loadLocations();
     loadProducts();
   }, []);
+
+  // Auto-set location based on transfer type and user's location
+  useEffect(() => {
+    if (selectedLocationId) {
+      if (transferType === "RECEIVING") {
+        // For receiving, auto-set destination to user's location
+        setFormData((prev) => ({
+          ...prev,
+          locationId: selectedLocationId,
+        }));
+      } else if (transferType === "SENDING") {
+        // For sending, auto-set source to user's location
+        setFormData((prev) => ({
+          ...prev,
+          sourceLocationId: selectedLocationId,
+        }));
+      }
+    }
+  }, [transferType, selectedLocationId]);
 
   const loadLocations = async () => {
     try {
@@ -134,12 +162,18 @@ export default function WaybillForm({
       newErrors.waybillNumber = "Waybill number is required";
     }
 
-    if (!formData.supplierName.trim()) {
-      newErrors.supplierName = "Supplier name is required";
+    if (transferType === "RECEIVING" && !formData.supplierName.trim()) {
+      newErrors.supplierName = "Supplier name is required for receiving";
     }
 
     if (!formData.locationId) {
-      newErrors.locationId = "Location is required";
+      newErrors.locationId = transferType === "RECEIVING"
+        ? "Destination location is required"
+        : "Destination location is required";
+    }
+
+    if (transferType === "SENDING" && !formData.sourceLocationId) {
+      newErrors.sourceLocationId = "Source location is required for sending";
     }
 
     formData.items.forEach((item, index) => {
@@ -177,9 +211,11 @@ export default function WaybillForm({
     try {
       const waybillData: CreateWaybillRequest = {
         waybillNumber: formData.waybillNumber,
-        supplierName: formData.supplierName,
+        supplierName: transferType === "RECEIVING" ? formData.supplierName : "Internal Transfer",
         supplierContact: formData.supplierContact,
         locationId: formData.locationId,
+        sourceLocationId: transferType === "SENDING" ? formData.sourceLocationId : undefined,
+        transferType,
         notes: formData.notes,
         items: formData.items.map((item) => ({
           sku: item.sku,
@@ -314,6 +350,50 @@ export default function WaybillForm({
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Transfer Type Toggle */}
+            <div className="flex items-center gap-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+              <span className="text-sm font-semibold text-gray-900">Transfer Type:</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTransferType("RECEIVING")}
+                  className={`px-4 py-2 rounded-md font-medium text-sm transition-all ${
+                    transferType === "RECEIVING"
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-white text-gray-700 border-2 border-gray-300 hover:border-gray-400"
+                  }`}
+                  style={{
+                    backgroundColor: transferType === "RECEIVING" ? "#2563eb" : "#ffffff",
+                    color: transferType === "RECEIVING" ? "#ffffff" : "#374151",
+                    borderColor: transferType === "RECEIVING" ? "#2563eb" : "#d1d5db",
+                  }}
+                >
+                  RECEIVING
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTransferType("SENDING")}
+                  className={`px-4 py-2 rounded-md font-medium text-sm transition-all ${
+                    transferType === "SENDING"
+                      ? "bg-green-600 text-white shadow-md"
+                      : "bg-white text-gray-700 border-2 border-gray-300 hover:border-gray-400"
+                  }`}
+                  style={{
+                    backgroundColor: transferType === "SENDING" ? "#16a34a" : "#ffffff",
+                    color: transferType === "SENDING" ? "#ffffff" : "#374151",
+                    borderColor: transferType === "SENDING" ? "#16a34a" : "#d1d5db",
+                  }}
+                >
+                  SENDING
+                </button>
+              </div>
+              <span className="text-xs text-gray-600 italic">
+                {transferType === "RECEIVING"
+                  ? "Receiving items from supplier or another location"
+                  : "Sending items to another location"}
+              </span>
+            </div>
+
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -338,69 +418,170 @@ export default function WaybillForm({
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="supplierName">Supplier Name *</Label>
-                <Input
-                  id="supplierName"
-                  value={formData.supplierName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      supplierName: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter supplier name"
-                  className={errors.supplierName ? "border-red-500" : ""}
-                />
-                {errors.supplierName && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.supplierName}
-                  </p>
-                )}
-              </div>
+              {/* RECEIVING Mode Fields */}
+              {transferType === "RECEIVING" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="supplierName">Supplier Name *</Label>
+                    <Input
+                      id="supplierName"
+                      value={formData.supplierName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          supplierName: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter supplier name"
+                      className={errors.supplierName ? "border-red-500" : ""}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#111827",
+                        borderColor: errors.supplierName ? "#ef4444" : "#d1d5db",
+                      }}
+                    />
+                    {errors.supplierName && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.supplierName}
+                      </p>
+                    )}
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="supplierContact">Supplier Contact</Label>
-                <Input
-                  id="supplierContact"
-                  value={formData.supplierContact}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      supplierContact: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter supplier contact"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="supplierContact">Supplier Contact</Label>
+                    <Input
+                      id="supplierContact"
+                      value={formData.supplierContact}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          supplierContact: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter supplier contact"
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#111827",
+                        borderColor: "#d1d5db",
+                      }}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="location">Destination Location *</Label>
-                <Select
-                  value={formData.locationId}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      locationId: e.target.value,
-                    }))
-                  }
-                  className={errors.locationId ? "border-red-500" : ""}
-                >
-                  <SelectItem value="">Select location</SelectItem>
-                  {locations.map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.name}
-                    </SelectItem>
-                  ))}
-                </Select>
-                {errors.locationId && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.locationId}
-                  </p>
-                )}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="location">
+                      Destination Location *
+                      {selectedLocationId && (
+                        <span className="text-xs text-blue-600 ml-2">(Auto-selected: Your Location)</span>
+                      )}
+                    </Label>
+                    <Select
+                      value={formData.locationId}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          locationId: e.target.value,
+                        }))
+                      }
+                      className={errors.locationId ? "border-red-500" : ""}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#111827",
+                        borderColor: errors.locationId ? "#ef4444" : "#9ca3af",
+                      }}
+                      disabled={!!selectedLocationId && availableLocations.length === 1}
+                    >
+                      <SelectItem value="">Select location</SelectItem>
+                      {(availableLocations.length > 0 ? availableLocations : locations).map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    {errors.locationId && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.locationId}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* SENDING Mode Fields */}
+              {transferType === "SENDING" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="sourceLocation">
+                      Source Location *
+                      {selectedLocationId && (
+                        <span className="text-xs text-green-600 ml-2">(Auto-selected: Your Location)</span>
+                      )}
+                    </Label>
+                    <Select
+                      value={formData.sourceLocationId}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          sourceLocationId: e.target.value,
+                        }))
+                      }
+                      className={errors.sourceLocationId ? "border-red-500" : ""}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#111827",
+                        borderColor: errors.sourceLocationId ? "#ef4444" : "#9ca3af",
+                      }}
+                      disabled={!!selectedLocationId && availableLocations.length === 1}
+                    >
+                      <SelectItem value="">Select source location</SelectItem>
+                      {(availableLocations.length > 0 ? availableLocations : locations).map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    {errors.sourceLocationId && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.sourceLocationId}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="destinationLocation">Destination Location *</Label>
+                    <Select
+                      value={formData.locationId}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          locationId: e.target.value,
+                        }))
+                      }
+                      className={errors.locationId ? "border-red-500" : ""}
+                      style={{
+                        backgroundColor: "#ffffff",
+                        color: "#111827",
+                        borderColor: errors.locationId ? "#ef4444" : "#9ca3af",
+                      }}
+                    >
+                      <SelectItem value="">Select destination location</SelectItem>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                    {errors.locationId && (
+                      <p className="text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        {errors.locationId}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-2">

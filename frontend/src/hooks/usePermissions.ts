@@ -11,12 +11,30 @@ export function usePermissions() {
 
   /**
    * Check if user has a specific permission
+   * Supports wildcards: "*" matches all, "customers:*" matches all customer permissions
    * @param permission - Permission string (e.g., "customers:view")
    * @returns true if user has the permission
    */
   const hasPermission = (permission: string): boolean => {
     if (!user || !permissions) return false;
-    return permissions.includes(permission);
+
+    // Check for exact match
+    if (permissions.includes(permission)) {
+      return true;
+    }
+
+    // Check for wildcard match (e.g., "customers:*" matches "customers:view")
+    const [resource, action] = permission.split(":");
+    if (resource && permissions.includes(`${resource}:*`)) {
+      return true;
+    }
+
+    // Check for global wildcard (Super Admin with "*" permission)
+    if (permissions.includes("*")) {
+      return true;
+    }
+
+    return false;
   };
 
   /**

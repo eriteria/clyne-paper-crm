@@ -25,6 +25,7 @@ import InvoiceDetailModal from "@/components/InvoiceDetailModal";
 import { Invoice } from "@/types";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Custom hook for debouncing
 function useDebounce<T>(value: T, delay: number): T {
@@ -44,6 +45,32 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function InvoicesPage() {
+  const { hasPermission } = usePermissions();
+  const router = useRouter();
+
+  // Check if user has permission to view invoices
+  if (!hasPermission("invoices:view")) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+          <div className="mb-4">
+            <FileText className="h-16 w-16 text-red-500 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to view invoices.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,7 +83,6 @@ export default function InvoicesPage() {
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
 
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   // Debounce custom dates to prevent excessive API calls
   const debouncedStartDate = useDebounce(customStartDate, 500);

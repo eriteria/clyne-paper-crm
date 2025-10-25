@@ -2,11 +2,20 @@ import express from "express";
 import { Request, Response } from "express";
 import { prisma } from "../server";
 import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
+import {
+  authenticate,
+  requirePermission,
+  type AuthenticatedRequest,
+} from "../middleware/auth";
+import { PERMISSIONS } from "../utils/permissions";
 
 const router = express.Router();
 
+// Apply authentication to all product routes
+router.use(authenticate);
+
 // Get all products with their groups and sales data
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", requirePermission(PERMISSIONS.PRODUCTS_VIEW), async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 50, search = "", groupId = "" } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
@@ -110,7 +119,7 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 // Get product by ID with detailed analytics
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", requirePermission(PERMISSIONS.PRODUCTS_VIEW), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -220,7 +229,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 // Create new product
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", requirePermission(PERMISSIONS.PRODUCTS_CREATE), async (req: Request, res: Response) => {
   try {
     const { name, productGroupId, monthlyTarget = 0 } = req.body;
 
@@ -280,7 +289,7 @@ router.post("/", async (req: Request, res: Response) => {
 });
 
 // Update product
-router.put("/:id", async (req: Request, res: Response) => {
+router.put("/:id", requirePermission(PERMISSIONS.PRODUCTS_EDIT), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, productGroupId, monthlyTarget } = req.body;
@@ -353,7 +362,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 });
 
 // Delete product
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", requirePermission(PERMISSIONS.PRODUCTS_DELETE), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -411,7 +420,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 });
 
 // Bulk import products
-router.post("/import", async (req: Request, res: Response) => {
+router.post("/import", requirePermission(PERMISSIONS.PRODUCTS_CREATE), async (req: Request, res: Response) => {
   try {
     const { products } = req.body;
 

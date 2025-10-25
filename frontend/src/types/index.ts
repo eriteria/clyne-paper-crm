@@ -19,6 +19,18 @@ export interface User {
       updatedAt?: string;
     };
   };
+  primaryLocationId?: string;
+  primaryLocation?: {
+    id: string;
+    name: string;
+  };
+  assignedLocations?: Array<{
+    locationId: string;
+    location: {
+      id: string;
+      name: string;
+    };
+  }>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -167,7 +179,11 @@ export interface InventoryItem {
   unitPrice: number;
   currentQuantity: number;
   minStock: number;
-  location?: string;
+  locationId: string;
+  location?: {
+    id: string;
+    name: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -261,12 +277,23 @@ export interface Waybill {
   date: string;
   supplier: string;
   locationId: string;
+  sourceLocationId?: string;
+  transferType: "RECEIVING" | "SENDING";
   status: "PENDING" | "PROCESSING" | "COMPLETED" | "REVIEW";
   processedAt?: string;
   processedBy?: string;
   receivedByUserId: string;
   notes?: string;
   createdAt: string;
+  destinationLocation?: {
+    id: string;
+    name: string;
+  };
+  sourceLocation?: {
+    id: string;
+    name: string;
+  };
+  // Legacy field for backward compatibility
   location?: {
     id: string;
     name: string;

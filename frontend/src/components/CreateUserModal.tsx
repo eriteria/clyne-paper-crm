@@ -19,6 +19,8 @@ interface CreateUserData {
   roleId: string;
   teamId?: string;
   regionId?: string;
+  primaryLocationId?: string;
+  assignedLocationIds?: string[];
 }
 
 export default function CreateUserModal({
@@ -34,6 +36,8 @@ export default function CreateUserModal({
     roleId: "",
     teamId: "",
     regionId: "",
+    primaryLocationId: "",
+    assignedLocationIds: [],
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,6 +71,15 @@ export default function CreateUserModal({
     },
   });
 
+  // Fetch locations
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await apiClient.get("/locations");
+      return response.data;
+    },
+  });
+
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserData) => {
@@ -83,6 +96,8 @@ export default function CreateUserModal({
         roleId: "",
         teamId: "",
         regionId: "",
+        primaryLocationId: "",
+        assignedLocationIds: [],
       });
       setErrors({});
       onSuccess();
@@ -135,6 +150,10 @@ export default function CreateUserModal({
       phone: formData.phone?.trim() || undefined,
       teamId: formData.teamId || undefined,
       regionId: formData.regionId || undefined,
+      primaryLocationId: formData.primaryLocationId || undefined,
+      assignedLocationIds: formData.assignedLocationIds && formData.assignedLocationIds.length > 0
+        ? formData.assignedLocationIds
+        : undefined,
     };
 
     createUserMutation.mutate(cleanedData);
@@ -154,9 +173,12 @@ export default function CreateUserModal({
 
   if (!isOpen) return null;
 
-  const roles = Array.isArray(rolesData?.data?.roles) ? rolesData.data.roles : [];
+  const roles = Array.isArray(rolesData?.data?.roles)
+    ? rolesData.data.roles
+    : [];
   const teams = Array.isArray(teamsData?.data) ? teamsData.data : [];
   const regions = Array.isArray(regionsData?.data) ? regionsData.data : [];
+  const locations = Array.isArray(locationsData?.data) ? locationsData.data : [];
 
   return (
     <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -367,6 +389,75 @@ export default function CreateUserModal({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Primary Location */}
+          <div>
+            <label
+              htmlFor="primaryLocationId"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Primary Location
+            </label>
+            <select
+              id="primaryLocationId"
+              name="primaryLocationId"
+              value={formData.primaryLocationId}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border-2 border-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              style={{
+                backgroundColor: "#ffffff",
+                color: "#111827",
+                borderColor: "#9ca3af",
+              }}
+            >
+              <option value="" style={{ color: "#6b7280" }}>Select primary location (optional)</option>
+              {locations.map((location: any) => (
+                <option key={location.id} value={location.id} style={{ color: "#111827" }}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-600">Main location for this user's operations</p>
+          </div>
+
+          {/* Additional Locations */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Additional Locations
+            </label>
+            <div className="border-2 border-gray-400 rounded-md p-3 max-h-48 overflow-y-auto bg-white">
+              {locations.length === 0 ? (
+                <p className="text-sm text-gray-500">No locations available</p>
+              ) : (
+                locations.map((location: any) => (
+                  <label
+                    key={location.id}
+                    className="flex items-center gap-2 py-2 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.assignedLocationIds?.includes(location.id) || false}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        setFormData((prev) => ({
+                          ...prev,
+                          assignedLocationIds: isChecked
+                            ? [...(prev.assignedLocationIds || []), location.id]
+                            : (prev.assignedLocationIds || []).filter((id) => id !== location.id),
+                        }));
+                      }}
+                      className="w-4 h-4 text-blue-600 border-2 border-gray-400 rounded focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        accentColor: "#2563eb",
+                      }}
+                    />
+                    <span className="text-sm text-gray-900 font-medium">{location.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <p className="mt-1 text-xs text-gray-600">User can access inventory at these locations</p>
           </div>
 
           {/* Action Buttons */}

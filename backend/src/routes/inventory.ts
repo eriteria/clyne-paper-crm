@@ -2,6 +2,7 @@ import express from "express";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import { getUserAccessibleLocationIds } from "../middleware/locationAccess";
 
 const router = express.Router();
 
@@ -13,18 +14,43 @@ router.get(
   authenticate,
   async (req: AuthenticatedRequest, res, next) => {
     try {
+      const { locationId } = req.query;
+      const accessibleLocations = await getUserAccessibleLocationIds(req.user);
+
+      // Build location filter
+      let locationFilter = "";
+      if (locationId && typeof locationId === "string") {
+        // Verify user has access to this location
+        if (
+          accessibleLocations !== "ALL" &&
+          !accessibleLocations.includes(locationId)
+        ) {
+          return res.status(403).json({
+            success: false,
+            error: "You do not have access to this location",
+          });
+        }
+        locationFilter = `AND location_id = '${locationId}'`;
+      } else if (accessibleLocations !== "ALL") {
+        // Filter by accessible locations
+        const locationIds = accessibleLocations.map((id) => `'${id}'`).join(",");
+        if (locationIds) {
+          locationFilter = `AND location_id IN (${locationIds})`;
+        }
+      }
+
       // Use raw SQL for the comparison since Prisma doesn't support field-to-field comparison
       const lowStockItems = await prisma.$queryRaw`
-      SELECT * FROM inventory_items 
-      WHERE current_quantity <= min_stock 
+      SELECT * FROM inventory_items
+      WHERE current_quantity <= min_stock ${locationFilter}
       ORDER BY current_quantity ASC, name ASC
-    `;
+    ` as any;
 
       res.json({
         success: true,
         data: {
           items: lowStockItems,
-          count: (lowStockItems as any[]).length,
+          count: lowStockItems.length,
         },
       });
     } catch (error) {
@@ -39,21 +65,40 @@ router.get(
 // @access  Private
 router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
-    const { page = 1, limit = 10, search, inStock, lowStock } = req.query;
+    const { page = 1, limit = 10, search, inStock, lowStock, locationId } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
+    const accessibleLocations = await getUserAccessibleLocationIds(req.user);
+
     // Build filters
     const where: any = {};
+
+    // Location filtering
+    if (locationId && typeof locationId === "string") {
+      // Verify user has access to this location
+      if (
+        accessibleLocations !== "ALL" &&
+        !accessibleLocations.includes(locationId)
+      ) {
+        return res.status(403).json({
+          success: false,
+          error: "You do not have access to this location",
+        });
+      }
+      where.locationId = locationId;
+    } else if (accessibleLocations !== "ALL") {
+      // Filter by accessible locations
+      where.locationId = { in: accessibleLocations };
+    }
 
     if (search) {
       where.OR = [
         { name: { contains: search as string, mode: "insensitive" } },
         { sku: { contains: search as string, mode: "insensitive" } },
         { description: { contains: search as string, mode: "insensitive" } },
-        { location: { contains: search as string, mode: "insensitive" } },
       ];
     }
 
@@ -64,7 +109,7 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
     if (lowStock === "true") {
       // For low stock filter, we need to fetch all items and filter in application
       // since Prisma doesn't support field-to-field comparison
-      const allItems = await prisma.inventoryItem.findMany();
+      const allItems = await prisma.inventoryItem.findMany({ where });
       const lowStockItemIds = allItems
         .filter(
           (item: any) =>
@@ -88,6 +133,12 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
                   name: true,
                 },
               },
+            },
+          },
+          location: {
+            select: {
+              id: true,
+              name: true,
             },
           },
         },

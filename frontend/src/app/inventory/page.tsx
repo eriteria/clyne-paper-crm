@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Package, Search, Trash2, FileText } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
+import { useLocation } from "@/contexts/LocationContext";
+import LocationSelector from "@/components/LocationSelector";
 
 interface InventoryItem {
   id: string;
@@ -16,7 +18,11 @@ interface InventoryItem {
   unitPrice: number;
   currentQuantity: number;
   minStock: number;
-  location: string;
+  locationId: string;
+  location?: {
+    id: string;
+    name: string;
+  };
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -26,6 +32,7 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const { selectedLocationId } = useLocation();
 
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -36,12 +43,13 @@ export default function InventoryPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["inventory", searchTerm, filterCategory, filterStatus],
+    queryKey: ["inventory", searchTerm, filterCategory, filterStatus, selectedLocationId],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
       if (filterCategory) params.append("category", filterCategory);
       if (filterStatus) params.append("status", filterStatus);
+      if (selectedLocationId) params.append("locationId", selectedLocationId);
 
       const response = await apiClient.get(`/inventory?${params}`);
       return response.data;
@@ -106,8 +114,11 @@ export default function InventoryPage() {
 
   return (
     <div className="p-6">
+      {/* Location Selector */}
+      <LocationSelector />
+
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 mt-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
             Inventory Management
@@ -265,7 +276,7 @@ export default function InventoryPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.location}
+                      {item.location?.name || "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">

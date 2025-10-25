@@ -4,6 +4,12 @@ import { prisma } from "../server";
 import { logger } from "../utils/logger";
 import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 import {
+  authenticate,
+  requirePermission,
+  type AuthenticatedRequest,
+} from "../middleware/auth";
+import { PERMISSIONS } from "../utils/permissions";
+import {
   clearDummyUsers,
   importUsers,
   normalizeZohoUserData,
@@ -14,10 +20,13 @@ import {
 
 const router = express.Router();
 
+// Apply authentication to all user routes
+router.use(authenticate);
+
 // @desc    Get all users
 // @route   GET /api/users
-// @access  Private (Admin/Manager)
-router.get("/", async (req, res, next) => {
+// @access  Private (requires users:view permission)
+router.get("/", requirePermission(PERMISSIONS.USERS_VIEW), async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -85,6 +94,22 @@ router.get("/", async (req, res, next) => {
             },
           },
           region: true,
+          primaryLocation: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          assignedLocations: {
+            include: {
+              location: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
         },
         skip,
         take: limitNum,
@@ -116,8 +141,8 @@ router.get("/", async (req, res, next) => {
 
 // @desc    Get user by ID
 // @route   GET /api/users/:id
-// @access  Private
-router.get("/:id", async (req, res, next) => {
+// @access  Private (requires users:view permission)
+router.get("/:id", requirePermission(PERMISSIONS.USERS_VIEW), async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -135,6 +160,22 @@ router.get("/:id", async (req, res, next) => {
           },
         },
         region: true,
+        primaryLocation: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        assignedLocations: {
+          include: {
+            location: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -161,10 +202,10 @@ router.get("/:id", async (req, res, next) => {
 
 // @desc    Create new user
 // @route   POST /api/users
-// @access  Private (Admin only)
-router.post("/", async (req, res, next) => {
+// @access  Private (requires users:create permission)
+router.post("/", requirePermission(PERMISSIONS.USERS_CREATE), async (req, res, next) => {
   try {
-    const { email, fullName, phone, password, roleId, teamId, regionId } =
+    const { email, fullName, phone, password, roleId, teamId, regionId, primaryLocationId, assignedLocationIds } =
       req.body;
 
     // Validate required fields
@@ -232,33 +273,118 @@ router.post("/", async (req, res, next) => {
       }
     }
 
+    // Validate primary location if provided
+    if (primaryLocationId) {
+      const location = await prisma.location.findUnique({
+        where: { id: primaryLocationId },
+      });
+
+      if (!location) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid primary location ID",
+        });
+        return;
+      }
+    }
+
+    // Validate assigned locations if provided
+    if (assignedLocationIds && Array.isArray(assignedLocationIds) && assignedLocationIds.length > 0) {
+      const locations = await prisma.location.findMany({
+        where: { id: { in: assignedLocationIds } },
+      });
+
+      if (locations.length !== assignedLocationIds.length) {
+        res.status(400).json({
+          success: false,
+          error: "One or more assigned location IDs are invalid",
+        });
+        return;
+      }
+    }
+
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        fullName,
-        phone,
-        passwordHash,
-        roleId,
-        teamId,
-        regionId,
-      },
-      include: {
-        role: true,
-        team: {
-          include: {
-            locations: {
-              include: {
-                location: true,
+    // Create user with transaction to handle location assignments
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email,
+          fullName,
+          phone,
+          passwordHash,
+          roleId,
+          teamId,
+          regionId,
+          primaryLocationId,
+        },
+        include: {
+          role: true,
+          team: {
+            include: {
+              locations: {
+                include: {
+                  location: true,
+                },
+              },
+            },
+          },
+          region: true,
+          primaryLocation: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      // Create location assignments if provided
+      if (assignedLocationIds && Array.isArray(assignedLocationIds) && assignedLocationIds.length > 0) {
+        await tx.userLocation.createMany({
+          data: assignedLocationIds.map((locationId: string) => ({
+            userId: newUser.id,
+            locationId,
+          })),
+        });
+      }
+
+      // Fetch user with all relations including assigned locations
+      const userWithLocations = await tx.user.findUnique({
+        where: { id: newUser.id },
+        include: {
+          role: true,
+          team: {
+            include: {
+              locations: {
+                include: {
+                  location: true,
+                },
+              },
+            },
+          },
+          region: true,
+          primaryLocation: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          assignedLocations: {
+            include: {
+              location: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
             },
           },
         },
-        region: true,
-      },
+      });
+
+      return userWithLocations!;
     });
 
     // Remove password hash from response
@@ -285,11 +411,11 @@ router.post("/", async (req, res, next) => {
 
 // @desc    Update user
 // @route   PUT /api/users/:id
-// @access  Private (Admin/Manager or own profile)
-router.put("/:id", async (req, res, next) => {
+// @access  Private (requires users:edit permission)
+router.put("/:id", requirePermission(PERMISSIONS.USERS_EDIT), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { email, fullName, phone, roleId, teamId, regionId, isActive } =
+    const { email, fullName, phone, roleId, teamId, regionId, isActive, primaryLocationId, assignedLocationIds } =
       req.body;
 
     // Check if user exists
@@ -320,6 +446,36 @@ router.put("/:id", async (req, res, next) => {
       }
     }
 
+    // Validate primary location if provided
+    if (primaryLocationId !== undefined && primaryLocationId !== null) {
+      const location = await prisma.location.findUnique({
+        where: { id: primaryLocationId },
+      });
+
+      if (!location) {
+        res.status(400).json({
+          success: false,
+          error: "Invalid primary location ID",
+        });
+        return;
+      }
+    }
+
+    // Validate assigned locations if provided
+    if (assignedLocationIds && Array.isArray(assignedLocationIds) && assignedLocationIds.length > 0) {
+      const locations = await prisma.location.findMany({
+        where: { id: { in: assignedLocationIds } },
+      });
+
+      if (locations.length !== assignedLocationIds.length) {
+        res.status(400).json({
+          success: false,
+          error: "One or more assigned location IDs are invalid",
+        });
+        return;
+      }
+    }
+
     // Prepare update data
     const updateData: any = {};
 
@@ -330,24 +486,87 @@ router.put("/:id", async (req, res, next) => {
     if (teamId !== undefined) updateData.teamId = teamId;
     if (regionId !== undefined) updateData.regionId = regionId;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (primaryLocationId !== undefined) updateData.primaryLocationId = primaryLocationId;
 
-    // Update user
-    const user = await prisma.user.update({
-      where: { id },
-      data: updateData,
-      include: {
-        role: true,
-        team: {
-          include: {
-            locations: {
-              include: {
-                location: true,
+    // Update user with transaction to handle location assignments
+    const user = await prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: { id },
+        data: updateData,
+        include: {
+          role: true,
+          team: {
+            include: {
+              locations: {
+                include: {
+                  location: true,
+                },
+              },
+            },
+          },
+          region: true,
+          primaryLocation: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      // Update location assignments if provided
+      if (assignedLocationIds !== undefined) {
+        // Delete existing location assignments
+        await tx.userLocation.deleteMany({
+          where: { userId: id },
+        });
+
+        // Create new location assignments
+        if (Array.isArray(assignedLocationIds) && assignedLocationIds.length > 0) {
+          await tx.userLocation.createMany({
+            data: assignedLocationIds.map((locationId: string) => ({
+              userId: id,
+              locationId,
+            })),
+          });
+        }
+      }
+
+      // Fetch user with all relations including assigned locations
+      const userWithLocations = await tx.user.findUnique({
+        where: { id },
+        include: {
+          role: true,
+          team: {
+            include: {
+              locations: {
+                include: {
+                  location: true,
+                },
+              },
+            },
+          },
+          region: true,
+          primaryLocation: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          assignedLocations: {
+            include: {
+              location: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
             },
           },
         },
-        region: true,
-      },
+      });
+
+      return userWithLocations!;
     });
 
     // Remove password hash from response
@@ -375,8 +594,8 @@ router.put("/:id", async (req, res, next) => {
 
 // @desc    Update user password
 // @route   PUT /api/users/:id/password
-// @access  Private (Admin or own profile)
-router.put("/:id/password", async (req, res, next) => {
+// @access  Private (requires users:edit permission)
+router.put("/:id/password", requirePermission(PERMISSIONS.USERS_EDIT), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
@@ -441,8 +660,8 @@ router.put("/:id/password", async (req, res, next) => {
 
 // @desc    Delete user
 // @route   DELETE /api/users/:id
-// @access  Private (Admin only)
-router.delete("/:id", async (req, res, next) => {
+// @access  Private (requires users:delete permission)
+router.delete("/:id", requirePermission(PERMISSIONS.USERS_DELETE), async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -481,8 +700,8 @@ router.delete("/:id", async (req, res, next) => {
 
 // @desc    Clear dummy user data
 // @route   POST /api/users/clear-dummy-data
-// @access  Private (Admin)
-router.post("/clear-dummy-data", async (req, res, next) => {
+// @access  Private (requires users:delete permission)
+router.post("/clear-dummy-data", requirePermission(PERMISSIONS.USERS_DELETE), async (req, res, next) => {
   try {
     const result = await clearDummyUsers();
     res.json({
@@ -497,8 +716,8 @@ router.post("/clear-dummy-data", async (req, res, next) => {
 
 // @desc    Import users from CSV data
 // @route   POST /api/users/import
-// @access  Private (Admin)
-router.post("/import", async (req, res, next) => {
+// @access  Private (requires users:create permission)
+router.post("/import", requirePermission(PERMISSIONS.USERS_CREATE), async (req, res, next) => {
   try {
     const { data, defaultPassword, clearData = false } = req.body;
 
@@ -538,8 +757,8 @@ router.post("/import", async (req, res, next) => {
 
 // @desc    Get user import template
 // @route   GET /api/users/import/template
-// @access  Private (Admin)
-router.get("/import/template", async (req, res, next) => {
+// @access  Private (requires users:view permission)
+router.get("/import/template", requirePermission(PERMISSIONS.USERS_VIEW), async (req, res, next) => {
   try {
     const template = getUserImportTemplate();
 
@@ -578,8 +797,8 @@ router.get("/roles", async (req, res, next) => {
 
 // @desc    Get user's role
 // @route   GET /api/users/:id/role
-// @access  Private
-router.get("/:id/role", async (req, res, next) => {
+// @access  Private (requires users:view permission)
+router.get("/:id/role", requirePermission(PERMISSIONS.USERS_VIEW), async (req, res, next) => {
   try {
     const { id } = req.params;
 

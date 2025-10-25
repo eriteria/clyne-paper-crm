@@ -1,6 +1,11 @@
 import express from "express";
 import { PrismaClient } from "@prisma/client";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  authenticate,
+  requirePermission,
+  AuthenticatedRequest,
+} from "../middleware/auth";
+import { PERMISSIONS } from "../utils/permissions";
 import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
 import multer from "multer";
 import csvParser from "csv-parser";
@@ -9,22 +14,20 @@ import { Readable } from "stream";
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Apply authentication to all admin routes
+router.use(authenticate);
+
 // Configure multer for CSV upload
 const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * GET /admin/roles - Get all roles with user counts
  */
-router.get("/roles", authenticate, async (req: AuthenticatedRequest, res) => {
-  try {
-    const userRole = req.user!.role;
-
-    // Check if user has admin permissions
-    if (userRole !== "Admin" && userRole !== "ADMIN") {
-      return res.status(403).json({
-        error: "Insufficient permissions. Only administrators can view roles.",
-      });
-    }
+router.get(
+  "/roles",
+  requirePermission(PERMISSIONS.ROLES_VIEW),
+  async (req: AuthenticatedRequest, res) => {
+    try {
 
     const roles = await prisma.role.findMany({
       include: {
@@ -55,20 +58,14 @@ router.get("/roles", authenticate, async (req: AuthenticatedRequest, res) => {
 /**
  * POST /admin/roles - Create a new role
  */
-router.post("/roles", authenticate, async (req: AuthenticatedRequest, res) => {
-  try {
-    const userId = req.user!.id;
-    const userRole = req.user!.role;
+router.post(
+  "/roles",
+  requirePermission(PERMISSIONS.ROLES_CREATE),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const userId = req.user!.id;
 
-    // Check if user has admin permissions
-    if (userRole !== "Admin" && userRole !== "ADMIN") {
-      return res.status(403).json({
-        error:
-          "Insufficient permissions. Only administrators can create roles.",
-      });
-    }
-
-    const { name, permissions } = req.body;
+      const { name, permissions } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -118,20 +115,11 @@ router.post("/roles", authenticate, async (req: AuthenticatedRequest, res) => {
  */
 router.patch(
   "/roles/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.ROLES_EDIT),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
       const roleId = req.params.id;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can update roles.",
-        });
-      }
 
       const { name, permissions } = req.body;
 
@@ -200,20 +188,11 @@ router.patch(
  */
 router.delete(
   "/roles/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.ROLES_DELETE),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
       const roleId = req.params.id;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can delete roles.",
-        });
-      }
 
       // Check if role exists
       const existingRole = await prisma.role.findUnique({
@@ -273,19 +252,12 @@ router.delete(
 /**
  * GET /admin/regions - Get all regions with counts
  */
-router.get("/regions", authenticate, async (req: AuthenticatedRequest, res) => {
-  try {
-    const userRole = req.user!.role;
-
-    // Check if user has admin permissions
-    if (userRole !== "Admin" && userRole !== "ADMIN") {
-      return res.status(403).json({
-        error:
-          "Insufficient permissions. Only administrators can view regions.",
-      });
-    }
-
-    const regions = await prisma.region.findMany({
+router.get(
+  "/regions",
+  requirePermission(PERMISSIONS.LOCATIONS_VIEW),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const regions = await prisma.region.findMany({
       include: {
         _count: {
           select: {
@@ -317,19 +289,10 @@ router.get("/regions", authenticate, async (req: AuthenticatedRequest, res) => {
  */
 router.post(
   "/regions",
-  authenticate,
+  requirePermission(PERMISSIONS.LOCATIONS_CREATE),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can create regions.",
-        });
-      }
 
       const { name } = req.body;
 
@@ -381,20 +344,11 @@ router.post(
  */
 router.patch(
   "/regions/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.LOCATIONS_EDIT),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
       const regionId = req.params.id;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can update regions.",
-        });
-      }
 
       const { name } = req.body;
 
@@ -461,20 +415,11 @@ router.patch(
  */
 router.delete(
   "/regions/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.LOCATIONS_DELETE),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
       const regionId = req.params.id;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can delete regions.",
-        });
-      }
 
       // Check if region exists
       const existingRegion = await prisma.region.findUnique({
@@ -531,19 +476,9 @@ router.delete(
  */
 router.get(
   "/locations",
-  authenticate,
+  requirePermission(PERMISSIONS.LOCATIONS_VIEW),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const userRole = req.user!.role;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can view locations.",
-        });
-      }
-
       const locations = await prisma.location.findMany({
         include: {
           _count: {
@@ -576,19 +511,10 @@ router.get(
  */
 router.post(
   "/locations",
-  authenticate,
+  requirePermission(PERMISSIONS.LOCATIONS_CREATE),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can create locations.",
-        });
-      }
 
       const { name, description } = req.body;
 
@@ -642,20 +568,11 @@ router.post(
  */
 router.patch(
   "/locations/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.LOCATIONS_EDIT),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
       const locationId = req.params.id;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can update locations.",
-        });
-      }
 
       const { name, description, isActive } = req.body;
 
@@ -726,20 +643,11 @@ router.patch(
  */
 router.delete(
   "/locations/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.LOCATIONS_DELETE),
   async (req: AuthenticatedRequest, res) => {
     try {
       const userId = req.user!.id;
-      const userRole = req.user!.role;
       const locationId = req.params.id;
-
-      // Check if user has admin permissions
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can delete locations.",
-        });
-      }
 
       // Check if location exists
       const existingLocation = await prisma.location.findUnique({
@@ -792,16 +700,11 @@ router.delete(
 /**
  * GET /admin/teams - Get all teams with location and member info
  */
-router.get("/teams", authenticate, async (req: AuthenticatedRequest, res) => {
+router.get(
+  "/teams",
+  requirePermission(PERMISSIONS.TEAMS_VIEW),
+  async (req: AuthenticatedRequest, res) => {
   try {
-    const userRole = req.user!.role;
-
-    if (userRole !== "Admin" && userRole !== "ADMIN") {
-      return res.status(403).json({
-        error: "Insufficient permissions. Only administrators can view teams.",
-      });
-    }
-
     const teams = await prisma.team.findMany({
       include: {
         locations: {
@@ -843,17 +746,12 @@ router.get("/teams", authenticate, async (req: AuthenticatedRequest, res) => {
 /**
  * POST /admin/teams - Create a new team
  */
-router.post("/teams", authenticate, async (req: AuthenticatedRequest, res) => {
+router.post(
+  "/teams",
+  requirePermission(PERMISSIONS.TEAMS_CREATE),
+  async (req: AuthenticatedRequest, res) => {
   try {
-    const userRole = req.user!.role;
     const userId = req.user!.id;
-
-    if (userRole !== "Admin" && userRole !== "ADMIN") {
-      return res.status(403).json({
-        error:
-          "Insufficient permissions. Only administrators can create teams.",
-      });
-    }
 
     const { name, description, locationId, leaderUserId } = req.body;
 
@@ -943,19 +841,11 @@ router.post("/teams", authenticate, async (req: AuthenticatedRequest, res) => {
  */
 router.patch(
   "/teams/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.TEAMS_EDIT),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const userRole = req.user!.role;
       const userId = req.user!.id;
       const teamId = req.params.id;
-
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can update teams.",
-        });
-      }
 
       const { name, description, locationId, leaderUserId } = req.body;
 
@@ -1059,19 +949,11 @@ router.patch(
  */
 router.delete(
   "/teams/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.TEAMS_DELETE),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const userRole = req.user!.role;
       const userId = req.user!.id;
       const teamId = req.params.id;
-
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can delete teams.",
-        });
-      }
 
       // Check if team exists and get member count
       const existingTeam = await prisma.team.findUnique({
@@ -1126,18 +1008,10 @@ router.delete(
  */
 router.get(
   "/teams/:id/members",
-  authenticate,
+  requirePermission(PERMISSIONS.TEAMS_VIEW),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const userRole = req.user!.role;
       const teamId = req.params.id;
-
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can view team members.",
-        });
-      }
 
       const team = await prisma.team.findUnique({
         where: { id: teamId },
@@ -1203,20 +1077,12 @@ router.get(
  */
 router.post(
   "/teams/:id/members",
-  authenticate,
+  requirePermission(PERMISSIONS.TEAMS_EDIT),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const userRole = req.user!.role;
       const userId = req.user!.id;
       const teamId = req.params.id;
       const { userIds } = req.body;
-
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can manage team members.",
-        });
-      }
 
       if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
         return res.status(400).json({
@@ -1271,20 +1137,12 @@ router.post(
  */
 router.delete(
   "/teams/:id/members/:userId",
-  authenticate,
+  requirePermission(PERMISSIONS.TEAMS_EDIT),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const userRole = req.user!.role;
       const adminUserId = req.user!.id;
       const teamId = req.params.id;
       const userIdToRemove = req.params.userId;
-
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can manage team members.",
-        });
-      }
 
       // Verify team exists
       const team = await prisma.team.findUnique({
@@ -1346,20 +1204,11 @@ router.delete(
  */
 router.post(
   "/opening-balance-import",
-  authenticate,
+  requirePermission(PERMISSIONS.CUSTOMERS_IMPORT),
   upload.single("csvFile"),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const userRole = req.user!.role;
       const userId = req.user!.id;
-
-      // Admin-only access
-      if (userRole !== "Admin" && userRole !== "ADMIN") {
-        return res.status(403).json({
-          error:
-            "Insufficient permissions. Only administrators can import opening balances.",
-        });
-      }
 
       if (!req.file) {
         return res.status(400).json({
@@ -1367,25 +1216,8 @@ router.post(
         });
       }
 
-      // Default location ID for new customers (you may want to make this configurable)
-      const defaultLocationId = req.body.defaultLocationId;
-
-      if (!defaultLocationId) {
-        return res.status(400).json({
-          error: "Default location ID is required for new customers",
-        });
-      }
-
-      // Verify location exists
-      const location = await prisma.location.findUnique({
-        where: { id: defaultLocationId },
-      });
-
-      if (!location) {
-        return res.status(404).json({
-          error: "Default location not found",
-        });
-      }
+      // Default location no longer required. If provided, it's ignored for import.
+      // Customers created via this import will have no location assigned initially.
 
       // Parse CSV
       const csvData: Array<{ name: string; balance: number }> = [];
@@ -1398,7 +1230,8 @@ router.post(
           .on("data", (row) => {
             // Parse the CSV row
             // Expected format: S/N, "Debtors closing Balances as at 23rd October, 2025", Closing Balance
-            const customerName = row["Debtors closing Balances as at 23rd October, 2025"]?.trim();
+            const customerName =
+              row["Debtors closing Balances as at 23rd October, 2025"]?.trim();
             const balanceStr = row["Closing Balance"]?.trim() || "0";
 
             if (customerName) {
@@ -1421,22 +1254,43 @@ router.post(
         customerBalances.set(normalizedName, currentBalance + balance);
       }
 
-      console.log(
-        `Consolidated to ${customerBalances.size} unique customers`
-      );
+      console.log(`Consolidated to ${customerBalances.size} unique customers`);
 
       // Start transaction
       const result = await prisma.$transaction(async (tx) => {
-        // STEP 1: Delete all payments and invoices
-        console.log("Deleting all payments and invoices...");
+        // STEP 1: Delete all related records in correct order (respecting foreign keys)
+        console.log("Deleting all related records...");
+
+        // Delete sales returns first (has FK to invoices)
+        const deletedSalesReturnItems = await tx.salesReturnItem.deleteMany({});
+        const deletedSalesReturns = await tx.salesReturn.deleteMany({});
+        console.log(
+          `Deleted ${deletedSalesReturnItems.count} sales return items`
+        );
+        console.log(`Deleted ${deletedSalesReturns.count} sales returns`);
+
+        // Delete invoice items (has FK to invoices)
+        const deletedInvoiceItems = await tx.invoiceItem.deleteMany({});
+        console.log(`Deleted ${deletedInvoiceItems.count} invoice items`);
+
+        // Delete payments (has FK to invoices)
         const deletedPayments = await tx.payment.deleteMany({});
         const deletedCustomerPayments = await tx.customerPayment.deleteMany({});
-        const deletedInvoices = await tx.invoice.deleteMany({});
-
         console.log(`Deleted ${deletedPayments.count} payments`);
         console.log(
           `Deleted ${deletedCustomerPayments.count} customer payments`
         );
+
+        // Delete credit applications (has FK to invoices)
+        const deletedCreditApplications = await tx.creditApplication.deleteMany(
+          {}
+        );
+        console.log(
+          `Deleted ${deletedCreditApplications.count} credit applications`
+        );
+
+        // Now safe to delete invoices
+        const deletedInvoices = await tx.invoice.deleteMany({});
         console.log(`Deleted ${deletedInvoices.count} invoices`);
 
         // STEP 2: Get all existing customers
@@ -1444,7 +1298,10 @@ router.post(
           select: { id: true, name: true, locationId: true },
         });
 
-        const customerMap = new Map<string, { id: string; locationId: string }>();
+        const customerMap = new Map<
+          string,
+          { id: string; locationId: string | null }
+        >();
         for (const customer of existingCustomers) {
           customerMap.set(customer.name.toUpperCase().trim(), {
             id: customer.id,
@@ -1472,14 +1329,17 @@ router.post(
             // Create new customer
             // Find original casing from CSV data
             const originalName =
-              csvData.find((d) => d.name.toUpperCase().trim() === normalizedName)
-                ?.name || normalizedName;
+              csvData.find(
+                (d) => d.name.toUpperCase().trim() === normalizedName
+              )?.name || normalizedName;
 
-            await tx.customer.create({
+            await (tx.customer.create as any)({
               data: {
                 name: originalName,
-                locationId: defaultLocationId,
+                // No locationId assigned at import time; can be edited later
                 openingBalance: balance,
+                // Satisfy older Prisma Client types; ignored at runtime
+                locationRef: undefined,
               },
             });
             createdCount++;
@@ -1490,8 +1350,12 @@ router.post(
         console.log(`Created ${createdCount} customers`);
 
         return {
+          deletedSalesReturnItems: deletedSalesReturnItems.count,
+          deletedSalesReturns: deletedSalesReturns.count,
+          deletedInvoiceItems: deletedInvoiceItems.count,
           deletedPayments: deletedPayments.count,
           deletedCustomerPayments: deletedCustomerPayments.count,
+          deletedCreditApplications: deletedCreditApplications.count,
           deletedInvoices: deletedInvoices.count,
           updatedCustomers: updatedCount,
           createdCustomers: createdCount,
@@ -1503,8 +1367,8 @@ router.post(
       await logCreate(userId, "OPENING_BALANCE_IMPORT", userId, {
         action: "OPENING_BALANCE_IMPORT",
         ...result,
-        importedBy: req.user!.fullName,
-        defaultLocation: location.name,
+        importedBy: req.user!.email,
+        defaultLocation: null,
       });
 
       res.json({

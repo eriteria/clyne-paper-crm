@@ -7,6 +7,7 @@ import {
   fetchZohoUserInfo,
 } from "../utils/zohoOAuth";
 import { logger } from "../utils/logger";
+import { parsePermissions } from "../utils/permissions";
 
 const router = express.Router();
 
@@ -128,13 +129,40 @@ router.get("/callback", async (req, res) => {
       path: "/",
     });
 
-    // Prepare user data for frontend
+    // Prepare user data for frontend (with full details including permissions)
+    const userWithRole = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        role: true,
+        team: {
+          include: {
+            locations: {
+              include: {
+                location: true,
+              },
+            },
+          },
+        },
+        region: true,
+      },
+    });
+
     const userData = {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
-      role: (await prisma.role.findUnique({ where: { id: user.roleId } }))
-        ?.name,
+      phone: user.phone,
+      role: userWithRole?.role.name || "USER",
+      roleId: userWithRole?.role.id,
+      permissions: parsePermissions(userWithRole?.role.permissions || "[]"),
+      team: userWithRole?.team
+        ? {
+            id: userWithRole.team.id,
+            name: userWithRole.team.name,
+            location: userWithRole.team.locations[0]?.location || null,
+          }
+        : null,
+      region: userWithRole?.region,
     };
 
     // Encode tokens and user data in URL for frontend to extract

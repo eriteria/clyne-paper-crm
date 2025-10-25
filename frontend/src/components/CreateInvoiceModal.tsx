@@ -16,6 +16,7 @@ import { apiClient } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import SearchableCustomerSelect from "./SearchableCustomerSelect";
 import { Customer } from "@/types";
+import { useLocation } from "@/contexts/LocationContext";
 
 interface InventoryItem {
   id: string;
@@ -24,7 +25,11 @@ interface InventoryItem {
   unit: string;
   unitPrice: number;
   currentQuantity: number;
-  location?: string;
+  locationId: string;
+  location?: {
+    id: string;
+    name: string;
+  };
   product?: {
     id: string;
     name: string;
@@ -73,6 +78,7 @@ export default function CreateInvoiceModal({
     discountAmount: number;
     action?: PostAction;
   };
+  const { selectedLocationId } = useLocation();
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
@@ -214,11 +220,15 @@ export default function CreateInvoiceModal({
     }
   }, [invoice, isOpen, customers]);
 
-  // Fetch inventory items for invoicing
+  // Fetch inventory items for invoicing (filtered by user's location)
   const { data: inventoryData } = useQuery({
-    queryKey: ["inventory", "for-invoicing"],
+    queryKey: ["inventory", "for-invoicing", selectedLocationId],
     queryFn: async () => {
-      const response = await apiClient.get("/inventory/for-invoicing");
+      const params = new URLSearchParams();
+      if (selectedLocationId) {
+        params.append("locationId", selectedLocationId);
+      }
+      const response = await apiClient.get(`/inventory/for-invoicing?${params.toString()}`);
       return response.data;
     },
     enabled: isOpen,
@@ -599,46 +609,71 @@ export default function CreateInvoiceModal({
                           onChange={(e) =>
                             updateItem(index, "inventoryItemId", e.target.value)
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black text-sm"
+                          className="w-full px-3 py-2 border-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          style={{
+                            backgroundColor: "#ffffff",
+                            color: "#111827",
+                            borderColor: "#9ca3af",
+                          }}
                           required
                         >
-                          <option value="">Select product</option>
+                          <option value="" style={{ color: "#6b7280" }}>Select product</option>
                           {inventoryItems.map(
-                            (inventoryItem: InventoryItem) => (
-                              <option
-                                key={inventoryItem.id}
-                                value={inventoryItem.id}
-                              >
-                                {inventoryItem.product?.productGroup?.name &&
-                                  `[${inventoryItem.product.productGroup.name}] `}
-                                {inventoryItem.product?.name ||
-                                  inventoryItem.name}{" "}
-                                ({inventoryItem.sku})
-                                {inventoryItem.location &&
-                                  ` - ${inventoryItem.location}`}{" "}
-                                - Available: {inventoryItem.currentQuantity}{" "}
-                                {inventoryItem.unit}
-                              </option>
-                            )
+                            (inventoryItem: InventoryItem) => {
+                              const hasStock = inventoryItem.currentQuantity > 0;
+                              return (
+                                <option
+                                  key={inventoryItem.id}
+                                  value={inventoryItem.id}
+                                  disabled={!hasStock}
+                                  style={{
+                                    color: hasStock ? "#111827" : "#9ca3af",
+                                    backgroundColor: hasStock ? "#ffffff" : "#f3f4f6",
+                                  }}
+                                >
+                                  {inventoryItem.product?.productGroup?.name &&
+                                    `[${inventoryItem.product.productGroup.name}] `}
+                                  {inventoryItem.product?.name ||
+                                    inventoryItem.name}{" "}
+                                  ({inventoryItem.sku})
+                                  {inventoryItem.location?.name &&
+                                    ` - ${inventoryItem.location.name}`}{" "}
+                                  - {hasStock ? "Available" : "OUT OF STOCK"}: {inventoryItem.currentQuantity}{" "}
+                                  {inventoryItem.unit}
+                                </option>
+                              );
+                            }
                           )}
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(
-                              index,
-                              "quantity",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black text-sm"
-                          required
-                        />
+                        <div>
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updateItem(
+                                index,
+                                "quantity",
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="w-full px-3 py-2 border-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            style={{
+                              backgroundColor: "#ffffff",
+                              color: "#111827",
+                              borderColor: item.inventoryItem && item.quantity > item.inventoryItem.currentQuantity ? "#ef4444" : "#9ca3af",
+                            }}
+                            required
+                          />
+                          {item.inventoryItem && item.quantity > item.inventoryItem.currentQuantity && (
+                            <p className="text-xs text-red-600 mt-1 font-semibold">
+                              Exceeds available stock ({item.inventoryItem.currentQuantity})
+                            </p>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <input
@@ -653,7 +688,12 @@ export default function CreateInvoiceModal({
                               parseFloat(e.target.value) || 0
                             )
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black text-sm"
+                          className="w-full px-3 py-2 border-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          style={{
+                            backgroundColor: "#ffffff",
+                            color: "#111827",
+                            borderColor: "#9ca3af",
+                          }}
                           required
                         />
                       </td>

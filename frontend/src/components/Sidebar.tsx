@@ -22,35 +22,50 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Customers", href: "/customers", icon: UserCheck },
-  { name: "Products", href: "/products", icon: ShoppingCart },
-  { name: "Inventory", href: "/inventory", icon: Package },
-  { name: "Invoices", href: "/invoices", icon: FileText },
-  { name: "Sales Returns", href: "/sales-returns", icon: RotateCcw },
-  { name: "Payments", href: "/payments", icon: CreditCard },
-  { name: "Financial", href: "/financial", icon: Calculator },
-  { name: "Reports", href: "/reports", icon: BarChart3 },
-  { name: "Users", href: "/users", icon: Users },
-  { name: "Teams", href: "/teams", icon: UsersIcon },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: null }, // Always visible
+  { name: "Customers", href: "/customers", icon: UserCheck, permission: "customers:view" },
+  { name: "Products", href: "/products", icon: ShoppingCart, permission: "products:view" },
+  { name: "Inventory", href: "/inventory", icon: Package, permission: "inventory:view" },
+  { name: "Invoices", href: "/invoices", icon: FileText, permission: "invoices:view" },
+  { name: "Sales Returns", href: "/sales-returns", icon: RotateCcw, permission: "returns:view" },
+  { name: "Payments", href: "/payments", icon: CreditCard, permission: "payments:view" },
+  { name: "Financial", href: "/financial", icon: Calculator, permission: "reports:view_financial" },
+  { name: "Reports", href: "/reports", icon: BarChart3, permission: "reports:view_dashboard" },
+  { name: "Users", href: "/users", icon: Users, permission: "users:view" },
+  { name: "Teams", href: "/teams", icon: UsersIcon, permission: "teams:view" },
+  { name: "Settings", href: "/settings", icon: Settings, permission: null }, // Always visible
 ];
 
-// Admin-only navigation items
+// Admin-only navigation items (require any roles permission)
 const adminNavigation = [
-  { name: "Administration", href: "/admin", icon: Shield },
+  { name: "Administration", href: "/admin", icon: Shield, permission: "roles:view" },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const { hasPermission } = usePermissions();
 
   const handleLogout = () => {
     logout();
   };
+
+  // Filter navigation items based on permissions
+  const visibleNavigation = navigation.filter((item) => {
+    // If no permission required, always show
+    if (item.permission === null) return true;
+    // Otherwise check if user has the permission
+    return hasPermission(item.permission);
+  });
+
+  const visibleAdminNavigation = adminNavigation.filter((item) => {
+    if (item.permission === null) return true;
+    return hasPermission(item.permission);
+  });
 
   return (
     <div
@@ -99,7 +114,7 @@ export default function Sidebar() {
         } pb-4 sidebar-scroll`}
       >
         <div className="space-y-1">
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const isActive = pathname === item.href;
 
             return (
@@ -133,8 +148,8 @@ export default function Sidebar() {
             );
           })}
 
-          {/* Admin-only navigation */}
-          {user?.role === "Admin" && (
+          {/* Admin navigation - shown only if user has permissions */}
+          {visibleAdminNavigation.length > 0 && (
             <>
               {!isCollapsed && (
                 <div className="border-t border-gray-200 my-4"></div>
@@ -142,7 +157,7 @@ export default function Sidebar() {
               {isCollapsed && (
                 <div className="border-t border-gray-200 my-2"></div>
               )}
-              {adminNavigation.map((item) => {
+              {visibleAdminNavigation.map((item) => {
                 const isActive =
                   pathname === item.href || pathname.startsWith(item.href);
 

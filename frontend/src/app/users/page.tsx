@@ -19,6 +19,8 @@ import {
 import { apiClient } from "@/lib/api";
 import EditUserModal from "@/components/EditUserModal";
 import CreateUserModal from "@/components/CreateUserModal";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useRouter } from "next/navigation";
 
 interface User {
   id: string;
@@ -47,6 +49,32 @@ interface User {
 }
 
 export default function UsersPage() {
+  const { hasPermission } = usePermissions();
+  const router = useRouter();
+
+  // Check if user has permission to view users
+  if (!hasPermission("users:view")) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+          <div className="mb-4">
+            <Users className="h-16 w-16 text-red-500 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to view users.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -190,13 +218,15 @@ export default function UsersPage() {
           <p className="text-gray-600 mt-1">Manage team members and access</p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Create User
-          </button>
+          {hasPermission("users:create") && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Create User
+            </button>
+          )}
           <button
             onClick={() =>
               queryClient.invalidateQueries({ queryKey: ["users"] })
@@ -315,40 +345,46 @@ export default function UsersPage() {
                 Joined {new Date(user.createdAt).toLocaleDateString()}
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setEditingUser(user)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                  title="Edit user"
-                >
-                  <Edit3 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() =>
-                    toggleStatusMutation.mutate({
-                      id: user.id,
-                      isActive: user.isActive,
-                    })
-                  }
-                  className={`p-2 rounded-lg transition ${
-                    user.isActive
-                      ? "text-red-600 hover:bg-red-50"
-                      : "text-green-600 hover:bg-green-50"
-                  }`}
-                  title={user.isActive ? "Deactivate user" : "Activate user"}
-                >
-                  {user.isActive ? (
-                    <UserX className="h-4 w-4" />
-                  ) : (
-                    <UserCheck className="h-4 w-4" />
-                  )}
-                </button>
-                <button
-                  onClick={() => deleteMutation.mutate(user.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                  title="Delete user"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {hasPermission("users:edit") && (
+                  <button
+                    onClick={() => setEditingUser(user)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                    title="Edit user"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </button>
+                )}
+                {hasPermission("users:edit") && (
+                  <button
+                    onClick={() =>
+                      toggleStatusMutation.mutate({
+                        id: user.id,
+                        isActive: user.isActive,
+                      })
+                    }
+                    className={`p-2 rounded-lg transition ${
+                      user.isActive
+                        ? "text-red-600 hover:bg-red-50"
+                        : "text-green-600 hover:bg-green-50"
+                    }`}
+                    title={user.isActive ? "Deactivate user" : "Activate user"}
+                  >
+                    {user.isActive ? (
+                      <UserX className="h-4 w-4" />
+                    ) : (
+                      <UserCheck className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+                {hasPermission("users:delete") && (
+                  <button
+                    onClick={() => deleteMutation.mutate(user.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                    title="Delete user"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

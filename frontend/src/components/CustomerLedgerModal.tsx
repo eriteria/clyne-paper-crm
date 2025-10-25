@@ -87,6 +87,7 @@ interface LedgerCredit {
 }
 
 interface LedgerSummary {
+  openingBalance: number;
   totalInvoiced: number;
   totalPaid: number;
   totalCredit: number;
@@ -233,7 +234,15 @@ const CustomerLedgerModal: React.FC<CustomerLedgerModalProps> = ({
               {activeTab === "overview" && (
                 <div className="space-y-6">
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-sm font-medium text-gray-600">
+                        Opening Balance
+                      </div>
+                      <div className="text-2xl font-bold text-gray-900">
+                        {formatCurrency(ledgerData.summary.openingBalance || 0)}
+                      </div>
+                    </div>
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <div className="text-sm font-medium text-blue-600">
                         Total Invoiced

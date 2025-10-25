@@ -10,8 +10,35 @@ import CreditManagementModal from "@/components/CreditManagementModal";
 import SearchBar from "@/components/SearchBar";
 import CustomersList from "@/components/CustomersList";
 import { Customer } from "@/types";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useRouter } from "next/navigation";
 
 export default function CustomersPage() {
+  const { hasPermission } = usePermissions();
+  const router = useRouter();
+
+  // Check if user has permission to view customers
+  if (!hasPermission("customers:view")) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+          <div className="mb-4">
+            <UserCheck className="h-16 w-16 text-red-500 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to view customers.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -58,20 +85,24 @@ export default function CustomersPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
-          >
-            <Receipt className="h-4 w-4" />
-            Record Payment
-          </button>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Customer
-          </button>
+          {hasPermission("payments:create") && (
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+            >
+              <Receipt className="h-4 w-4" />
+              Record Payment
+            </button>
+          )}
+          {hasPermission("customers:create") && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Customer
+            </button>
+          )}
         </div>
       </div>
 

@@ -3,8 +3,11 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, User, Activity, Download } from "lucide-react";
+import { Clock, User, Activity, Download, Shield } from "lucide-react";
 import { apiClient } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 interface AuditLog {
   id: string;
@@ -23,6 +26,10 @@ interface AuditLog {
 }
 
 export default function AdminPage() {
+  const { hasPermission } = usePermissions();
+  const { isLoading } = useAuth();
+  const router = useRouter();
+
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<{
     message: string;
@@ -33,6 +40,50 @@ export default function AdminPage() {
     message: string;
     type: "success" | "error" | "info";
   } | null>(null);
+
+  // Fetch recent audit logs
+  const { data: auditLogsData, isLoading: auditLogsLoading } = useQuery({
+    queryKey: ["audit-logs", "recent"],
+    queryFn: async () => {
+      const response = await apiClient.get("/audit-logs/recent?limit=10");
+      return response.data;
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Show loading state while auth is loading
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has permission to access admin features
+  if (!hasPermission("roles:view")) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+          <div className="mb-4">
+            <Shield className="h-16 w-16 text-red-500 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-6">
+            You don't have permission to access administration features.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleGoogleSheetsImport = async () => {
     if (isImporting) return;
@@ -125,16 +176,6 @@ export default function AdminPage() {
       setIsFixingPayments(false);
     }
   };
-
-  // Fetch recent audit logs
-  const { data: auditLogsData, isLoading: auditLogsLoading } = useQuery({
-    queryKey: ["audit-logs", "recent"],
-    queryFn: async () => {
-      const response = await apiClient.get("/audit-logs/recent?limit=10");
-      return response.data;
-    },
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
 
   const recentAuditLogs: AuditLog[] = auditLogsData?.data || [];
 
@@ -327,6 +368,28 @@ export default function AdminPage() {
               </h3>
               <p className="text-sm text-gray-500">
                 Create and manage user roles and permissions
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        {/* Opening Balance Import */}
+        <Link
+          href="/admin/opening-balance-import"
+          className="block p-6 bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200"
+        >
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-red-100 rounded-md flex items-center justify-center">
+                <span className="text-red-600 text-lg">💰</span>
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Opening Balance Import
+              </h3>
+              <p className="text-sm text-gray-500">
+                Import customer opening balances from CSV (Admin only)
               </p>
             </div>
           </div>

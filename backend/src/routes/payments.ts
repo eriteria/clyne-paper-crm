@@ -5,15 +5,23 @@ import {
   CreatePaymentRequest,
 } from "../services/paymentService";
 import { logCreate, logUpdate } from "../utils/auditLogger";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  authenticate,
+  requirePermission,
+  AuthenticatedRequest,
+} from "../middleware/auth";
+import { PERMISSIONS } from "../utils/permissions";
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Apply authentication to all payment routes
+router.use(authenticate);
+
 /**
  * GET /payments/summary - Get payment summary statistics
  */
-router.get("/summary", authenticate, async (req: AuthenticatedRequest, res) => {
+router.get("/summary", requirePermission(PERMISSIONS.PAYMENTS_VIEW), async (req: AuthenticatedRequest, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -97,7 +105,7 @@ router.get("/summary", authenticate, async (req: AuthenticatedRequest, res) => {
 /**
  * GET /payments/recent - Get recent payments
  */
-router.get("/recent", authenticate, async (req: AuthenticatedRequest, res) => {
+router.get("/recent", requirePermission(PERMISSIONS.PAYMENTS_VIEW), async (req: AuthenticatedRequest, res) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -183,7 +191,7 @@ router.get("/recent", authenticate, async (req: AuthenticatedRequest, res) => {
  */
 router.get(
   "/outstanding",
-  authenticate,
+  requirePermission(PERMISSIONS.PAYMENTS_VIEW),
   async (req: AuthenticatedRequest, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
@@ -261,7 +269,7 @@ router.get(
 /**
  * POST /payments - Record a customer payment
  */
-router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
+router.post("/", requirePermission(PERMISSIONS.PAYMENTS_CREATE), async (req: AuthenticatedRequest, res) => {
   try {
     const {
       customerId,
@@ -329,7 +337,7 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
  */
 router.get(
   "/customers/:customerId/payments",
-  authenticate,
+  requirePermission(PERMISSIONS.PAYMENTS_VIEW),
   async (req: AuthenticatedRequest, res) => {
     try {
       const { customerId } = req.params;
@@ -361,7 +369,7 @@ router.get(
  */
 router.get(
   "/customers/:customerId/credits",
-  authenticate,
+  requirePermission(PERMISSIONS.CREDITS_VIEW),
   async (req: AuthenticatedRequest, res) => {
     try {
       const { customerId } = req.params;
@@ -391,7 +399,7 @@ router.get(
  */
 router.post(
   "/credits/apply",
-  authenticate,
+  requirePermission(PERMISSIONS.CREDITS_CREATE),
   async (req: AuthenticatedRequest, res) => {
     try {
       const { creditId, invoiceId, amount } = req.body;

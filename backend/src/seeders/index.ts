@@ -10,7 +10,8 @@ async function main() {
   console.log("🌱 Starting database seeding...");
 
   // Create Roles using proper permission format
-  const adminRole = await prisma.role.upsert({
+  // Super Admin
+  const superAdminRole = await prisma.role.upsert({
     where: { name: DEFAULT_ROLES.SUPER_ADMIN.name },
     update: {
       permissions: stringifyPermissions(DEFAULT_ROLES.SUPER_ADMIN.permissions),
@@ -18,6 +19,18 @@ async function main() {
     create: {
       name: DEFAULT_ROLES.SUPER_ADMIN.name,
       permissions: stringifyPermissions(DEFAULT_ROLES.SUPER_ADMIN.permissions),
+    },
+  });
+
+  // Admin (explicit role separate from Super Admin)
+  const adminRole = await prisma.role.upsert({
+    where: { name: DEFAULT_ROLES.ADMIN.name },
+    update: {
+      permissions: stringifyPermissions(DEFAULT_ROLES.ADMIN.permissions),
+    },
+    create: {
+      name: DEFAULT_ROLES.ADMIN.name,
+      permissions: stringifyPermissions(DEFAULT_ROLES.ADMIN.permissions),
     },
   });
 
@@ -182,7 +195,8 @@ async function main() {
       email: "admin@clynepaper.com",
       phone: "+234-800-000-0001",
       passwordHash: hashedPassword,
-      roleId: adminRole.id,
+      // Keep Super Admin for the default bootstrap user
+      roleId: superAdminRole.id,
       regionId: abujaRegion!.id,
       isActive: true,
     },

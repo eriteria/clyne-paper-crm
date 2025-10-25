@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
@@ -14,14 +15,15 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const { user, isLoading } = useAuth();
+  const { hasPermission } = usePermissions();
   const { isCollapsed } = useSidebar();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && user && user.role !== "Admin" && user.role !== "ADMIN") {
+    if (!isLoading && user && !hasPermission("roles:view")) {
       router.push("/dashboard");
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, hasPermission, router]);
 
   if (isLoading) {
     return (
@@ -31,7 +33,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!user || user.role !== "Admin") {
+  if (!user || !hasPermission("roles:view")) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

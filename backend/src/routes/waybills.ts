@@ -1,6 +1,10 @@
 import express from "express";
 import { PrismaClient, WaybillStatus, WaybillItemStatus } from "@prisma/client";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  getUserAccessibleLocationIds,
+  getUserPrimaryLocationId,
+} from "../middleware/locationAccess";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -8,14 +12,39 @@ const prisma = new PrismaClient();
 // Get all waybills with pagination and filtering
 router.get("/", authenticate, async (req: AuthenticatedRequest, res) => {
   try {
-    const { page = 1, limit = 10, status, locationId, supplier } = req.query;
+    const { page = 1, limit = 10, status, locationId, supplier, transferType } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
+    const accessibleLocations = await getUserAccessibleLocationIds(req.user);
 
     const where: any = {};
     if (status) where.status = status;
-    if (locationId) where.locationId = locationId;
     if (supplier) where.supplier = { contains: supplier, mode: "insensitive" };
+    if (transferType) where.transferType = transferType;
+
+    // Location filtering
+    if (locationId && typeof locationId === "string") {
+      // Verify user has access to this location
+      if (
+        accessibleLocations !== "ALL" &&
+        !accessibleLocations.includes(locationId)
+      ) {
+        return res.status(403).json({
+          error: "You do not have access to this location",
+        });
+      }
+      // Show waybills where user's location is either source or destination
+      where.OR = [
+        { locationId: locationId },
+        { sourceLocationId: locationId },
+      ];
+    } else if (accessibleLocations !== "ALL") {
+      // Filter waybills where user's locations are involved
+      where.OR = [
+        { locationId: { in: accessibleLocations } },
+        { sourceLocationId: { in: accessibleLocations } },
+      ];
+    }
 
     const [waybills, total] = await Promise.all([
       prisma.waybill.findMany({
@@ -23,7 +52,8 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res) => {
         skip,
         take: Number(limit),
         include: {
-          location: true,
+          destinationLocation: { select: { id: true, name: true } },
+          sourceLocation: { select: { id: true, name: true } },
           receivedBy: { select: { id: true, fullName: true } },
           items: {
             include: {
@@ -57,7 +87,8 @@ router.get("/:id", authenticate, async (req: AuthenticatedRequest, res) => {
     const waybill = await prisma.waybill.findUnique({
       where: { id: req.params.id },
       include: {
-        location: true,
+        destinationLocation: { select: { id: true, name: true } },
+        sourceLocation: { select: { id: true, name: true } },
         receivedBy: { select: { id: true, fullName: true } },
         items: {
           include: {
@@ -69,6 +100,21 @@ router.get("/:id", authenticate, async (req: AuthenticatedRequest, res) => {
 
     if (!waybill) {
       return res.status(404).json({ error: "Waybill not found" });
+    }
+
+    // Verify user has access to this waybill's locations
+    const accessibleLocations = await getUserAccessibleLocationIds(req.user);
+    if (accessibleLocations !== "ALL") {
+      const hasAccess =
+        accessibleLocations.includes(waybill.locationId) ||
+        (waybill.sourceLocationId &&
+          accessibleLocations.includes(waybill.sourceLocationId));
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          error: "You do not have access to this waybill",
+        });
+      }
     }
 
     return res.json(waybill);
@@ -86,19 +132,52 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
       supplierName,
       supplierContact,
       locationId,
+      sourceLocationId,
+      transferType = "RECEIVING",
       notes,
       items,
     } = req.body;
 
     const userId = req.user!.id;
+    const userPrimaryLocation = await getUserPrimaryLocationId(req.user);
+    const accessibleLocations = await getUserAccessibleLocationIds(req.user);
 
-    // Validate location exists
+    // Validate transfer type and location access
+    if (transferType === "RECEIVING") {
+      // For receiving, destination should be user's location
+      if (accessibleLocations !== "ALL" && !accessibleLocations.includes(locationId)) {
+        return res.status(403).json({
+          error: "You can only receive waybills at your assigned locations",
+        });
+      }
+    } else if (transferType === "SENDING") {
+      // For sending, source should be user's location
+      if (!sourceLocationId) {
+        return res.status(400).json({ error: "Source location is required for transfers" });
+      }
+      if (accessibleLocations !== "ALL" && !accessibleLocations.includes(sourceLocationId)) {
+        return res.status(403).json({
+          error: "You can only send from your assigned locations",
+        });
+      }
+    }
+
+    // Validate locations exist
     const location = await prisma.location.findUnique({
       where: { id: locationId },
     });
 
     if (!location) {
-      return res.status(400).json({ error: "Invalid location" });
+      return res.status(400).json({ error: "Invalid destination location" });
+    }
+
+    if (sourceLocationId) {
+      const sourceLocation = await prisma.location.findUnique({
+        where: { id: sourceLocationId },
+      });
+      if (!sourceLocation) {
+        return res.status(400).json({ error: "Invalid source location" });
+      }
     }
 
     // Create waybill with items in transaction
@@ -106,9 +185,11 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
       const newWaybill = await tx.waybill.create({
         data: {
           waybillNumber,
-          supplier: supplierName, // Map supplierName to supplier field
-          date: new Date(), // Use current date for waybill creation
+          supplier: supplierName || "Internal Transfer",
+          date: new Date(),
           locationId,
+          sourceLocationId: sourceLocationId || null,
+          transferType,
           receivedByUserId: userId,
           notes,
           status: WaybillStatus.PENDING,

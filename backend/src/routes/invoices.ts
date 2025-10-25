@@ -2,7 +2,16 @@ import express from "express";
 import { prisma } from "../server";
 import { logger } from "../utils/logger";
 import { logCreate, logUpdate, logDelete } from "../utils/auditLogger";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  authenticate,
+  requirePermission,
+  AuthenticatedRequest,
+} from "../middleware/auth";
+import { PERMISSIONS } from "../utils/permissions";
+import {
+  getUserAccessibleLocationIds,
+  getUserPrimaryLocationId,
+} from "../middleware/locationAccess";
 import PDFDocument = require("pdfkit");
 import {
   ExcelInvoiceRow,
@@ -16,10 +25,13 @@ import {
 
 const router = express.Router();
 
+// Apply authentication to all invoice routes
+router.use(authenticate);
+
 // @desc    Get all invoices
 // @route   GET /api/invoices
-// @access  Private
-router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
+// @access  Private (requires invoices:view permission)
+router.get("/", requirePermission(PERMISSIONS.INVOICES_VIEW), async (req: AuthenticatedRequest, res, next) => {
   try {
     const {
       page = 1,
@@ -164,10 +176,10 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
 
 // @desc    Get invoice statistics
 // @route   GET /api/invoices/stats
-// @access  Private
+// @access  Private (requires invoices:view permission)
 router.get(
   "/stats",
-  authenticate,
+  requirePermission(PERMISSIONS.INVOICES_VIEW),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { search, status, dateRange, startDate, endDate, customerName } =
@@ -359,10 +371,10 @@ router.get(
 
 // @desc    Get single invoice
 // @route   GET /api/invoices/:id
-// @access  Private
+// @access  Private (requires invoices:view permission)
 router.get(
   "/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.INVOICES_VIEW),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
@@ -618,10 +630,10 @@ router.get(
 
 // @desc    Update invoice status
 // @route   PATCH /api/invoices/:id
-// @access  Private
+// @access  Private (requires invoices:edit permission)
 router.patch(
   "/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.INVOICES_EDIT),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
@@ -747,8 +759,8 @@ router.post(
 
 // @desc    Create new invoice
 // @route   POST /api/invoices
-// @access  Private
-router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
+// @access  Private (requires invoices:create permission)
+router.post("/", requirePermission(PERMISSIONS.INVOICES_CREATE), async (req: AuthenticatedRequest, res, next) => {
   try {
     const {
       customerId,
@@ -815,18 +827,53 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
       }
     }
 
-    // Validate inventory items (no stock check - allows selling out of stock items)
+    // Get user's accessible locations for stock validation
+    const accessibleLocations = await getUserAccessibleLocationIds(req.user);
+
+    // Validate inventory items with location-based stock check
     const inventoryChecks =
       items && Array.isArray(items) && items.length > 0
         ? await Promise.all(
             items.map(async (item: any) => {
               const inventoryItem = await prisma.inventoryItem.findUnique({
                 where: { id: item.inventoryItemId },
+                include: {
+                  location: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
               });
 
               if (!inventoryItem) {
                 throw new Error(
                   `Inventory item with ID ${item.inventoryItemId} not found`
+                );
+              }
+
+              // Verify user has access to this location
+              if (
+                accessibleLocations !== "ALL" &&
+                !accessibleLocations.includes(inventoryItem.locationId)
+              ) {
+                throw new Error(
+                  `You do not have access to add items from location "${inventoryItem.location.name}". You can only add items from your assigned locations.`
+                );
+              }
+
+              // Check if item has stock at this location
+              if (inventoryItem.currentQuantity <= 0) {
+                throw new Error(
+                  `Item "${inventoryItem.name}" has no stock available at location "${inventoryItem.location.name}". Current stock: ${inventoryItem.currentQuantity}`
+                );
+              }
+
+              // Check if there's enough stock for the requested quantity
+              if (inventoryItem.currentQuantity < item.quantity) {
+                throw new Error(
+                  `Insufficient stock for item "${inventoryItem.name}" at location "${inventoryItem.location.name}". Requested: ${item.quantity}, Available: ${inventoryItem.currentQuantity}`
                 );
               }
 
@@ -1036,10 +1083,10 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
 
 // @desc    Delete invoice
 // @route   DELETE /api/invoices/:id
-// @access  Private
+// @access  Private (requires invoices:delete permission)
 router.delete(
   "/:id",
-  authenticate,
+  requirePermission(PERMISSIONS.INVOICES_DELETE),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
@@ -1069,10 +1116,10 @@ router.delete(
 
 // @desc    Import invoices from Excel data
 // @route   POST /api/invoices/import
-// @access  Private
+// @access  Private (requires invoices:import permission)
 router.post(
   "/import",
-  authenticate,
+  requirePermission(PERMISSIONS.INVOICES_IMPORT),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { data } = req.body;
@@ -1135,10 +1182,10 @@ router.post(
 
 // @desc    Import invoices from JSON data (better currency handling)
 // @route   POST /api/invoices/import/json
-// @access  Private
+// @access  Private (requires invoices:import permission)
 router.post(
   "/import/json",
-  authenticate,
+  requirePermission(PERMISSIONS.INVOICES_IMPORT),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { data } = req.body;

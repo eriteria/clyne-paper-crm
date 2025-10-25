@@ -11,24 +11,15 @@ import { PERMISSIONS, type Permission } from "../utils/permissions";
 
 const router = express.Router();
 
-// Temporarily make customers route public by forcing the flag to true.
-// To revert, restore the original CUSTOMERS_PUBLIC logic above.
-const CUSTOMERS_PUBLIC = true;
-
-// No-op middleware when public
-const authOrPass = (_req: any, _res: any, next: any) => next();
-const requireOrPass = (_perm: Permission) => (_req: any, _res: any, next: any) =>
-  next();
-
-// Apply no-op auth to all routes
-router.use(authOrPass);
+// Apply authentication to all customer routes
+router.use(authenticate);
 
 // @desc    Get all customers
 // @route   GET /api/customers
 // @access  Private (requires customers:view permission)
 router.get(
   "/",
-  requireOrPass(PERMISSIONS.CUSTOMERS_VIEW),
+  requirePermission(PERMISSIONS.CUSTOMERS_VIEW),
   async (req, res, next) => {
     try {
       const { search, page = 1, limit = 50 } = req.query;
@@ -120,7 +111,7 @@ router.get(
 // @access  Private (requires customers:view permission)
 router.get(
   "/:id",
-  requireOrPass(PERMISSIONS.CUSTOMERS_VIEW),
+  requirePermission(PERMISSIONS.CUSTOMERS_VIEW),
   async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -188,7 +179,7 @@ router.get(
 // @access  Private (requires customers:create permission)
 router.post(
   "/",
-  requireOrPass(PERMISSIONS.CUSTOMERS_CREATE),
+  requirePermission(PERMISSIONS.CUSTOMERS_CREATE),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const {
@@ -307,7 +298,7 @@ router.post(
 // @access  Private (requires customers:edit permission)
 router.put(
   "/:id",
-  requireOrPass(PERMISSIONS.CUSTOMERS_EDIT),
+  requirePermission(PERMISSIONS.CUSTOMERS_EDIT),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
@@ -406,7 +397,7 @@ router.put(
 // @access  Private (requires customers:delete permission)
 router.delete(
   "/:id",
-  requireOrPass(PERMISSIONS.CUSTOMERS_DELETE),
+  requirePermission(PERMISSIONS.CUSTOMERS_DELETE),
   async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;

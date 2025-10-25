@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { SidebarProvider } from "@/hooks/useSidebar";
 import { LoadingProvider } from "@/hooks/useLoading";
 import { NotificationProvider } from "@/hooks/useNotificationCenter";
+import { LocationProvider } from "@/contexts/LocationContext";
 import ProgressBar from "@/components/ProgressBar";
 import LoadingIndicator from "@/components/LoadingIndicator";
 import "./globals.css";
@@ -52,12 +53,14 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
           <LoadingProvider>
             <AuthProvider>
-              <NotificationProvider>
-                <SidebarProvider>
-                  {children}
-                  <LoadingIndicator />
-                </SidebarProvider>
-              </NotificationProvider>
+              <LocationProvider>
+                <NotificationProvider>
+                  <SidebarProvider>
+                    {children}
+                    <LoadingIndicator />
+                  </SidebarProvider>
+                </NotificationProvider>
+              </LocationProvider>
             </AuthProvider>
           </LoadingProvider>
         </QueryClientProvider>

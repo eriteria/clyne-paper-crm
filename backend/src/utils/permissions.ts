@@ -76,6 +76,8 @@ export const PERMISSIONS = {
   INVENTORY_EDIT: "inventory:edit",
   INVENTORY_DELETE: "inventory:delete",
   INVENTORY_ADJUST: "inventory:adjust",
+  INVENTORY_VIEW_ALL_LOCATIONS: "inventory:view_all_locations",
+  INVENTORY_MANAGE_ALL_LOCATIONS: "inventory:manage_all_locations",
 
   // Waybill Management
   WAYBILLS_VIEW: "waybills:view",
@@ -99,6 +101,7 @@ export const PERMISSIONS = {
   // Reports
   REPORTS_VIEW_DASHBOARD: "reports:view_dashboard",
   REPORTS_VIEW_SALES: "reports:view_sales",
+  REPORTS_VIEW_FINANCIAL: "reports:view_financial",
   REPORTS_VIEW_AR_AGING: "reports:view_ar_aging",
   REPORTS_VIEW_OVERDUE: "reports:view_overdue",
   REPORTS_VIEW_PAYMENTS: "reports:view_payments",
@@ -245,7 +248,7 @@ export const PERMISSION_GROUPS = {
 export const DEFAULT_ROLES = {
   SUPER_ADMIN: {
     name: "Super Admin",
-    permissions: PERMISSION_GROUPS.ALL,
+    permissions: ["*" as Permission], // Wildcard grants all permissions
     description: "Full system access with all permissions",
   },
 
@@ -256,6 +259,8 @@ export const DEFAULT_ROLES = {
       ...PERMISSION_GROUPS.INVOICE_FULL,
       ...PERMISSION_GROUPS.PAYMENT_FULL,
       ...PERMISSION_GROUPS.USER_READONLY,
+      // Allow Admins to view roles (for roles management UI access)
+      PERMISSIONS.ROLES_VIEW,
       ...PERMISSION_GROUPS.PRODUCT_FULL,
       ...PERMISSION_GROUPS.INVENTORY_FULL,
       ...PERMISSION_GROUPS.REPORTS_ALL,
