@@ -25,7 +25,8 @@
     "sheets:import": "ts-node src/scripts/import-from-google-sheets.ts",
     "sheets:sync": "ts-node src/scripts/import-from-google-sheets.ts",
     "update-roles": "ts-node update-roles.ts",
-    "update-roles:prod": "ts-node update-production-roles.ts"
+    "update-roles:prod": "ts-node update-production-roles.ts",
+    "fix-admin-role": "ts-node src/scripts/fix-admin-role.ts"
   },
   "keywords": [
     "crm",
