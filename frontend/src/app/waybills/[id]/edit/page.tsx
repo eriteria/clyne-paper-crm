@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import WaybillForm from "@/components/admin/waybills/WaybillForm";
+import WaybillForm from "@/components/waybills/WaybillForm";
 import { Waybill } from "@/types/waybill";
 import { waybillService } from "@/lib/services/waybill";
 import { toast } from "@/lib/toast";
@@ -26,7 +26,7 @@ export default function EditWaybillPage() {
       } catch (error) {
         console.error("Error loading waybill:", error);
         toast.error("Failed to load waybill");
-        router.push("/admin/waybills");
+        router.push("/waybills");
       } finally {
         setLoading(false);
       }
@@ -39,11 +39,11 @@ export default function EditWaybillPage() {
 
   const handleSubmit = (updatedWaybill: Waybill) => {
     toast.success("Waybill updated successfully");
-    router.push(`/admin/waybills/${updatedWaybill.id}`);
+    router.push(`/waybills/${updatedWaybill.id}`);
   };
 
   const handleCancel = () => {
-    router.push(`/admin/waybills/${waybillId}`);
+    router.push(`/waybills/${waybillId}`);
   };
 
   if (loading) {
@@ -69,7 +69,7 @@ export default function EditWaybillPage() {
       <div className="flex items-center space-x-4">
         <Button
           variant="outline"
-          onClick={() => router.push(`/admin/waybills/${waybillId}`)}
+          onClick={() => router.push(`/waybills/${waybillId}`)}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Waybill

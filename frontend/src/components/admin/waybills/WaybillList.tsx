@@ -251,7 +251,7 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
                             variant="outline"
                             size="sm"
                             onClick={() =>
-                              router.push(`/admin/waybills/${waybill.id}`)
+                              router.push(`/waybills/${waybill.id}`)
                             }
                           >
                             <Eye className="w-4 h-4" />
@@ -289,7 +289,7 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
                                 onApproval
                                   ? onApproval(waybill.id)
                                   : router.push(
-                                      `/admin/waybills/${waybill.id}/review`
+                                      `/waybills/${waybill.id}/review`
                                     )
                               }
                               className="border-orange-500 text-orange-600 hover:bg-orange-50"

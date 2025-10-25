@@ -115,7 +115,7 @@ export default function WaybillDetailPage() {
               The waybill you&apos;re looking for doesn&apos;t exist or has been
               removed.
             </p>
-            <Button onClick={() => router.push("/admin/waybills")}>
+            <Button onClick={() => router.push("/waybills")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Waybills
             </Button>
@@ -132,7 +132,7 @@ export default function WaybillDetailPage() {
         <div className="flex items-center space-x-4">
           <Button
             variant="outline"
-            onClick={() => router.push("/admin/waybills")}
+            onClick={() => router.push("/waybills")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Waybills
@@ -155,7 +155,7 @@ export default function WaybillDetailPage() {
               <Button
                 variant="outline"
                 onClick={() =>
-                  router.push(`/admin/waybills/${waybill.id}/edit`)
+                  router.push(`/waybills/${waybill.id}/edit`)
                 }
               >
                 <Edit className="w-4 h-4 mr-2" />
@@ -171,7 +171,7 @@ export default function WaybillDetailPage() {
           {waybill.status === WaybillStatus.REVIEW && (
             <Button
               onClick={() =>
-                router.push(`/admin/waybills/${waybill.id}/review`)
+                router.push(`/waybills/${waybill.id}/review`)
               }
               className="bg-orange-600 hover:bg-orange-700"
             >

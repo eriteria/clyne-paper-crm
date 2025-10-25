@@ -130,7 +130,7 @@ export default function InventoryPage() {
         </div>
         <div className="flex flex-col items-end gap-2">
           <button
-            onClick={() => router.push("/admin/waybills?create=true")}
+            onClick={() => router.push("/waybills?create=true")}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
           >
             <FileText className="h-4 w-4" />
@@ -156,7 +156,7 @@ export default function InventoryPage() {
               system will add the items to your inventory.
             </p>
             <button
-              onClick={() => router.push("/admin/waybills")}
+              onClick={() => router.push("/waybills")}
               className="text-sm text-blue-800 hover:text-blue-900 underline mt-2"
             >
               Go to Waybill Management →
@@ -306,7 +306,7 @@ export default function InventoryPage() {
               Add inventory items by logging a waybill for received goods.
             </p>
             <button
-              onClick={() => router.push("/admin/waybills")}
+              onClick={() => router.push("/waybills")}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 mx-auto"
             >
               <FileText className="h-4 w-4" />

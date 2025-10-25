@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import WaybillApproval from "@/components/admin/waybills/WaybillApproval";
+import WaybillApproval from "@/components/waybills/WaybillApproval";
 
 export default function WaybillReviewPage() {
   const params = useParams();
@@ -11,11 +11,11 @@ export default function WaybillReviewPage() {
   const waybillId = params.id as string;
 
   const handleApprovalComplete = () => {
-    router.push(`/admin/waybills/${waybillId}`);
+    router.push(`/waybills/${waybillId}`);
   };
 
   const handleCancel = () => {
-    router.push(`/admin/waybills/${waybillId}`);
+    router.push(`/waybills/${waybillId}`);
   };
 
   return (
@@ -24,7 +24,7 @@ export default function WaybillReviewPage() {
       <div className="flex items-center space-x-4">
         <Button
           variant="outline"
-          onClick={() => router.push(`/admin/waybills/${waybillId}`)}
+          onClick={() => router.push(`/waybills/${waybillId}`)}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Waybill
