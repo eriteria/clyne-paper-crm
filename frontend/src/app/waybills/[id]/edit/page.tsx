@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import WaybillForm from "@/components/waybills/WaybillForm";
+import WaybillForm from "@/components/admin/waybills/WaybillForm";
 import { Waybill } from "@/types/waybill";
 import { waybillService } from "@/lib/services/waybill";
 import { toast } from "@/lib/toast";

@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import WaybillApproval from "@/components/waybills/WaybillApproval";
+import WaybillApproval from "@/components/admin/waybills/WaybillApproval";
 
 export default function WaybillReviewPage() {
   const params = useParams();

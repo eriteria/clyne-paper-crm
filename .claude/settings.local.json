@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx prisma migrate:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(flyctl deploy:*)",
+      "Bash(flyctl logs:*)"
     ],
     "deny": [],
     "ask": []

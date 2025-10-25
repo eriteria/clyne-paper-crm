@@ -1,6 +1,9 @@
 # Backend Dockerfile
 FROM node:18-alpine
 
+# Install PostgreSQL client for running SQL scripts
+RUN apk add --no-cache postgresql-client
+
 WORKDIR /app
 
 # Copy package files and prisma schema first
@@ -13,11 +16,13 @@ RUN npm install
 # Copy rest of backend code
 COPY . ./
 
+# Copy migration fix script
+COPY fix-migration.sql ./
+
 # Compile TypeScript to JavaScript
 RUN npx tsc --skipLibCheck --allowUnusedLabels true || echo "Compiled with errors"
 
 EXPOSE 8080
 
 # Run migrations and start server
-# Using db push instead of migrate deploy to handle schema drift
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
