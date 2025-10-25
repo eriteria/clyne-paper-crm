@@ -63,7 +63,6 @@ export default function WaybillForm({
   const [formData, setFormData] = useState({
     waybillNumber: initialData?.waybillNumber || "",
     supplierName: initialData?.supplier || "",
-    supplierContact: "", // This field is for creation only, not stored in Waybill
     locationId: initialData?.locationId || selectedLocationId || "",
     sourceLocationId: initialData?.sourceLocationId || "",
     notes: initialData?.notes || "",
@@ -220,7 +219,6 @@ export default function WaybillForm({
       const waybillData: CreateWaybillRequest = {
         waybillNumber: formData.waybillNumber,
         supplierName: transferType === "RECEIVING" ? formData.supplierName : "Internal Transfer",
-        supplierContact: formData.supplierContact,
         locationId: formData.locationId,
         sourceLocationId: transferType === "SENDING" ? formData.sourceLocationId : undefined,
         transferType,
@@ -430,7 +428,7 @@ export default function WaybillForm({
               {transferType === "RECEIVING" && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="supplierName">Supplier Name *</Label>
+                    <Label htmlFor="supplierName">Supplier / Source *</Label>
                     <Input
                       id="supplierName"
                       value={formData.supplierName}
@@ -440,7 +438,7 @@ export default function WaybillForm({
                           supplierName: e.target.value,
                         }))
                       }
-                      placeholder="Enter supplier name"
+                      placeholder="Enter supplier name or source location"
                       className={errors.supplierName ? "border-red-500" : ""}
                       style={{
                         backgroundColor: "#ffffff",
@@ -454,26 +452,9 @@ export default function WaybillForm({
                         {errors.supplierName}
                       </p>
                     )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="supplierContact">Supplier Contact</Label>
-                    <Input
-                      id="supplierContact"
-                      value={formData.supplierContact}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          supplierContact: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter supplier contact"
-                      style={{
-                        backgroundColor: "#ffffff",
-                        color: "#111827",
-                        borderColor: "#d1d5db",
-                      }}
-                    />
+                    <p className="text-xs text-gray-600 italic">
+                      📦 Enter the supplier name or source location for this waybill
+                    </p>
                   </div>
 
                   <div className="space-y-2">
