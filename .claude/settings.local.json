@@ -4,7 +4,8 @@
       "Bash(npx prisma migrate:*)",
       "Bash(git add:*)",
       "Bash(flyctl deploy:*)",
-      "Bash(flyctl logs:*)"
+      "Bash(flyctl logs:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
