@@ -480,8 +480,24 @@ function RoleFormModal({
   isLoading: boolean;
 }) {
   const [name, setName] = useState(role?.name || "");
+
+  // Ensure permissions is always an array, even if backend sends a string
+  const normalizePermissions = (perms: any): string[] => {
+    if (!perms) return [];
+    if (Array.isArray(perms)) return perms;
+    if (typeof perms === 'string') {
+      try {
+        const parsed = JSON.parse(perms);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
-    role?.permissions || []
+    normalizePermissions(role?.permissions)
   );
 
   const togglePermission = (permission: string) => {
