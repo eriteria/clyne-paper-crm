@@ -100,24 +100,27 @@ export default function WaybillForm({
     loadProducts();
   }, []);
 
-  // Auto-set location based on transfer type and user's location
+  // Auto-set location based on transfer type and user's primary location
   useEffect(() => {
-    if (selectedLocationId) {
+    // Use user's primary location if available, otherwise fall back to selectedLocationId
+    const defaultLocationId = user?.primaryLocationId || selectedLocationId;
+
+    if (defaultLocationId && !isEdit) {
       if (transferType === "RECEIVING") {
-        // For receiving, auto-set destination to user's location
+        // For receiving, auto-set destination to user's primary location
         setFormData((prev) => ({
           ...prev,
-          locationId: selectedLocationId,
+          locationId: defaultLocationId,
         }));
       } else if (transferType === "SENDING") {
-        // For sending, auto-set source to user's location
+        // For sending, auto-set source to user's primary location
         setFormData((prev) => ({
           ...prev,
-          sourceLocationId: selectedLocationId,
+          sourceLocationId: defaultLocationId,
         }));
       }
     }
-  }, [transferType, selectedLocationId]);
+  }, [transferType, user?.primaryLocationId, selectedLocationId, isEdit]);
 
   const loadLocations = async () => {
     try {
@@ -127,6 +130,28 @@ export default function WaybillForm({
       console.error("Error loading locations:", error);
       toast.error("Failed to load locations");
     }
+  };
+
+  // Get user's assigned locations for the dropdown
+  const getUserAssignedLocations = () => {
+    if (canManageMultipleLocations) {
+      // Admins can see all locations
+      return locations;
+    }
+
+    // For regular users, show only their assigned locations
+    if (user?.assignedLocations && user.assignedLocations.length > 0) {
+      const assignedLocationIds = user.assignedLocations.map(al => al.locationId);
+      return locations.filter(loc => assignedLocationIds.includes(loc.id));
+    }
+
+    // Fallback: if user has primary location but no assigned locations, show primary location
+    if (user?.primaryLocationId) {
+      return locations.filter(loc => loc.id === user.primaryLocationId);
+    }
+
+    // Last resort: use availableLocations from context
+    return availableLocations.length > 0 ? availableLocations : locations;
   };
 
   const loadProducts = async () => {
@@ -481,7 +506,7 @@ export default function WaybillForm({
                       disabled={!canManageMultipleLocations}
                     >
                       <SelectItem value="">Select location</SelectItem>
-                      {(availableLocations.length > 0 ? availableLocations : locations).map((location) => (
+                      {getUserAssignedLocations().map((location) => (
                         <SelectItem key={location.id} value={location.id}>
                           {location.name}
                         </SelectItem>
@@ -529,7 +554,7 @@ export default function WaybillForm({
                       disabled={!canManageMultipleLocations}
                     >
                       <SelectItem value="">Select source location</SelectItem>
-                      {(availableLocations.length > 0 ? availableLocations : locations).map((location) => (
+                      {getUserAssignedLocations().map((location) => (
                         <SelectItem key={location.id} value={location.id}>
                           {location.name}
                         </SelectItem>
@@ -566,7 +591,7 @@ export default function WaybillForm({
                       }}
                     >
                       <SelectItem value="">Select destination location</SelectItem>
-                      {locations.map((location) => (
+                      {getUserAssignedLocations().map((location) => (
                         <SelectItem key={location.id} value={location.id}>
                           {location.name}
                         </SelectItem>
