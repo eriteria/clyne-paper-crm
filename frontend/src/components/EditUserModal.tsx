@@ -25,6 +25,14 @@ interface User {
     id: string;
     name: string;
   };
+  primaryLocation?: {
+    id: string;
+    name: string;
+  };
+  assignedLocations?: Array<{
+    id: string;
+    name: string;
+  }>;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -49,6 +57,11 @@ interface Region {
   name: string;
 }
 
+interface Location {
+  id: string;
+  name: string;
+}
+
 interface EditUserModalProps {
   user: User;
   isOpen: boolean;
@@ -67,6 +80,8 @@ export default function EditUserModal({
     roleId: user.role.id,
     teamId: user.team?.id || "",
     regionId: user.region?.id || "",
+    primaryLocationId: user.primaryLocation?.id || "",
+    assignedLocationIds: user.assignedLocations?.map(loc => loc.id) || [],
     isActive: user.isActive,
     newPassword: "",
     confirmPassword: "",
@@ -85,6 +100,8 @@ export default function EditUserModal({
       roleId: user.role.id,
       teamId: user.team?.id || "",
       regionId: user.region?.id || "",
+      primaryLocationId: user.primaryLocation?.id || "",
+      assignedLocationIds: user.assignedLocations?.map(loc => loc.id) || [],
       isActive: user.isActive,
       newPassword: "",
       confirmPassword: "",
@@ -119,6 +136,15 @@ export default function EditUserModal({
     },
   });
 
+  // Fetch locations
+  const { data: locationsData } = useQuery({
+    queryKey: ["locations"],
+    queryFn: async () => {
+      const response = await apiClient.get("/locations");
+      return response.data;
+    },
+  });
+
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async (updateData: {
@@ -128,6 +154,8 @@ export default function EditUserModal({
       roleId: string;
       teamId: string | null;
       regionId: string | null;
+      primaryLocationId: string | null;
+      assignedLocationIds: string[];
       isActive: boolean;
     }) => {
       const response = await apiClient.put(`/users/${user.id}`, updateData);
@@ -213,6 +241,8 @@ export default function EditUserModal({
       roleId: formData.roleId,
       teamId: formData.teamId || null,
       regionId: formData.regionId || null,
+      primaryLocationId: formData.primaryLocationId || null,
+      assignedLocationIds: formData.assignedLocationIds,
       isActive: formData.isActive,
     };
 
@@ -227,7 +257,7 @@ export default function EditUserModal({
     }
   };
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: string, value: string | boolean | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear field error when user starts typing
     if (errors[field]) {
@@ -240,6 +270,7 @@ export default function EditUserModal({
   const roles: Role[] = rolesData?.data?.roles || [];
   const teams: Team[] = Array.isArray(teamsData?.data) ? teamsData.data : [];
   const regions: Region[] = regionsData?.data || [];
+  const locations: Location[] = locationsData?.data || [];
 
   return (
     <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -380,6 +411,93 @@ export default function EditUserModal({
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Location Assignment */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-base font-medium text-gray-900">
+                Location Assignment
+              </h4>
+
+              <div>
+                <label
+                  htmlFor="primaryLocationId"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Primary Location
+                </label>
+                <select
+                  id="primaryLocationId"
+                  name="primaryLocationId"
+                  value={formData.primaryLocationId}
+                  onChange={(e) =>
+                    handleInputChange("primaryLocationId", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900"
+                >
+                  <option value="">Select primary location (optional)</option>
+                  {locations.map((location: Location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  The main location where this user operates
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Additional Locations
+                </label>
+                <div className="border-2 border-gray-400 rounded-md p-3 max-h-48 overflow-y-auto bg-white">
+                  {locations.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      No locations available
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {locations.map((location: Location) => (
+                        <label
+                          key={location.id}
+                          className="flex items-center space-x-2 hover:bg-gray-50 p-2 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={
+                              formData.assignedLocationIds?.includes(
+                                location.id
+                              ) || false
+                            }
+                            onChange={(e) => {
+                              const currentIds = formData.assignedLocationIds || [];
+                              if (e.target.checked) {
+                                handleInputChange("assignedLocationIds", [
+                                  ...currentIds,
+                                  location.id,
+                                ]);
+                              } else {
+                                handleInputChange(
+                                  "assignedLocationIds",
+                                  currentIds.filter((id) => id !== location.id)
+                                );
+                              }
+                            }}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-900">
+                            {location.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Grant access to multiple locations for this user
+                </p>
               </div>
             </div>
 

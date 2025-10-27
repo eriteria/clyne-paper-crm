@@ -5,7 +5,8 @@
       "Bash(git add:*)",
       "Bash(flyctl deploy:*)",
       "Bash(flyctl logs:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
