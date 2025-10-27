@@ -14,6 +14,12 @@ interface Role {
     users: number;
   };
   userCount?: number;
+  users?: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    isActive: boolean;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -146,19 +152,32 @@ export default function RolesPage() {
   } = useQuery({
     queryKey: ["admin-roles"],
     queryFn: async () => {
-      const response = await apiClient.get("/admin/roles");
+      const response = await apiClient.get("/roles");
       return response.data;
     },
   });
 
   const roles: Role[] = rolesData?.data || [];
 
+  // Fetch detailed role data (including users) when a role is selected for editing
+  const { data: roleDetailsData } = useQuery({
+    queryKey: ["role-details", selectedRole?.id],
+    queryFn: async () => {
+      if (!selectedRole?.id) return null;
+      const response = await apiClient.get(`/roles/${selectedRole.id}`);
+      return response.data;
+    },
+    enabled: !!selectedRole?.id && showEditModal,
+  });
+
+  const roleWithUsers = roleDetailsData?.data || selectedRole;
+
   // Create role mutation
   const createRoleMutation = useMutation({
     mutationFn: async (data: { name: string; permissions: string[] }) => {
-      const response = await apiClient.post("/admin/roles", {
+      const response = await apiClient.post("/roles", {
         name: data.name,
-        permissions: JSON.stringify(data.permissions),
+        permissions: data.permissions,
       });
       return response.data;
     },
@@ -171,9 +190,9 @@ export default function RolesPage() {
   // Update role mutation
   const updateRoleMutation = useMutation({
     mutationFn: async (data: { id: string; name: string; permissions: string[] }) => {
-      const response = await apiClient.patch(`/admin/roles/${data.id}`, {
+      const response = await apiClient.put(`/roles/${data.id}`, {
         name: data.name,
-        permissions: JSON.stringify(data.permissions),
+        permissions: data.permissions,
       });
       return response.data;
     },
@@ -187,7 +206,7 @@ export default function RolesPage() {
   // Delete role mutation
   const deleteRoleMutation = useMutation({
     mutationFn: async (roleId: string) => {
-      const response = await apiClient.delete(`/admin/roles/${roleId}`);
+      const response = await apiClient.delete(`/roles/${roleId}`);
       return response.data;
     },
     onSuccess: () => {
@@ -399,7 +418,7 @@ export default function RolesPage() {
       {showEditModal && selectedRole && (
         <RoleFormModal
           mode="edit"
-          role={selectedRole}
+          role={roleWithUsers}
           onClose={() => {
             setShowEditModal(false);
             setSelectedRole(null);
@@ -666,6 +685,57 @@ function RoleFormModal({
                 })}
               </div>
             </div>
+
+            {/* Users with this role - Only show in edit mode */}
+            {mode === "edit" && role?.users && role.users.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Users with this role ({role.users.length})
+                  </label>
+                </div>
+                <div className="border border-gray-200 rounded-lg divide-y divide-gray-200 max-h-60 overflow-y-auto">
+                  {role.users.map((user) => (
+                    <div
+                      key={user.id}
+                      className="px-4 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {user.fullName}
+                          </p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
+                        </div>
+                        <div>
+                          {user.isActive ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {mode === "edit" && role?.users && role.users.length === 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Users with this role
+                </label>
+                <div className="border border-gray-200 rounded-lg px-4 py-8 text-center">
+                  <Users className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No users assigned to this role</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3 sticky bottom-0 bg-white">
