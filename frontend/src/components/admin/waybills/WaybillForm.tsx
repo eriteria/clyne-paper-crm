@@ -605,6 +605,7 @@ export default function WaybillForm({
                 }
                 placeholder="Enter any additional notes"
                 rows={3}
+                className="text-gray-900 font-medium"
               />
             </div>
 
@@ -715,7 +716,7 @@ export default function WaybillForm({
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-3 bg-gray-50 rounded-md">
                         <div className="space-y-1">
                           <Label className="text-sm text-gray-900 font-semibold">SKU</Label>
-                          <p className="text-sm font-mono bg-white p-2 rounded border">
+                          <p className="text-sm font-mono font-semibold text-gray-900 bg-white p-2 rounded border">
                             {item.sku}
                           </p>
                         </div>
@@ -723,13 +724,13 @@ export default function WaybillForm({
                           <Label className="text-sm text-gray-900 font-semibold">
                             Product Name
                           </Label>
-                          <p className="text-sm bg-white p-2 rounded border">
+                          <p className="text-sm font-semibold text-gray-900 bg-white p-2 rounded border">
                             {item.name}
                           </p>
                         </div>
                         <div className="space-y-1">
                           <Label className="text-sm text-gray-900 font-semibold">Unit</Label>
-                          <p className="text-sm bg-white p-2 rounded border">
+                          <p className="text-sm font-semibold text-gray-900 bg-white p-2 rounded border">
                             {item.unit}
                           </p>
                         </div>
@@ -801,6 +802,7 @@ export default function WaybillForm({
                         }
                         placeholder="Enter product description"
                         rows={2}
+                        className="text-gray-900 font-medium"
                       />
                     </div>
 
@@ -813,6 +815,7 @@ export default function WaybillForm({
                         }
                         placeholder="Enter any item-specific notes"
                         rows={2}
+                        className="text-gray-900 font-medium"
                       />
                     </div>
                   </Card>
