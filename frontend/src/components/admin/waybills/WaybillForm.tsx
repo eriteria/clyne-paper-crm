@@ -591,17 +591,15 @@ export default function WaybillForm({
                       }}
                     >
                       <SelectItem value="">Select destination location</SelectItem>
-                      {getUserAssignedLocations().map((location) => (
+                      {locations.map((location) => (
                         <SelectItem key={location.id} value={location.id}>
                           {location.name}
                         </SelectItem>
                       ))}
                     </Select>
-                    {!canManageMultipleLocations && (
-                      <p className="text-xs text-gray-600 italic">
-                        ✈️ Choose where to send the items
-                      </p>
-                    )}
+                    <p className="text-xs text-gray-600 italic">
+                      ✈️ Choose where to send the items (all locations available)
+                    </p>
                     {errors.locationId && (
                       <p className="text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle className="h-4 w-4" />
