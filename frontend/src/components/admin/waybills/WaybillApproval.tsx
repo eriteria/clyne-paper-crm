@@ -233,9 +233,14 @@ export default function WaybillApproval({
             </div>
             <div>
               <Label className="text-sm font-medium text-gray-700">
-                Location
+                {waybill.transferType === "SENDING" ? "Source Location" : "Destination Location"}
               </Label>
-              <p className="font-medium">{waybill.location.name}</p>
+              <p className="font-medium">
+                {waybill.transferType === "SENDING"
+                  ? (waybill.sourceLocation?.name || "No location")
+                  : (waybill.destinationLocation?.name || waybill.location?.name || "No location")
+                }
+              </p>
             </div>
             <div>
               <Label className="text-sm font-medium text-gray-700">Date</Label>
@@ -253,7 +258,7 @@ export default function WaybillApproval({
           {waybill.notes && (
             <div className="mt-4">
               <Label className="text-sm font-medium text-gray-700">Notes</Label>
-              <p className="text-sm text-gray-800">{waybill.notes}</p>
+              <p className="text-sm text-gray-900">{waybill.notes}</p>
             </div>
           )}
         </CardContent>
@@ -280,7 +285,7 @@ export default function WaybillApproval({
                       <span className="font-medium">{item.name}</span>
                       {getItemStatusBadge(item.status)}
                     </div>
-                    <div className="text-sm text-gray-700 mt-1">
+                    <div className="text-sm text-gray-800 mt-1 font-medium">
                       SKU: {item.sku} • {item.quantityReceived} {item.unit} • ₦
                       {Number(item.unitCost).toFixed(2)} each
                     </div>
@@ -300,7 +305,7 @@ export default function WaybillApproval({
               <AlertCircle className="h-5 w-5 text-red-600" />
               New Products Requiring Approval ({newProductItems.length})
             </CardTitle>
-            <div className="flex items-center gap-2 text-sm text-gray-700">
+            <div className="flex items-center gap-2 text-sm text-gray-800 font-medium">
               <Info className="h-4 w-4" />
               These products are new to the system and require review before
               adding to inventory

@@ -269,13 +269,11 @@ export default function EditUserModal({
   if (!isOpen) return null;
 
   // Parse roles - handle both possible response structures
-  console.log('Roles data:', rolesData); // Debug log
   const roles: Role[] = Array.isArray(rolesData?.data?.roles)
     ? rolesData.data.roles
     : Array.isArray(rolesData?.data)
     ? rolesData.data
     : [];
-  console.log('Parsed roles:', roles); // Debug log
   const teams: Team[] = Array.isArray(teamsData?.data) ? teamsData.data : [];
   const regions: Region[] = Array.isArray(regionsData?.data) ? regionsData.data : [];
   const locations: Location[] = Array.isArray(locationsData?.data) ? locationsData.data : [];

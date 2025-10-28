@@ -334,7 +334,8 @@ router.post(
         where: { id: waybillId },
         include: {
           items: true,
-          location: true,
+          destinationLocation: true,
+          sourceLocation: true,
         },
       });
 
@@ -592,7 +593,8 @@ router.get(
       const waybills = await prisma.waybill.findMany({
         where: { status: WaybillStatus.REVIEW },
         include: {
-          location: true,
+          destinationLocation: true,
+          sourceLocation: true,
           receivedBy: { select: { id: true, fullName: true } },
           items: {
             where: { status: WaybillItemStatus.NEW_PRODUCT },

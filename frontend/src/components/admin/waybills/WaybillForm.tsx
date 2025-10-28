@@ -418,7 +418,7 @@ export default function WaybillForm({
                   SENDING
                 </button>
               </div>
-              <span className="text-xs text-gray-600 italic">
+              <span className="text-xs text-gray-700 italic font-medium">
                 {transferType === "RECEIVING"
                   ? "Receiving items from supplier or another location"
                   : "Sending items to another location"}
@@ -477,7 +477,7 @@ export default function WaybillForm({
                         {errors.supplierName}
                       </p>
                     )}
-                    <p className="text-xs text-gray-600 italic">
+                    <p className="text-xs text-gray-700 italic font-medium">
                       📦 Enter the supplier name or source location for this waybill
                     </p>
                   </div>
@@ -506,7 +506,7 @@ export default function WaybillForm({
                         </SelectItem>
                       ))}
                     </Select>
-                    <p className="text-xs text-gray-600 italic">
+                    <p className="text-xs text-gray-700 italic font-medium">
                       📍 Pre-filled with your primary location
                     </p>
                     {errors.locationId && (
@@ -546,7 +546,7 @@ export default function WaybillForm({
                         </SelectItem>
                       ))}
                     </Select>
-                    <p className="text-xs text-gray-600 italic">
+                    <p className="text-xs text-gray-700 italic font-medium">
                       📍 Pre-filled with your primary location
                     </p>
                     {errors.sourceLocationId && (
@@ -581,7 +581,7 @@ export default function WaybillForm({
                         </SelectItem>
                       ))}
                     </Select>
-                    <p className="text-xs text-gray-600 italic">
+                    <p className="text-xs text-gray-700 italic font-medium">
                       ✈️ Choose where to send the items (all locations available)
                     </p>
                     {errors.locationId && (
@@ -714,13 +714,13 @@ export default function WaybillForm({
                     {item.productId && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-3 bg-gray-50 rounded-md">
                         <div className="space-y-1">
-                          <Label className="text-sm text-gray-800">SKU</Label>
+                          <Label className="text-sm text-gray-900 font-semibold">SKU</Label>
                           <p className="text-sm font-mono bg-white p-2 rounded border">
                             {item.sku}
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-sm text-gray-800">
+                          <Label className="text-sm text-gray-900 font-semibold">
                             Product Name
                           </Label>
                           <p className="text-sm bg-white p-2 rounded border">
@@ -728,7 +728,7 @@ export default function WaybillForm({
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-sm text-gray-800">Unit</Label>
+                          <Label className="text-sm text-gray-900 font-semibold">Unit</Label>
                           <p className="text-sm bg-white p-2 rounded border">
                             {item.unit}
                           </p>

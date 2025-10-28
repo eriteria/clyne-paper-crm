@@ -20,7 +20,29 @@ import {
 
 const router = express.Router();
 
-// Apply authentication to all user routes
+// @desc    Get all roles
+// @route   GET /api/users/roles
+// @access  Public (for dropdowns)
+router.get("/roles", async (req, res, next) => {
+  try {
+    const roles = await prisma.role.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: { name: "asc" },
+    });
+
+    return res.json({
+      success: true,
+      data: { roles },
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// Apply authentication to all other user routes
 router.use(authenticate);
 
 // @desc    Get all users
@@ -767,28 +789,6 @@ router.get("/import/template", requirePermission(PERMISSIONS.USERS_VIEW), async 
       template,
       message:
         "User import template with sample data. The 'Role' and 'Last login time' fields will be ignored during import.",
-    });
-  } catch (error) {
-    return next(error);
-  }
-});
-
-// @desc    Get all roles
-// @route   GET /api/users/roles
-// @access  Public (for dropdowns)
-router.get("/roles", async (req, res, next) => {
-  try {
-    const roles = await prisma.role.findMany({
-      select: {
-        id: true,
-        name: true,
-      },
-      orderBy: { name: "asc" },
-    });
-
-    return res.json({
-      success: true,
-      data: { roles },
     });
   } catch (error) {
     return next(error);
