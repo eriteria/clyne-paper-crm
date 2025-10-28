@@ -463,9 +463,9 @@ export default function CreateInvoiceModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+    <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-[98vw] md:max-w-2xl lg:max-w-4xl xl:max-w-6xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
             <FileText className="w-6 h-6 text-blue-600" />
             <h2 className="text-xl font-semibold text-gray-900">

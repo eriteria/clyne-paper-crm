@@ -14,6 +14,12 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { Customer } from "@/types";
+import {
+  ResponsiveTable,
+  ResponsiveTableColumn,
+  ExpandableMobileCard,
+  MobileCardRow,
+} from "@/components/ui/ResponsiveTable";
 
 interface CustomerWithCount extends Customer {
   _count?: {
@@ -119,6 +125,218 @@ export default function CustomersList({
     );
   }
 
+  // Define table columns
+  const columns: ResponsiveTableColumn<CustomerWithCount>[] = [
+    {
+      header: "Customer",
+      accessor: (customer) => (
+        <div className="flex items-center">
+          <div className="bg-blue-100 rounded-full p-2 mr-3">
+            <UserIcon className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <div className="font-medium text-gray-900">{customer.name}</div>
+            {customer.contactPerson && (
+              <div className="text-sm text-gray-500">
+                Contact: {customer.contactPerson}
+              </div>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Location",
+      accessor: (customer) =>
+        customer.address ? (
+          <div className="flex items-center text-sm text-gray-900">
+            <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+            {customer.address}
+          </div>
+        ) : (
+          <span className="text-xs text-gray-400">-</span>
+        ),
+      hideOnMobile: true,
+    },
+    {
+      header: "Team",
+      accessor: (customer) =>
+        customer.team ? (
+          <div className="flex items-center text-sm text-gray-900">
+            <Users className="h-4 w-4 mr-1 text-gray-400" />
+            <div>
+              <div className="font-medium">{customer.team.name}</div>
+              {customer.team.description && (
+                <div className="text-xs text-gray-500">
+                  {customer.team.description}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <span className="text-xs text-gray-400">No team assigned</span>
+        ),
+      hideOnMobile: true,
+    },
+    {
+      header: "Relationship Manager",
+      accessor: (customer) => (
+        <span className="text-sm text-gray-900">
+          {getRelationshipManagerName(customer)}
+        </span>
+      ),
+      hideOnMobile: true,
+    },
+    {
+      header: "Invoices",
+      accessor: (customer) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          {customer._count?.invoices || 0} invoices
+        </span>
+      ),
+    },
+    {
+      header: "Created",
+      accessor: (customer) => (
+        <div className="flex items-center text-sm text-gray-500">
+          <Calendar className="h-3 w-3 mr-1" />
+          {new Date(customer.createdAt).toLocaleDateString()}
+        </div>
+      ),
+      hideOnMobile: true,
+    },
+    {
+      header: "Actions",
+      accessor: (customer) => (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewCustomer(customer);
+            }}
+            className="text-blue-600 hover:text-blue-900 p-2 md:p-1 rounded transition-colors"
+            title="View customer"
+          >
+            <Eye className="h-5 w-5 md:h-4 md:w-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditCustomer(customer);
+            }}
+            className="text-green-600 hover:text-green-900 p-2 md:p-1 rounded transition-colors"
+            title="Edit customer"
+          >
+            <Edit className="h-5 w-5 md:h-4 md:w-4" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteCustomer(customer.id, customer.name);
+            }}
+            className="text-red-600 hover:text-red-900 p-2 md:p-1 rounded transition-colors"
+            title="Delete customer"
+          >
+            <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
+          </button>
+        </div>
+      ),
+      headerClassName: "text-right",
+    },
+  ];
+
+  // Mobile card renderer
+  const renderMobileCard = (customer: CustomerWithCount) => (
+    <ExpandableMobileCard
+      expandedContent={
+        <div className="space-y-2">
+          <MobileCardRow
+            label="Location"
+            value={customer.address || "Not specified"}
+            icon={<MapPin className="h-4 w-4 text-gray-400" />}
+          />
+          <MobileCardRow
+            label="Team"
+            value={customer.team?.name || "No team assigned"}
+            icon={<Users className="h-4 w-4 text-gray-400" />}
+          />
+          <MobileCardRow
+            label="Manager"
+            value={getRelationshipManagerName(customer)}
+            icon={<UserIcon className="h-4 w-4 text-gray-400" />}
+          />
+          <MobileCardRow
+            label="Created"
+            value={new Date(customer.createdAt).toLocaleDateString()}
+            icon={<Calendar className="h-4 w-4 text-gray-400" />}
+          />
+        </div>
+      }
+    >
+      <div className="space-y-3">
+        {/* Customer name and contact */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="bg-blue-100 rounded-full p-2 flex-shrink-0">
+              <UserIcon className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-gray-900 truncate">
+                {customer.name}
+              </div>
+              {customer.contactPerson && (
+                <div className="text-sm text-gray-500 truncate">
+                  {customer.contactPerson}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            {customer._count?.invoices || 0} invoices
+          </span>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewCustomer(customer);
+            }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+          >
+            <Eye className="h-4 w-4" />
+            <span className="text-sm font-medium">View</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditCustomer(customer);
+            }}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
+          >
+            <Edit className="h-4 w-4" />
+            <span className="text-sm font-medium">Edit</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteCustomer(customer.id, customer.name);
+            }}
+            className="p-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+    </ExpandableMobileCard>
+  );
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200">
@@ -128,133 +346,18 @@ export default function CustomersList({
       </div>
 
       {customers.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Team
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Relationship Manager
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Invoices
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {customers.map((customer: CustomerWithCount) => (
-                <tr key={customer.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <div className="bg-blue-100 rounded-full p-2 mr-3">
-                        <UserIcon className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {customer.name}
-                        </div>
-                        {customer.contactPerson && (
-                          <div className="text-sm text-gray-500">
-                            Contact: {customer.contactPerson}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {/* Location column - show customer address/location only */}
-                    {customer.address ? (
-                      <div className="flex items-center text-sm text-gray-900">
-                        <MapPin className="h-4 w-4 mr-1 text-gray-400" />
-                        {customer.address}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {/* Team Information Only */}
-                    {customer.team ? (
-                      <div className="flex items-center text-sm text-gray-900">
-                        <Users className="h-4 w-4 mr-1 text-gray-400" />
-                        <div>
-                          <div className="font-medium">
-                            {customer.team.name}
-                          </div>
-                          {customer.team.description && (
-                            <div className="text-xs text-gray-500">
-                              {customer.team.description}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-400">
-                        No team assigned
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-900">
-                      {getRelationshipManagerName(customer)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {customer._count?.invoices || 0} invoices
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {new Date(customer.createdAt).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => onViewCustomer(customer)}
-                        className="text-blue-600 hover:text-blue-900 p-1 rounded"
-                        title="View customer"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => onEditCustomer(customer)}
-                        className="text-green-600 hover:text-green-900 p-1 rounded"
-                        title="Edit customer"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeleteCustomer(customer.id, customer.name)
-                        }
-                        className="text-red-600 hover:text-red-900 p-1 rounded"
-                        title="Delete customer"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div>
+          <ResponsiveTable
+            data={customers}
+            columns={columns}
+            mobileCardRenderer={renderMobileCard}
+            keyExtractor={(customer) => customer.id}
+            emptyMessage={
+              searchTerm
+                ? "No customers found. Try adjusting your search terms."
+                : "No customers found. Get started by creating your first customer."
+            }
+          />
         </div>
       ) : (
         <div className="text-center py-12">
@@ -272,9 +375,9 @@ export default function CustomersList({
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="px-6 py-4 border-t border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-700">
+        <div className="px-4 md:px-6 py-4 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs md:text-sm text-gray-700">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(currentPage * itemsPerPage, pagination.total)} of{" "}
               {pagination.total} results
@@ -283,11 +386,11 @@ export default function CustomersList({
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700"
+                className="px-3 md:px-4 py-2 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700 transition-colors"
               >
                 Previous
               </button>
-              <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded">
+              <span className="px-3 md:px-4 py-2 bg-blue-50 text-blue-600 rounded text-sm font-medium">
                 {currentPage} of {pagination.totalPages}
               </span>
               <button
@@ -297,7 +400,7 @@ export default function CustomersList({
                   )
                 }
                 disabled={currentPage === pagination.totalPages}
-                className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700"
+                className="px-3 md:px-4 py-2 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700 transition-colors"
               >
                 Next
               </button>

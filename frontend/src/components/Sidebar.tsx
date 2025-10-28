@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -20,6 +20,7 @@ import {
   BarChart3,
   RotateCcw,
   Truck,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSidebar } from "@/hooks/useSidebar";
@@ -49,12 +50,34 @@ const adminNavigation = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed, toggleSidebar, isMobileOpen, closeMobileSidebar } = useSidebar();
   const { hasPermission } = usePermissions();
 
   const handleLogout = () => {
     logout();
   };
+
+  // Debug: Log mobile open state changes
+  useEffect(() => {
+    console.log("Sidebar isMobileOpen state changed:", isMobileOpen);
+  }, [isMobileOpen]);
+
+  // Close mobile sidebar when route changes
+  useEffect(() => {
+    closeMobileSidebar();
+  }, [pathname, closeMobileSidebar]);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileOpen]);
 
   // Filter navigation items based on permissions
   const visibleNavigation = navigation.filter((item) => {
@@ -70,12 +93,25 @@ export default function Sidebar() {
   });
 
   return (
-    <div
-      className={`bg-white shadow-lg h-screen fixed left-0 top-0 z-40 transition-all duration-300 flex flex-col ${
-        isCollapsed ? "w-16" : "w-64"
-      }`}
-    >
-      {/* Toggle Button */}
+    <>
+      {/* Mobile backdrop overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+          onClick={closeMobileSidebar}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`bg-white shadow-lg h-screen fixed left-0 top-0 z-50 transition-all duration-300 flex flex-col ${
+          isCollapsed ? "w-16" : "w-64"
+        } ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
+      >
+      {/* Header with Logo and Close/Collapse buttons */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
@@ -91,18 +127,33 @@ export default function Sidebar() {
             <Building2 className="h-8 w-8 text-blue-600" />
           </div>
         )}
+
+        {/* Mobile close button (X) - only visible on mobile when sidebar is open */}
+        <button
+          onClick={closeMobileSidebar}
+          className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+          aria-label="Close menu"
+        >
+          <X className="h-6 w-6 text-gray-500" />
+        </button>
+
+        {/* Desktop collapse button (ChevronLeft) - only visible on desktop when expanded */}
         <button
           onClick={toggleSidebar}
-          className={`p-1 rounded-md hover:bg-gray-100 transition-colors ${
+          className={`hidden md:block p-1 rounded-md hover:bg-gray-100 transition-colors ${
             isCollapsed ? "hidden" : ""
           }`}
+          aria-label="Collapse sidebar"
         >
           <ChevronLeft className="h-5 w-5 text-gray-500" />
         </button>
+
+        {/* Desktop expand button (Menu) - only visible on desktop when collapsed */}
         {isCollapsed && (
           <button
             onClick={toggleSidebar}
-            className="absolute -right-3 top-6 bg-white border border-gray-200 rounded-full p-1 shadow-sm hover:shadow-md transition-shadow"
+            className="hidden md:block absolute -right-3 top-6 bg-white border border-gray-200 rounded-full p-1 shadow-sm hover:shadow-md transition-shadow"
+            aria-label="Expand sidebar"
           >
             <Menu className="h-4 w-4 text-gray-500" />
           </button>
@@ -240,5 +291,6 @@ export default function Sidebar() {
         </button>
       </div>
     </div>
+    </>
   );
 }

@@ -113,17 +113,17 @@ export default function InventoryPage() {
   });
 
   return (
-    <div className="p-6">
+    <div>
       {/* Location Selector */}
       <LocationSelector />
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-6 mt-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 mt-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             Inventory Management
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm md:text-base text-gray-600 mt-1">
             Manage your tissue paper products. Add new items by creating a
             waybill.
           </p>
@@ -212,7 +212,7 @@ export default function InventoryPage() {
 
       {/* Inventory Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-4 md:mx-0">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

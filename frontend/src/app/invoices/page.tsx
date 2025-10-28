@@ -218,16 +218,16 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="p-6">
+    <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             Invoice Management
           </h1>
-          <p className="text-gray-600 mt-1">Track sales and manage billing</p>
+          <p className="text-sm md:text-base text-gray-600 mt-1">Track sales and manage billing</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 md:gap-3">
           <button
             onClick={() => setShowCreateCustomerModal(true)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
@@ -428,7 +428,7 @@ export default function InvoicesPage() {
 
       {/* Invoices Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-4 md:mx-0">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -501,18 +501,18 @@ export default function InvoicesPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end gap-2">
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end gap-1 md:gap-2">
                       {/* View invoice details with returns */}
                       <button
-                        className="text-indigo-600 hover:text-indigo-900 p-1"
+                        className="text-indigo-600 hover:text-indigo-900 p-2 md:p-1 rounded transition-colors"
                         title="View invoice details"
                         onClick={() => setViewingInvoice(invoice)}
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-5 w-5 md:h-4 md:w-4" />
                       </button>
                       <button
-                        className="text-green-600 hover:text-green-900 p-1"
+                        className="text-green-600 hover:text-green-900 p-2 md:p-1 rounded transition-colors"
                         title="Download PDF"
                         onClick={async () => {
                           try {
@@ -525,19 +525,19 @@ export default function InvoicesPage() {
                           }
                         }}
                       >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-5 w-5 md:h-4 md:w-4" />
                       </button>
                       <button
-                        className="text-blue-600 hover:text-blue-900 p-1"
+                        className="text-blue-600 hover:text-blue-900 p-2 md:p-1 rounded transition-colors"
                         title="Edit invoice"
                         onClick={() => setEditingInvoice(invoice)}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-5 w-5 md:h-4 md:w-4" />
                       </button>
                       {invoice.status === "DRAFT" && (
                         <button
                           onClick={() => postDraftMutation.mutate(invoice.id)}
-                          className="text-green-600 hover:text-green-900 p-1"
+                          className="text-green-600 hover:text-green-900 p-2 md:p-1 rounded transition-colors"
                           title={
                             postDraftMutation.isPending
                               ? "Posting..."
@@ -554,10 +554,10 @@ export default function InvoicesPage() {
                       )}
                       <button
                         onClick={() => deleteMutation.mutate(invoice.id)}
-                        className="text-red-600 hover:text-red-900 p-1"
+                        className="text-red-600 hover:text-red-900 p-2 md:p-1 rounded transition-colors"
                         title="Delete invoice"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
                       </button>
                     </div>
                   </td>
@@ -569,9 +569,9 @@ export default function InvoicesPage() {
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
+          <div className="px-4 md:px-6 py-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-xs md:text-sm text-gray-700">
                 Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
                 {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
                 of {pagination.total} results
@@ -580,11 +580,11 @@ export default function InvoicesPage() {
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700"
+                  className="px-3 md:px-4 py-2 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700 transition-colors"
                 >
                   Previous
                 </button>
-                <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded">
+                <span className="px-3 md:px-4 py-2 bg-blue-50 text-blue-600 rounded text-sm font-medium">
                   {currentPage} of {pagination.totalPages}
                 </span>
                 <button
@@ -594,7 +594,7 @@ export default function InvoicesPage() {
                     )
                   }
                   disabled={currentPage === pagination.totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700"
+                  className="px-3 md:px-4 py-2 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-gray-700 transition-colors"
                 >
                   Next
                 </button>
