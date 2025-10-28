@@ -483,12 +483,7 @@ export default function WaybillForm({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="location">
-                      Destination Location *
-                      {!canManageMultipleLocations && selectedLocationId && (
-                        <span className="text-xs text-blue-600 ml-2 font-semibold">(Locked to Your Location)</span>
-                      )}
-                    </Label>
+                    <Label htmlFor="location">Destination Location *</Label>
                     <Select
                       value={formData.locationId}
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
@@ -499,11 +494,10 @@ export default function WaybillForm({
                       }
                       className={errors.locationId ? "border-red-500" : ""}
                       style={{
-                        backgroundColor: canManageMultipleLocations ? "#ffffff" : "#f3f4f6",
+                        backgroundColor: "#ffffff",
                         color: "#111827",
                         borderColor: errors.locationId ? "#ef4444" : "#9ca3af",
                       }}
-                      disabled={!canManageMultipleLocations}
                     >
                       <SelectItem value="">Select location</SelectItem>
                       {getUserAssignedLocations().map((location) => (
@@ -512,11 +506,9 @@ export default function WaybillForm({
                         </SelectItem>
                       ))}
                     </Select>
-                    {!canManageMultipleLocations && (
-                      <p className="text-xs text-gray-600 italic">
-                        📍 You can only receive items to your assigned location
-                      </p>
-                    )}
+                    <p className="text-xs text-gray-600 italic">
+                      📍 Pre-filled with your primary location
+                    </p>
                     {errors.locationId && (
                       <p className="text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle className="h-4 w-4" />
@@ -531,12 +523,7 @@ export default function WaybillForm({
               {transferType === "SENDING" && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="sourceLocation">
-                      Source Location *
-                      {!canManageMultipleLocations && selectedLocationId && (
-                        <span className="text-xs text-green-600 ml-2 font-semibold">(Locked to Your Location)</span>
-                      )}
-                    </Label>
+                    <Label htmlFor="sourceLocation">Source Location *</Label>
                     <Select
                       value={formData.sourceLocationId}
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
@@ -547,11 +534,10 @@ export default function WaybillForm({
                       }
                       className={errors.sourceLocationId ? "border-red-500" : ""}
                       style={{
-                        backgroundColor: canManageMultipleLocations ? "#ffffff" : "#f3f4f6",
+                        backgroundColor: "#ffffff",
                         color: "#111827",
                         borderColor: errors.sourceLocationId ? "#ef4444" : "#9ca3af",
                       }}
-                      disabled={!canManageMultipleLocations}
                     >
                       <SelectItem value="">Select source location</SelectItem>
                       {getUserAssignedLocations().map((location) => (
@@ -560,11 +546,9 @@ export default function WaybillForm({
                         </SelectItem>
                       ))}
                     </Select>
-                    {!canManageMultipleLocations && (
-                      <p className="text-xs text-gray-600 italic">
-                        📍 You can only send items from your assigned location
-                      </p>
-                    )}
+                    <p className="text-xs text-gray-600 italic">
+                      📍 Pre-filled with your primary location
+                    </p>
                     {errors.sourceLocationId && (
                       <p className="text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle className="h-4 w-4" />

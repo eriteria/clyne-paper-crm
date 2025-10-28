@@ -81,7 +81,7 @@ export default function EditUserModal({
     teamId: user.team?.id || "",
     regionId: user.region?.id || "",
     primaryLocationId: user.primaryLocation?.id || "",
-    assignedLocationIds: user.assignedLocations?.map(loc => loc.id) || [],
+    assignedLocationIds: user.assignedLocations?.map(loc => loc.locationId) || [],
     isActive: user.isActive,
     newPassword: "",
     confirmPassword: "",
@@ -101,7 +101,7 @@ export default function EditUserModal({
       teamId: user.team?.id || "",
       regionId: user.region?.id || "",
       primaryLocationId: user.primaryLocation?.id || "",
-      assignedLocationIds: user.assignedLocations?.map(loc => loc.id) || [],
+      assignedLocationIds: user.assignedLocations?.map(loc => loc.locationId) || [],
       isActive: user.isActive,
       newPassword: "",
       confirmPassword: "",
@@ -267,7 +267,8 @@ export default function EditUserModal({
 
   if (!isOpen) return null;
 
-  const roles: Role[] = rolesData?.data?.roles || [];
+  // Parse roles - handle both possible response structures
+  const roles: Role[] = rolesData?.data?.roles || rolesData?.data || [];
   const teams: Team[] = Array.isArray(teamsData?.data) ? teamsData.data : [];
   const regions: Region[] = regionsData?.data || [];
   const locations: Location[] = locationsData?.data || [];
