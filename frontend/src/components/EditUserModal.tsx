@@ -110,12 +110,13 @@ export default function EditUserModal({
   }, [user]);
 
   // Fetch roles
-  const { data: rolesData } = useQuery({
+  const { data: rolesData, isLoading: rolesLoading } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
       const response = await apiClient.get("/users/roles");
       return response.data;
     },
+    enabled: isOpen,
   });
 
   // Fetch teams
@@ -268,10 +269,16 @@ export default function EditUserModal({
   if (!isOpen) return null;
 
   // Parse roles - handle both possible response structures
-  const roles: Role[] = rolesData?.data?.roles || rolesData?.data || [];
+  console.log('Roles data:', rolesData); // Debug log
+  const roles: Role[] = Array.isArray(rolesData?.data?.roles)
+    ? rolesData.data.roles
+    : Array.isArray(rolesData?.data)
+    ? rolesData.data
+    : [];
+  console.log('Parsed roles:', roles); // Debug log
   const teams: Team[] = Array.isArray(teamsData?.data) ? teamsData.data : [];
-  const regions: Region[] = regionsData?.data || [];
-  const locations: Location[] = locationsData?.data || [];
+  const regions: Region[] = Array.isArray(regionsData?.data) ? regionsData.data : [];
+  const locations: Location[] = Array.isArray(locationsData?.data) ? locationsData.data : [];
 
   return (
     <div className="fixed inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
