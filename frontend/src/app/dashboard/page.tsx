@@ -20,7 +20,6 @@ import {
   FileText,
   MapPin,
   AlertTriangle,
-  DollarSign,
   Activity,
   Plus,
 } from "lucide-react";
@@ -184,7 +183,7 @@ export default function DashboardPage() {
           className="cursor-pointer"
         >
           <KPICard
-            icon={<DollarSign className="h-6 w-6 text-green-600" />}
+            icon={<span className="text-2xl font-bold text-green-600">₦</span>}
             label="Total Inventory Value"
             value={formatCurrency(overview.totalInventoryValue || 0)}
             change={

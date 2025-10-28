@@ -307,12 +307,17 @@ router.get(
       totalWaybills: Number(countsResult.total_waybills),
     };
 
-    // Simplified inventory value calculation - remove historical comparison for now
-    const inventoryValue = await prisma.inventoryItem.aggregate({
-      _sum: {
+    // Calculate total inventory value by multiplying unitPrice * currentQuantity for each item
+    const inventoryItems = await prisma.inventoryItem.findMany({
+      select: {
         unitPrice: true,
+        currentQuantity: true,
       },
     });
+
+    const totalInventoryValue = inventoryItems.reduce((total, item) => {
+      return total + (Number(item.unitPrice) * Number(item.currentQuantity));
+    }, 0);
 
     // Simplified teams query - just get essential data
     const teams = await prisma.team.findMany({
@@ -358,7 +363,7 @@ router.get(
       data: {
         overview: {
           ...counts,
-          totalInventoryValue: Number(inventoryValue._sum.unitPrice || 0),
+          totalInventoryValue: totalInventoryValue,
           inventoryValueChange: 0, // Simplified for performance
         },
         teams: teams.map((team: any) => ({
