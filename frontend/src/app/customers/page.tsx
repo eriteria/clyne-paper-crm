@@ -72,26 +72,28 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 w-full max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <UserCheck className="h-8 w-8 text-blue-600" />
-            Customers
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Manage customer relationships and information
-          </p>
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <UserCheck className="h-8 w-8 text-blue-600 flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Customers
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Manage customer relationships and information
+            </p>
+          </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           {hasPermission("payments:create") && (
             <button
               onClick={() => setShowPaymentModal(true)}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
             >
               <Receipt className="h-4 w-4" />
-              Record Payment
+              <span className="whitespace-nowrap">Record Payment</span>
             </button>
           )}
           {hasPermission("customers:create") && (
@@ -100,17 +102,17 @@ export default function CustomersPage() {
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              Add Customer
+              <span className="whitespace-nowrap">Add Customer</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 w-full max-w-full">
         <SearchBar
           onSearchChange={handleSearchChange}
-          placeholder="Search customers by name, email, company..."
+          placeholder="Search customers..."
         />
       </div>
 

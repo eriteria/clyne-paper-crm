@@ -447,6 +447,17 @@ router.get(
       const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: {
+          items: {
+            include: {
+              inventoryItem: {
+                select: {
+                  name: true,
+                  sku: true,
+                  unit: true,
+                },
+              },
+            },
+          },
           billedBy: {
             select: {
               id: true,
@@ -469,7 +480,6 @@ router.get(
         },
       });
 
-      // Calculate paid amount from payments applied to this invoice
       if (!invoice) {
         return res.status(404).json({
           success: false,
@@ -477,24 +487,11 @@ router.get(
         });
       }
 
-      const paymentsApplied = await prisma.paymentApplication.aggregate({
-        where: {
-          invoiceId: invoice.id,
-        },
-        _sum: { amountApplied: true },
+      // Create PDF document with Letter size
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 40
       });
-
-      const paidAmount = Number(paymentsApplied._sum?.amountApplied || 0);
-
-      if (!invoice) {
-        return res.status(404).json({
-          success: false,
-          message: "Invoice not found",
-        });
-      }
-
-      // Create PDF document
-      const doc = new PDFDocument({ margin: 50 });
 
       // Set response headers for PDF download
       res.setHeader("Content-Type", "application/pdf");
@@ -506,118 +503,183 @@ router.get(
       // Pipe the PDF to the response
       doc.pipe(res);
 
-      // Add company header
-      doc.fontSize(20).text("Clyne Paper Limited", 50, 50);
-      doc.fontSize(10).text("Tissue Paper Manufacturing", 50, 75);
-      doc.fontSize(10).text("Lagos, Nigeria", 50, 90);
+      const path = require('path');
+      const logoPath = path.join(__dirname, '../../public/clyne_logo.png');
 
-      // Add invoice title
-      doc.fontSize(16).text("INVOICE", 400, 50);
-      doc.fontSize(10).text(`Invoice #: ${invoice.invoiceNumber}`, 400, 75);
-      doc
-        .fontSize(10)
-        .text(`Date: ${new Date(invoice.date).toLocaleDateString()}`, 400, 90);
-      doc
-        .fontSize(10)
-        .text(
-          `Due Date: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : "Not set"}`,
-          400,
-          105
-        );
-
-      // Add customer information
-      doc.fontSize(12).text("Bill To:", 50, 140);
-      doc.fontSize(10).text(invoice.customerName, 50, 160);
-      if (invoice.customerContact) {
-        doc.text(invoice.customerContact, 50, 175);
+      // Add logo (top-left)
+      try {
+        doc.image(logoPath, 40, 30, { width: 100 });
+      } catch (err) {
+        logger.warn('Could not load logo image:', err);
       }
-      // Note: customerAddress is not in the schema, so we'll skip it for now
 
-      // Add invoice details
-      let currentY = 230;
-      doc.fontSize(12).text("Invoice Details:", 50, currentY);
-      currentY += 20;
+      // Company contact details (top-right)
+      doc.fontSize(9)
+         .font('Helvetica-Bold')
+         .text('1 AVTI Road, Kuje, Abuja', 400, 30, { align: 'right', width: 155 })
+         .font('Helvetica')
+         .text('info@clynepaper.com.ng', 400, 45, { align: 'right', width: 155 })
+         .text('07082028790, 09026833...', 400, 60, { align: 'right', width: 155 });
+
+      // Account information section (full width)
+      let currentY = 100;
+      doc.fontSize(10)
+         .font('Helvetica-Bold')
+         .text('ACCOUNT NAME: CLYNE PAPER LIMITED   ACCOUNT NO: 2045723876   BANK: FIRST BANK', 40, currentY, { width: 515, align: 'left' });
+
+      // Invoice header row (black background)
+      currentY += 25;
+      const headerY = currentY;
+      doc.rect(40, headerY, 515, 22).fillAndStroke('#000000', '#000000');
+
+      // Header text (white on black)
+      doc.fillColor('#FFFFFF')
+         .fontSize(10)
+         .font('Helvetica-Bold')
+         .text('INVOICE NO', 50, headerY + 7, { width: 100, continued: false })
+         .text('CUSTOMER', 240, headerY + 7, { width: 150, align: 'center' })
+         .text('DATE', 480, headerY + 7, { align: 'right', width: 65 });
+
+      // Header values row (white background with border)
+      currentY = headerY + 22;
+      doc.rect(40, currentY, 515, 22).stroke('#000000');
+
+      doc.fillColor('#000000')
+         .fontSize(11)
+         .font('Helvetica')
+         .text(invoice.invoiceNumber, 50, currentY + 7, { width: 100 })
+         .text(invoice.customerName.toUpperCase(), 200, currentY + 7, { width: 200, align: 'center' })
+         .text(new Date(invoice.date).toLocaleDateString('en-GB', {
+           day: '2-digit',
+           month: '2-digit',
+           year: 'numeric'
+         }).replace(/\//g, ' - '), 450, currentY + 7, { align: 'right', width: 95 });
 
       // Table headers
-      doc.fontSize(10);
-      doc.text("Description", 50, currentY);
-      doc.text("Quantity", 200, currentY);
-      doc.text("Unit Price", 280, currentY);
-      doc.text("Total", 400, currentY);
-
-      // Line under headers
-      currentY += 15;
-      doc.moveTo(50, currentY).lineTo(500, currentY).stroke();
-      currentY += 10;
-
-      // Add product details - use simple fallback since quantity and description aren't in schema
-      const quantity = 1; // Default quantity since it's not in the invoice schema
-      const unitPrice = Number(invoice.totalAmount) / quantity;
-
-      doc.text("Tissue Paper Products", 50, currentY);
-      doc.text(quantity.toString(), 200, currentY);
-      doc.text(`₦${unitPrice.toLocaleString()}`, 280, currentY);
-      doc.text(
-        `₦${Number(invoice.totalAmount).toLocaleString()}`,
-        400,
-        currentY
-      );
-
       currentY += 30;
+      const tableTop = currentY;
+      const colX = {
+        sn: 40,
+        description: 90,
+        qty: 380,
+        unitPrice: 440,
+        amount: 495
+      };
+      const rowHeight = 25;
 
-      // Add totals
-      doc.moveTo(300, currentY).lineTo(500, currentY).stroke();
-      currentY += 10;
+      // Draw header row background and borders
+      doc.rect(colX.sn, tableTop, colX.description - colX.sn, rowHeight).stroke();
+      doc.rect(colX.description, tableTop, colX.qty - colX.description, rowHeight).stroke();
+      doc.rect(colX.qty, tableTop, colX.unitPrice - colX.qty, rowHeight).stroke();
+      doc.rect(colX.unitPrice, tableTop, colX.amount - colX.unitPrice, rowHeight).stroke();
+      doc.rect(colX.amount, tableTop, 555 - colX.amount, rowHeight).stroke();
 
-      doc.fontSize(10);
-      doc.text(
-        `Subtotal: ₦${Number(invoice.totalAmount).toLocaleString()}`,
-        350,
-        currentY
-      );
-      currentY += 15;
+      // Header text
+      doc.fontSize(9)
+         .font('Helvetica-Bold')
+         .text('S/N', colX.sn + 5, tableTop + 8, { width: (colX.description - colX.sn - 10), align: 'center' })
+         .text('DESCRIPTION', colX.description + 5, tableTop + 8, { width: (colX.qty - colX.description - 10) })
+         .text('QTY', colX.qty + 5, tableTop + 8, { width: (colX.unitPrice - colX.qty - 10), align: 'center' })
+         .text('UNIT\nPRICE', colX.unitPrice + 3, tableTop + 4, { width: (colX.amount - colX.unitPrice - 6), align: 'center', lineGap: -2 })
+         .text('AMOUNT', colX.amount + 5, tableTop + 8, { width: (555 - colX.amount - 10), align: 'right' });
 
-      if (invoice.taxAmount && Number(invoice.taxAmount) > 0) {
-        doc.text(
-          `Tax: ₦${Number(invoice.taxAmount).toLocaleString()}`,
-          350,
-          currentY
-        );
-        currentY += 15;
+      // Table rows
+      currentY = tableTop + rowHeight;
+      let serialNumber = 1;
+
+      if (invoice.items && invoice.items.length > 0) {
+        invoice.items.forEach((item: any) => {
+          const itemTotal = Number(item.lineTotal);
+          const unitPrice = Number(item.unitPrice);
+          const quantity = Number(item.quantity);
+
+          // Draw row borders
+          doc.rect(colX.sn, currentY, colX.description - colX.sn, rowHeight).stroke();
+          doc.rect(colX.description, currentY, colX.qty - colX.description, rowHeight).stroke();
+          doc.rect(colX.qty, currentY, colX.unitPrice - colX.qty, rowHeight).stroke();
+          doc.rect(colX.unitPrice, currentY, colX.amount - colX.unitPrice, rowHeight).stroke();
+          doc.rect(colX.amount, currentY, 555 - colX.amount, rowHeight).stroke();
+
+          // Row data
+          doc.fontSize(10)
+             .font('Helvetica')
+             .text(serialNumber.toString(), colX.sn + 5, currentY + 8, { width: (colX.description - colX.sn - 10), align: 'center' })
+             .text(item.inventoryItem?.name || 'Product', colX.description + 5, currentY + 8, { width: (colX.qty - colX.description - 10) })
+             .text(quantity.toString(), colX.qty + 5, currentY + 8, { width: (colX.unitPrice - colX.qty - 10), align: 'center' })
+             .text(`N${unitPrice.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, colX.unitPrice + 3, currentY + 8, { width: (colX.amount - colX.unitPrice - 8), align: 'right' })
+             .text(`N${itemTotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, colX.amount + 3, currentY + 8, { width: (555 - colX.amount - 8), align: 'right' });
+
+          currentY += rowHeight;
+          serialNumber++;
+        });
+      } else {
+        // Empty row if no items
+        doc.rect(colX.sn, currentY, 515, rowHeight).stroke();
+        doc.fontSize(10)
+           .font('Helvetica-Oblique')
+           .text('No items', colX.description + 5, currentY + 8);
+        currentY += rowHeight;
       }
 
-      doc.fontSize(12);
-      const finalAmount =
-        Number(invoice.totalAmount) + Number(invoice.taxAmount || 0);
-      doc.text(`Total: ₦${finalAmount.toLocaleString()}`, 350, currentY);
-
-      // Add payment information
-      currentY += 40;
-      doc.fontSize(10);
-      doc.text(`Status: ${invoice.status}`, 50, currentY);
-
-      if (paidAmount && paidAmount > 0) {
-        currentY += 15;
-        doc.text(`Paid Amount: ₦${paidAmount.toLocaleString()}`, 50, currentY);
-        currentY += 15;
-        const balance = finalAmount - paidAmount;
-        doc.text(`Balance: ₦${balance.toLocaleString()}`, 50, currentY);
+      // Fill remaining rows (up to 15 total rows)
+      const maxRows = 15;
+      const currentRows = serialNumber - 1;
+      for (let i = currentRows; i < maxRows; i++) {
+        doc.rect(colX.sn, currentY, colX.description - colX.sn, rowHeight).stroke();
+        doc.rect(colX.description, currentY, colX.qty - colX.description, rowHeight).stroke();
+        doc.rect(colX.qty, currentY, colX.unitPrice - colX.qty, rowHeight).stroke();
+        doc.rect(colX.unitPrice, currentY, colX.amount - colX.unitPrice, rowHeight).stroke();
+        doc.rect(colX.amount, currentY, 555 - colX.amount, rowHeight).stroke();
+        currentY += rowHeight;
       }
 
-      // Add footer
-      currentY += 60;
-      doc.fontSize(8);
-      doc.text("Thank you for your business!", 50, currentY);
-      doc.text(
-        `Generated by: ${invoice.billedBy?.fullName || "System"}`,
-        50,
-        currentY + 15
-      );
-      doc.text(
-        `Generated on: ${new Date().toLocaleDateString()}`,
-        50,
-        currentY + 30
-      );
+      // Total row (bold, larger font)
+      const totalAmount = Number(invoice.totalAmount);
+      doc.rect(colX.sn, currentY, 515, rowHeight).fillAndStroke('#F0F0F0', '#000000');
+
+      doc.fillColor('#000000')
+         .fontSize(11)
+         .font('Helvetica-Bold');
+
+      // Draw "Total:" label
+      doc.text('Total:', colX.unitPrice + 3, currentY + 8, {
+        width: 50,
+        align: 'left',
+        continued: false,
+        lineBreak: false
+      });
+
+      // Draw the total amount in the AMOUNT column with explicit positioning
+      const formattedTotal = totalAmount.toLocaleString('en-NG', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      // Calculate the x position to right-align within the cell
+      const totalText = `N${formattedTotal}`;
+      const textWidth = doc.widthOfString(totalText);
+      const rightMargin = 8;
+      const cellWidth = 555 - colX.amount;
+      const xPosition = 555 - textWidth - rightMargin;
+
+      doc.text(totalText, xPosition, currentY + 8, {
+        lineBreak: false,
+        continued: false
+      });
+
+      // Signature section
+      currentY += 50; // Space after total
+
+      // Signature line
+      doc.moveTo(40, currentY + 30).lineTo(200, currentY + 30).stroke('#000000');
+
+      // Prepared by label and name
+      doc.fontSize(9)
+         .font('Helvetica')
+         .text('Prepared by:', 40, currentY + 35)
+         .fontSize(10)
+         .font('Helvetica-Bold')
+         .text(invoice.billedBy?.fullName || 'N/A', 40, currentY + 50);
 
       // Finalize the PDF
       doc.end();

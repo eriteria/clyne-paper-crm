@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Invoice } from "@/types";
 import { useSalesReturnsByInvoice } from "@/hooks/useSalesReturns";
 import CreateSalesReturnModal from "./CreateSalesReturnModal";
-import { X, ArrowLeft } from "lucide-react";
+import { X, ArrowLeft, Download } from "lucide-react";
+import { downloadInvoicePDF } from "@/lib/utils";
 
 interface InvoiceDetailModalProps {
   invoice: Invoice;
@@ -325,12 +326,27 @@ export default function InvoiceDetailModal({
               <ArrowLeft className="w-4 h-4 mr-2" />
               Close
             </button>
-            <button
-              onClick={() => setShowCreateReturn(true)}
-              className="px-6 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
-            >
-              Return Items
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    await downloadInvoicePDF(invoice.id, invoice.invoiceNumber);
+                  } catch {
+                    alert("Failed to download PDF");
+                  }
+                }}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download PDF
+              </button>
+              <button
+                onClick={() => setShowCreateReturn(true)}
+                className="px-6 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+              >
+                Return Items
+              </button>
+            </div>
           </div>
         </div>
       </div>
