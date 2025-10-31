@@ -63,8 +63,8 @@ model UserLocation {
   userId     String
   locationId String
   assignedAt DateTime @default(now()) @map("assigned_at")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, locationId])
   @@map("user_locations")
@@ -79,10 +79,10 @@ model User {
   roleId                   String               @map("role_id")
   teamId                   String?              @map("team_id")
   regionId                 String?              @map("region_id")
-  primaryLocationId        String?              @map("primary_location_id")
   isActive                 Boolean              @default(true) @map("is_active")
   createdAt                DateTime             @default(now()) @map("created_at")
   updatedAt                DateTime             @updatedAt @map("updated_at")
+  primaryLocationId        String?              @map("primary_location_id")
   auditLogs                AuditLog[]
   appliedCredits           CreditApplication[]  @relation("CreditApplicationUser")
   createdCredits           Credit[]             @relation("CreditCreatedBy")
@@ -152,23 +152,23 @@ model Product {
 }
 
 model Waybill {
-  id                 String        @id @default(cuid())
-  waybillNumber      String        @unique @map("waybill_number")
-  date               DateTime
-  supplier           String
-  receivedByUserId   String        @map("received_by_user_id")
-  notes              String?
-  createdAt          DateTime      @default(now()) @map("created_at")
-  locationId         String        @map("location_id")
-  sourceLocationId   String?       @map("source_location_id")
-  transferType       String        @default("RECEIVING")
-  processedAt        DateTime?     @map("processed_at")
-  processedBy        String?       @map("processed_by")
-  status             WaybillStatus @default(PENDING)
-  items              WaybillItem[]
-  destinationLocation Location     @relation("WaybillDestination", fields: [locationId], references: [id])
-  sourceLocation     Location?     @relation("WaybillSource", fields: [sourceLocationId], references: [id])
-  receivedBy         User          @relation(fields: [receivedByUserId], references: [id])
+  id                  String        @id @default(cuid())
+  waybillNumber       String        @unique @map("waybill_number")
+  date                DateTime
+  supplier            String
+  receivedByUserId    String        @map("received_by_user_id")
+  notes               String?
+  createdAt           DateTime      @default(now()) @map("created_at")
+  locationId          String        @map("location_id")
+  processedAt         DateTime?     @map("processed_at")
+  processedBy         String?       @map("processed_by")
+  status              WaybillStatus @default(PENDING)
+  sourceLocationId    String?       @map("source_location_id")
+  transferType        String        @default("RECEIVING")
+  items               WaybillItem[]
+  destinationLocation Location      @relation("WaybillDestination", fields: [locationId], references: [id])
+  receivedBy          User          @relation(fields: [receivedByUserId], references: [id])
+  sourceLocation      Location?     @relation("WaybillSource", fields: [sourceLocationId], references: [id])
 
   @@map("waybills")
 }
@@ -242,12 +242,15 @@ model Invoice {
   notes               String?
   taxAmount           Decimal              @default(0) @map("tax_amount") @db.Decimal(10, 2)
   balance             Decimal              @map("balance") @db.Decimal(12, 2)
+  paymentMethod       String?              @map("payment_method")
+  bankAccountId       String?              @map("bank_account_id")
   creditApplications  CreditApplication[]  @relation("CreditApplications")
   items               InvoiceItem[]
   billedBy            User                 @relation(fields: [billedByUserId], references: [id])
   customer            Customer             @relation(fields: [customerId], references: [id])
   region              Region?              @relation(fields: [regionId], references: [id])
   team                Team?                @relation(fields: [teamId], references: [id])
+  bankAccount         BankAccount?         @relation(fields: [bankAccountId], references: [id])
   paymentApplications PaymentApplication[]
   payments            Payment[]
   salesReturns        SalesReturn[]
@@ -314,8 +317,10 @@ model CustomerPayment {
   creditAmount        Decimal              @default(0) @map("credit_amount") @db.Decimal(12, 2)
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
+  bankAccountId       String?              @map("bank_account_id")
   customer            Customer             @relation(fields: [customerId], references: [id])
   recordedBy          User                 @relation("CustomerPaymentRecordedBy", fields: [recordedByUserId], references: [id])
+  bankAccount         BankAccount?         @relation(fields: [bankAccountId], references: [id])
   paymentApplications PaymentApplication[]
 
   @@map("customer_payments")
@@ -419,10 +424,10 @@ model Location {
   customers        Customer[]
   inventory        InventoryItem[]
   teams            TeamLocation[]
-  primaryUsers     User[]          @relation("UserPrimaryLocation")
   assignedUsers    UserLocation[]
-  sentWaybills     Waybill[]       @relation("WaybillSource")
+  primaryUsers     User[]          @relation("UserPrimaryLocation")
   receivedWaybills Waybill[]       @relation("WaybillDestination")
+  sentWaybills     Waybill[]       @relation("WaybillSource")
 
   @@map("locations")
 }
@@ -502,4 +507,18 @@ enum WaybillItemStatus {
   MATCHED
   NEW_PRODUCT
   PROCESSED
+}
+
+model BankAccount {
+  id               String            @id @default(cuid())
+  accountName      String            @map("account_name")
+  accountNumber    String            @map("account_number")
+  bankName         String            @map("bank_name")
+  isActive         Boolean           @default(true) @map("is_active")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  invoices         Invoice[]
+  customerPayments CustomerPayment[]
+
+  @@map("bank_accounts")
 }

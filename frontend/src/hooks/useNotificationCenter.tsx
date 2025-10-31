@@ -196,6 +196,11 @@ export function NotificationProvider({
 
         eventSourceWithAuth.onmessage = (event) => {
           try {
+            // Ignore heartbeat messages (they start with : and don't have data)
+            if (!event.data || event.data.trim() === "") {
+              return;
+            }
+
             const notification: Notification = JSON.parse(event.data);
 
             console.log(
@@ -221,10 +226,10 @@ export function NotificationProvider({
           const eventSource = error.target as EventSource;
 
           if (eventSource.readyState === EventSource.CONNECTING) {
-            console.warn("⚠️ Notification stream reconnecting...");
+            console.log("🔄 Notification stream reconnecting...");
           } else if (eventSource.readyState === EventSource.CLOSED) {
-            console.error(
-              "❌ Notification stream closed. Checking if token expired..."
+            console.log(
+              "🔌 Notification stream closed. Attempting reconnect..."
             );
             setIsConnected(false);
             eventSourceWithAuth?.close();
@@ -252,9 +257,9 @@ export function NotificationProvider({
               }, 5000);
             }
           } else {
-            console.error(
-              "❌ Notification stream error (unknown state):",
-              error
+            console.warn(
+              "⚠️ Notification stream error (unknown state):",
+              eventSource.readyState
             );
             setIsConnected(false);
           }

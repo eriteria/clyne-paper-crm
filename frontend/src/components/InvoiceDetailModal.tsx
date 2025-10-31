@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Invoice } from "@/types";
 import { useSalesReturnsByInvoice } from "@/hooks/useSalesReturns";
 import CreateSalesReturnModal from "./CreateSalesReturnModal";
+import { BankAccountOverrideModal } from "./BankAccountOverrideModal";
 import { X, ArrowLeft, Download } from "lucide-react";
-import { downloadInvoicePDF } from "@/lib/utils";
+import { apiClient } from "@/lib/api";
 
 interface InvoiceDetailModalProps {
   invoice: Invoice;
@@ -17,6 +18,7 @@ export default function InvoiceDetailModal({
   onClose,
 }: InvoiceDetailModalProps) {
   const [showCreateReturn, setShowCreateReturn] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const { data: returns, refetch } = useSalesReturnsByInvoice(invoice.id);
 
   const getStatusBadge = (status: string) => {
@@ -328,13 +330,7 @@ export default function InvoiceDetailModal({
             </button>
             <div className="flex gap-3">
               <button
-                onClick={async () => {
-                  try {
-                    await downloadInvoicePDF(invoice.id, invoice.invoiceNumber);
-                  } catch {
-                    alert("Failed to download PDF");
-                  }
-                }}
+                onClick={() => setShowDownloadModal(true)}
                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
               >
                 <Download className="w-4 h-4 mr-2" />
@@ -362,6 +358,41 @@ export default function InvoiceDetailModal({
           }}
         />
       )}
+
+      {/* Bank Account Override Modal for PDF Download */}
+      <BankAccountOverrideModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        onDownload={async (bankAccountId) => {
+          try {
+            const url = bankAccountId
+              ? `/api/invoices/${invoice.id}/pdf?bankAccountId=${bankAccountId}`
+              : `/api/invoices/${invoice.id}/pdf`;
+
+            const response = await apiClient.get(url, {
+              responseType: "blob",
+            });
+
+            const blob = new Blob([response.data], { type: "application/pdf" });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download = `Invoice-${invoice.invoiceNumber}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+
+            setShowDownloadModal(false);
+          } catch (error) {
+            console.error("Failed to download PDF:", error);
+            alert("Failed to download PDF. Please try again.");
+          }
+        }}
+        currentBankAccountId={invoice.bankAccountId}
+        currentPaymentMethod={invoice.paymentMethod}
+        invoiceNumber={invoice.invoiceNumber}
+      />
     </>
   );
 }

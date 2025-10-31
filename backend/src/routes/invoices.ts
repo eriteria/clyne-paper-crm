@@ -13,6 +13,7 @@ import {
   getUserPrimaryLocationId,
 } from "../middleware/locationAccess";
 import PDFDocument = require("pdfkit");
+import { BankAccount } from "@prisma/client";
 import {
   ExcelInvoiceRow,
   fixDuplicateInvoiceNumbers,
@@ -31,148 +32,157 @@ router.use(authenticate);
 // @desc    Get all invoices
 // @route   GET /api/invoices
 // @access  Private (requires invoices:view permission)
-router.get("/", requirePermission(PERMISSIONS.INVOICES_VIEW), async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const {
-      page = 1,
-      limit = 50,
-      search,
-      status,
-      dateRange,
-      startDate,
-      endDate,
-      customerName,
-    } = req.query;
+router.get(
+  "/",
+  requirePermission(PERMISSIONS.INVOICES_VIEW),
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const {
+        page = 1,
+        limit = 50,
+        search,
+        status,
+        dateRange,
+        startDate,
+        endDate,
+        customerName,
+      } = req.query;
 
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const skip = (pageNum - 1) * limitNum;
 
-    // Build filters
-    const where: any = {};
+      // Build filters
+      const where: any = {};
 
-    if (search) {
-      where.OR = [
-        { invoiceNumber: { contains: search as string, mode: "insensitive" } },
-        { customerName: { contains: search as string, mode: "insensitive" } },
-        {
-          customerContact: { contains: search as string, mode: "insensitive" },
-        },
-      ];
-    }
-
-    if (status) {
-      where.status = status as string;
-    }
-
-    if (customerName) {
-      where.customerName = {
-        contains: customerName as string,
-        mode: "insensitive",
-      };
-    }
-
-    // Date range filter - handle both preset ranges and custom dates
-    if (startDate && endDate) {
-      // Custom date range
-      where.createdAt = {
-        gte: new Date(startDate as string),
-        lte: new Date(endDate as string),
-      };
-    } else if (dateRange) {
-      // Preset date range
-      const now = new Date();
-      let filterStartDate: Date;
-
-      switch (dateRange) {
-        case "today":
-          filterStartDate = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate()
-          );
-          break;
-        case "week":
-          filterStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case "month":
-          filterStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          break;
-        case "quarter":
-          const quarterStart = Math.floor(now.getMonth() / 3) * 3;
-          filterStartDate = new Date(now.getFullYear(), quarterStart, 1);
-          break;
-        default:
-          filterStartDate = new Date(0);
+      if (search) {
+        where.OR = [
+          {
+            invoiceNumber: { contains: search as string, mode: "insensitive" },
+          },
+          { customerName: { contains: search as string, mode: "insensitive" } },
+          {
+            customerContact: {
+              contains: search as string,
+              mode: "insensitive",
+            },
+          },
+        ];
       }
 
-      where.createdAt = {
-        gte: filterStartDate,
-      };
-    }
+      if (status) {
+        where.status = status as string;
+      }
 
-    const [invoices, total] = await Promise.all([
-      prisma.invoice.findMany({
-        where,
-        include: {
-          billedBy: {
-            select: {
-              id: true,
-              fullName: true,
+      if (customerName) {
+        where.customerName = {
+          contains: customerName as string,
+          mode: "insensitive",
+        };
+      }
+
+      // Date range filter - handle both preset ranges and custom dates
+      if (startDate && endDate) {
+        // Custom date range
+        where.createdAt = {
+          gte: new Date(startDate as string),
+          lte: new Date(endDate as string),
+        };
+      } else if (dateRange) {
+        // Preset date range
+        const now = new Date();
+        let filterStartDate: Date;
+
+        switch (dateRange) {
+          case "today":
+            filterStartDate = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate()
+            );
+            break;
+          case "week":
+            filterStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case "month":
+            filterStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            break;
+          case "quarter":
+            const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+            filterStartDate = new Date(now.getFullYear(), quarterStart, 1);
+            break;
+          default:
+            filterStartDate = new Date(0);
+        }
+
+        where.createdAt = {
+          gte: filterStartDate,
+        };
+      }
+
+      const [invoices, total] = await Promise.all([
+        prisma.invoice.findMany({
+          where,
+          include: {
+            billedBy: {
+              select: {
+                id: true,
+                fullName: true,
+              },
             },
-          },
-          team: {
-            select: {
-              id: true,
-              name: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-          },
-          region: {
-            select: {
-              id: true,
-              name: true,
+            region: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-          },
-          items: {
-            include: {
-              inventoryItem: {
-                select: {
-                  id: true,
-                  name: true,
-                  sku: true,
+            items: {
+              include: {
+                inventoryItem: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip,
-        take: limitNum,
-      }),
-      prisma.invoice.count({ where }),
-    ]);
+          orderBy: {
+            createdAt: "desc",
+          },
+          skip,
+          take: limitNum,
+        }),
+        prisma.invoice.count({ where }),
+      ]);
 
-    const totalPages = Math.ceil(total / limitNum);
+      const totalPages = Math.ceil(total / limitNum);
 
-    res.json({
-      success: true,
-      data: invoices,
-      pagination: {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1,
-      },
-    });
-  } catch (error) {
-    logger.error("Error fetching invoices:", error);
-    next(error);
+      res.json({
+        success: true,
+        data: invoices,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages,
+          hasNext: pageNum < totalPages,
+          hasPrev: pageNum > 1,
+        },
+      });
+    } catch (error) {
+      logger.error("Error fetching invoices:", error);
+      next(error);
+    }
   }
-});
+);
 
 // @desc    Get invoice statistics
 // @route   GET /api/invoices/stats
@@ -444,6 +454,11 @@ router.get(
     try {
       const { id } = req.params;
 
+      // Check for bank account override in query params
+      const bankAccountIdOverride = req.query.bankAccountId as
+        | string
+        | undefined;
+
       const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: {
@@ -477,6 +492,15 @@ router.get(
               name: true,
             },
           },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              defaultPaymentTermDays: true,
+              returnPolicyDays: true,
+            },
+          },
+          bankAccount: true,
         },
       });
 
@@ -489,8 +513,8 @@ router.get(
 
       // Create PDF document with Letter size
       const doc = new PDFDocument({
-        size: 'A4',
-        margin: 40
+        size: "A4",
+        margin: 40,
       });
 
       // Set response headers for PDF download
@@ -503,85 +527,171 @@ router.get(
       // Pipe the PDF to the response
       doc.pipe(res);
 
-      const path = require('path');
-      const logoPath = path.join(__dirname, '../../public/clyne_logo.png');
+      const path = require("path");
+      const logoPath = path.join(__dirname, "../../public/clyne_logo.png");
 
       // Add logo (top-left)
       try {
         doc.image(logoPath, 40, 30, { width: 100 });
       } catch (err) {
-        logger.warn('Could not load logo image:', err);
+        logger.warn("Could not load logo image:", err);
       }
 
       // Company contact details (top-right)
-      doc.fontSize(9)
-         .font('Helvetica-Bold')
-         .text('1 AVTI Road, Kuje, Abuja', 400, 30, { align: 'right', width: 155 })
-         .font('Helvetica')
-         .text('info@clynepaper.com.ng', 400, 45, { align: 'right', width: 155 })
-         .text('07082028790, 09026833...', 400, 60, { align: 'right', width: 155 });
+      doc
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .text("1 AVTI Road, Kuje, Abuja", 400, 30, {
+          align: "right",
+          width: 155,
+        })
+        .font("Helvetica")
+        .text("info@clynepaper.com.ng", 400, 45, { align: "right", width: 155 })
+        .text("07082028790, 09026833...", 400, 60, {
+          align: "right",
+          width: 155,
+        });
 
       // Account information section (full width)
-      let currentY = 100;
-      doc.fontSize(10)
-         .font('Helvetica-Bold')
-         .text('ACCOUNT NAME: CLYNE PAPER LIMITED   ACCOUNT NO: 2045723876   BANK: FIRST BANK', 40, currentY, { width: 515, align: 'left' });
+      let currentY = 95;
+
+      // Determine which bank account to display
+      let bankAccountToDisplay: any = null;
+
+      if (bankAccountIdOverride) {
+        // Use override if provided
+        bankAccountToDisplay = await prisma.bankAccount.findUnique({
+          where: { id: bankAccountIdOverride },
+        });
+      } else if (invoice.bankAccount) {
+        // Use invoice's linked bank account
+        bankAccountToDisplay = invoice.bankAccount;
+      } else {
+        // Fallback to default bank account
+        bankAccountToDisplay = await prisma.bankAccount.findUnique({
+          where: { id: "default-bank-account" },
+        });
+      }
+
+      // Display bank account or payment method
+      doc.fontSize(10).font("Helvetica-Bold");
+
+      if (invoice.paymentMethod === "CASH") {
+        doc.text("PAYMENT METHOD: CASH", 40, currentY, {
+          width: 515,
+          align: "left",
+        });
+      } else if (bankAccountToDisplay) {
+        doc.text(
+          `ACCOUNT NAME: ${bankAccountToDisplay.accountName}   ACCOUNT NO: ${bankAccountToDisplay.accountNumber}   BANK: ${bankAccountToDisplay.bankName}`,
+          40,
+          currentY,
+          { width: 515, align: "left" }
+        );
+      } else {
+        // Fallback if no bank account found
+        doc.text("PAYMENT METHOD: BANK TRANSFER", 40, currentY, {
+          width: 515,
+          align: "left",
+        });
+      }
 
       // Invoice header row (black background)
-      currentY += 25;
+      currentY += 20;
       const headerY = currentY;
-      doc.rect(40, headerY, 515, 22).fillAndStroke('#000000', '#000000');
+      doc.rect(40, headerY, 515, 22).fillAndStroke("#000000", "#000000");
 
       // Header text (white on black)
-      doc.fillColor('#FFFFFF')
-         .fontSize(10)
-         .font('Helvetica-Bold')
-         .text('INVOICE NO', 50, headerY + 7, { width: 100, continued: false })
-         .text('CUSTOMER', 240, headerY + 7, { width: 150, align: 'center' })
-         .text('DATE', 480, headerY + 7, { align: 'right', width: 65 });
+      doc
+        .fillColor("#FFFFFF")
+        .fontSize(10)
+        .font("Helvetica-Bold")
+        .text("INVOICE NO", 50, headerY + 7, { width: 100, continued: false })
+        .text("CUSTOMER", 240, headerY + 7, { width: 150, align: "center" })
+        .text("DATE", 480, headerY + 7, { align: "right", width: 65 });
 
       // Header values row (white background with border)
       currentY = headerY + 22;
-      doc.rect(40, currentY, 515, 22).stroke('#000000');
+      doc.rect(40, currentY, 515, 22).stroke("#000000");
 
-      doc.fillColor('#000000')
-         .fontSize(11)
-         .font('Helvetica')
-         .text(invoice.invoiceNumber, 50, currentY + 7, { width: 100 })
-         .text(invoice.customerName.toUpperCase(), 200, currentY + 7, { width: 200, align: 'center' })
-         .text(new Date(invoice.date).toLocaleDateString('en-GB', {
-           day: '2-digit',
-           month: '2-digit',
-           year: 'numeric'
-         }).replace(/\//g, ' - '), 450, currentY + 7, { align: 'right', width: 95 });
+      doc
+        .fillColor("#000000")
+        .fontSize(11)
+        .font("Helvetica")
+        .text(invoice.invoiceNumber, 50, currentY + 7, { width: 100 })
+        .text(invoice.customerName.toUpperCase(), 200, currentY + 7, {
+          width: 200,
+          align: "center",
+        })
+        .text(
+          new Date(invoice.date)
+            .toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+            .replace(/\//g, " - "),
+          450,
+          currentY + 7,
+          { align: "right", width: 95 }
+        );
 
       // Table headers
-      currentY += 30;
+      currentY += 25;
       const tableTop = currentY;
       const colX = {
         sn: 40,
         description: 90,
         qty: 380,
         unitPrice: 440,
-        amount: 495
+        amount: 495,
       };
-      const rowHeight = 25;
+      const rowHeight = 22; // Reduced from 25 to 22
 
       // Draw header row background and borders
-      doc.rect(colX.sn, tableTop, colX.description - colX.sn, rowHeight).stroke();
-      doc.rect(colX.description, tableTop, colX.qty - colX.description, rowHeight).stroke();
-      doc.rect(colX.qty, tableTop, colX.unitPrice - colX.qty, rowHeight).stroke();
-      doc.rect(colX.unitPrice, tableTop, colX.amount - colX.unitPrice, rowHeight).stroke();
+      doc
+        .rect(colX.sn, tableTop, colX.description - colX.sn, rowHeight)
+        .stroke();
+      doc
+        .rect(
+          colX.description,
+          tableTop,
+          colX.qty - colX.description,
+          rowHeight
+        )
+        .stroke();
+      doc
+        .rect(colX.qty, tableTop, colX.unitPrice - colX.qty, rowHeight)
+        .stroke();
+      doc
+        .rect(colX.unitPrice, tableTop, colX.amount - colX.unitPrice, rowHeight)
+        .stroke();
       doc.rect(colX.amount, tableTop, 555 - colX.amount, rowHeight).stroke();
 
       // Header text
-      doc.fontSize(9)
-         .font('Helvetica-Bold')
-         .text('S/N', colX.sn + 5, tableTop + 8, { width: (colX.description - colX.sn - 10), align: 'center' })
-         .text('DESCRIPTION', colX.description + 5, tableTop + 8, { width: (colX.qty - colX.description - 10) })
-         .text('QTY', colX.qty + 5, tableTop + 8, { width: (colX.unitPrice - colX.qty - 10), align: 'center' })
-         .text('UNIT\nPRICE', colX.unitPrice + 3, tableTop + 4, { width: (colX.amount - colX.unitPrice - 6), align: 'center', lineGap: -2 })
-         .text('AMOUNT', colX.amount + 5, tableTop + 8, { width: (555 - colX.amount - 10), align: 'right' });
+      doc
+        .fontSize(9)
+        .font("Helvetica-Bold")
+        .text("S/N", colX.sn + 5, tableTop + 8, {
+          width: colX.description - colX.sn - 10,
+          align: "center",
+        })
+        .text("DESCRIPTION", colX.description + 5, tableTop + 8, {
+          width: colX.qty - colX.description - 10,
+        })
+        .text("QTY", colX.qty + 5, tableTop + 8, {
+          width: colX.unitPrice - colX.qty - 10,
+          align: "center",
+        })
+        .text("UNIT\nPRICE", colX.unitPrice + 3, tableTop + 4, {
+          width: colX.amount - colX.unitPrice - 6,
+          align: "center",
+          lineGap: -2,
+        })
+        .text("AMOUNT", colX.amount + 5, tableTop + 8, {
+          width: 555 - colX.amount - 10,
+          align: "right",
+        });
 
       // Table rows
       currentY = tableTop + rowHeight;
@@ -594,20 +704,62 @@ router.get(
           const quantity = Number(item.quantity);
 
           // Draw row borders
-          doc.rect(colX.sn, currentY, colX.description - colX.sn, rowHeight).stroke();
-          doc.rect(colX.description, currentY, colX.qty - colX.description, rowHeight).stroke();
-          doc.rect(colX.qty, currentY, colX.unitPrice - colX.qty, rowHeight).stroke();
-          doc.rect(colX.unitPrice, currentY, colX.amount - colX.unitPrice, rowHeight).stroke();
-          doc.rect(colX.amount, currentY, 555 - colX.amount, rowHeight).stroke();
+          doc
+            .rect(colX.sn, currentY, colX.description - colX.sn, rowHeight)
+            .stroke();
+          doc
+            .rect(
+              colX.description,
+              currentY,
+              colX.qty - colX.description,
+              rowHeight
+            )
+            .stroke();
+          doc
+            .rect(colX.qty, currentY, colX.unitPrice - colX.qty, rowHeight)
+            .stroke();
+          doc
+            .rect(
+              colX.unitPrice,
+              currentY,
+              colX.amount - colX.unitPrice,
+              rowHeight
+            )
+            .stroke();
+          doc
+            .rect(colX.amount, currentY, 555 - colX.amount, rowHeight)
+            .stroke();
 
           // Row data
-          doc.fontSize(10)
-             .font('Helvetica')
-             .text(serialNumber.toString(), colX.sn + 5, currentY + 8, { width: (colX.description - colX.sn - 10), align: 'center' })
-             .text(item.inventoryItem?.name || 'Product', colX.description + 5, currentY + 8, { width: (colX.qty - colX.description - 10) })
-             .text(quantity.toString(), colX.qty + 5, currentY + 8, { width: (colX.unitPrice - colX.qty - 10), align: 'center' })
-             .text(`N${unitPrice.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, colX.unitPrice + 3, currentY + 8, { width: (colX.amount - colX.unitPrice - 8), align: 'right' })
-             .text(`N${itemTotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, colX.amount + 3, currentY + 8, { width: (555 - colX.amount - 8), align: 'right' });
+          doc
+            .fontSize(10)
+            .font("Helvetica")
+            .text(serialNumber.toString(), colX.sn + 5, currentY + 8, {
+              width: colX.description - colX.sn - 10,
+              align: "center",
+            })
+            .text(
+              item.inventoryItem?.name || "Product",
+              colX.description + 5,
+              currentY + 8,
+              { width: colX.qty - colX.description - 10 }
+            )
+            .text(quantity.toString(), colX.qty + 5, currentY + 8, {
+              width: colX.unitPrice - colX.qty - 10,
+              align: "center",
+            })
+            .text(
+              `N${unitPrice.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              colX.unitPrice + 3,
+              currentY + 8,
+              { width: colX.amount - colX.unitPrice - 8, align: "right" }
+            )
+            .text(
+              `N${itemTotal.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              colX.amount + 3,
+              currentY + 8,
+              { width: 555 - colX.amount - 8, align: "right" }
+            );
 
           currentY += rowHeight;
           serialNumber++;
@@ -615,9 +767,10 @@ router.get(
       } else {
         // Empty row if no items
         doc.rect(colX.sn, currentY, 515, rowHeight).stroke();
-        doc.fontSize(10)
-           .font('Helvetica-Oblique')
-           .text('No items', colX.description + 5, currentY + 8);
+        doc
+          .fontSize(10)
+          .font("Helvetica-Oblique")
+          .text("No items", colX.description + 5, currentY + 8);
         currentY += rowHeight;
       }
 
@@ -625,34 +778,52 @@ router.get(
       const maxRows = 15;
       const currentRows = serialNumber - 1;
       for (let i = currentRows; i < maxRows; i++) {
-        doc.rect(colX.sn, currentY, colX.description - colX.sn, rowHeight).stroke();
-        doc.rect(colX.description, currentY, colX.qty - colX.description, rowHeight).stroke();
-        doc.rect(colX.qty, currentY, colX.unitPrice - colX.qty, rowHeight).stroke();
-        doc.rect(colX.unitPrice, currentY, colX.amount - colX.unitPrice, rowHeight).stroke();
+        doc
+          .rect(colX.sn, currentY, colX.description - colX.sn, rowHeight)
+          .stroke();
+        doc
+          .rect(
+            colX.description,
+            currentY,
+            colX.qty - colX.description,
+            rowHeight
+          )
+          .stroke();
+        doc
+          .rect(colX.qty, currentY, colX.unitPrice - colX.qty, rowHeight)
+          .stroke();
+        doc
+          .rect(
+            colX.unitPrice,
+            currentY,
+            colX.amount - colX.unitPrice,
+            rowHeight
+          )
+          .stroke();
         doc.rect(colX.amount, currentY, 555 - colX.amount, rowHeight).stroke();
         currentY += rowHeight;
       }
 
       // Total row (bold, larger font)
       const totalAmount = Number(invoice.totalAmount);
-      doc.rect(colX.sn, currentY, 515, rowHeight).fillAndStroke('#F0F0F0', '#000000');
+      doc
+        .rect(colX.sn, currentY, 515, rowHeight)
+        .fillAndStroke("#F0F0F0", "#000000");
 
-      doc.fillColor('#000000')
-         .fontSize(11)
-         .font('Helvetica-Bold');
+      doc.fillColor("#000000").fontSize(11).font("Helvetica-Bold");
 
       // Draw "Total:" label
-      doc.text('Total:', colX.unitPrice + 3, currentY + 8, {
+      doc.text("Total:", colX.unitPrice + 3, currentY + 8, {
         width: 50,
-        align: 'left',
+        align: "left",
         continued: false,
-        lineBreak: false
+        lineBreak: false,
       });
 
       // Draw the total amount in the AMOUNT column with explicit positioning
-      const formattedTotal = totalAmount.toLocaleString('en-NG', {
+      const formattedTotal = totalAmount.toLocaleString("en-NG", {
         minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        maximumFractionDigits: 2,
       });
 
       // Calculate the x position to right-align within the cell
@@ -664,22 +835,89 @@ router.get(
 
       doc.text(totalText, xPosition, currentY + 8, {
         lineBreak: false,
-        continued: false
+        continued: false,
       });
 
       // Signature section
-      currentY += 50; // Space after total
+      currentY += 35; // Reduced from 50 to 35
 
       // Signature line
-      doc.moveTo(40, currentY + 30).lineTo(200, currentY + 30).stroke('#000000');
+      doc
+        .moveTo(40, currentY + 20)
+        .lineTo(200, currentY + 20)
+        .stroke("#000000"); // Reduced from 30 to 20
 
       // Prepared by label and name
-      doc.fontSize(9)
-         .font('Helvetica')
-         .text('Prepared by:', 40, currentY + 35)
-         .fontSize(10)
-         .font('Helvetica-Bold')
-         .text(invoice.billedBy?.fullName || 'N/A', 40, currentY + 50);
+      doc
+        .fontSize(9)
+        .font("Helvetica")
+        .text("Prepared by:", 40, currentY + 25)
+        .fontSize(10)
+        .font("Helvetica-Bold")
+        .text(invoice.billedBy?.fullName || "N/A", 40, currentY + 40);
+
+      // Disclaimers section
+      currentY += 65; // Reduced from 90 to 65
+
+      // Get payment terms and return policy from customer or use defaults
+      const paymentTermDays = invoice.customer?.defaultPaymentTermDays || 30;
+      const returnPolicyDays = invoice.customer?.returnPolicyDays || 30;
+
+      // Disclaimers header
+      doc
+        .fontSize(8)
+        .font("Helvetica-Bold")
+        .text("TERMS AND CONDITIONS:", 40, currentY, { underline: true });
+
+      currentY += 12;
+
+      // Disclaimer 1: Payment Terms
+      doc
+        .fontSize(7.5)
+        .font("Helvetica-Bold")
+        .text("1. Payment Terms: ", 40, currentY, { continued: true })
+        .font("Helvetica")
+        .text(
+          `Payment is due within ${paymentTermDays} days of the invoice date. Late payments may incur additional charges.`,
+          {
+            width: 515,
+            align: "left",
+          }
+        );
+
+      currentY += 20;
+
+      // Disclaimer 2: Goods and Services Accuracy
+      doc
+        .fontSize(7.5)
+        .font("Helvetica-Bold")
+        .text("2. Goods and Services Accuracy: ", 40, currentY, {
+          continued: true,
+        })
+        .font("Helvetica")
+        .text(
+          "The descriptions of the goods and services provided are deemed accurate at the time of invoicing. Please ensure that all items received are in accordance with the details specified herein. Discrepancies must be reported immediately at the point of receipt.",
+          {
+            width: 515,
+            align: "left",
+          }
+        );
+
+      currentY += 28;
+
+      // Disclaimer 3: Returns and Refunds
+      doc
+        .fontSize(7.5)
+        .font("Helvetica-Bold")
+        .text("3. Returns and Refunds: ", 40, currentY, { continued: true })
+        .font("Helvetica")
+        .text(
+          `All sales are final, no cash refund. Returns may be accepted at the discretion of Clyne Paper Limited within ${returnPolicyDays} days of purchase, in original condition, and with prior authorization.`,
+          {
+            width: 515,
+            align: "left",
+          }
+        );
 
       // Finalize the PDF
       doc.end();
@@ -822,209 +1060,213 @@ router.post(
 // @desc    Create new invoice
 // @route   POST /api/invoices
 // @access  Private (requires invoices:create permission)
-router.post("/", requirePermission(PERMISSIONS.INVOICES_CREATE), async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const {
-      customerId,
-      items,
-      notes,
-      dueDate,
-      taxAmount = 0,
-      discountAmount = 0,
-      action,
-      status: statusInBody,
-      saveForLater,
-    } = req.body;
+router.post(
+  "/",
+  requirePermission(PERMISSIONS.INVOICES_CREATE),
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const {
+        customerId,
+        items,
+        notes,
+        dueDate,
+        taxAmount = 0,
+        discountAmount = 0,
+        action,
+        status: statusInBody,
+        saveForLater,
+      } = req.body;
 
-    // Determine intent: save draft vs post (publish)
-    const isDraft =
-      action === "save" ||
-      saveForLater === true ||
-      (typeof statusInBody === "string" &&
-        statusInBody.toUpperCase() === "DRAFT");
+      // Determine intent: save draft vs post (publish)
+      const isDraft =
+        action === "save" ||
+        saveForLater === true ||
+        (typeof statusInBody === "string" &&
+          statusInBody.toUpperCase() === "DRAFT");
 
-    // Validation
-    if (!customerId) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer ID is required",
-      });
-    }
-
-    // For drafts, allow saving without items; for posted invoices, require items
-    if (!isDraft) {
-      if (!items || !Array.isArray(items) || items.length === 0) {
+      // Validation
+      if (!customerId) {
         return res.status(400).json({
           success: false,
-          message: "Invoice items are required",
+          message: "Customer ID is required",
         });
       }
-    }
 
-    // Verify customer exists
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
-    });
+      // For drafts, allow saving without items; for posted invoices, require items
+      if (!isDraft) {
+        if (!items || !Array.isArray(items) || items.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Invoice items are required",
+          });
+        }
+      }
 
-    if (!customer) {
-      return res.status(404).json({
-        success: false,
-        message: "Customer not found",
+      // Verify customer exists
+      const customer = await prisma.customer.findUnique({
+        where: { id: customerId },
       });
-    }
 
-    // Validate payment terms: if dueDate is provided, ensure it doesn't exceed customer's default payment term
-    if (dueDate) {
-      const invoiceDate = new Date();
-      const providedDueDate = new Date(dueDate);
-      const daysDifference = Math.ceil(
-        (providedDueDate.getTime() - invoiceDate.getTime()) / (1000 * 3600 * 24)
-      );
-
-      if (daysDifference > customer.defaultPaymentTermDays) {
-        return res.status(400).json({
+      if (!customer) {
+        return res.status(404).json({
           success: false,
-          message: `Payment term cannot exceed ${customer.defaultPaymentTermDays} days for this customer. You selected ${daysDifference} days.`,
+          message: "Customer not found",
         });
       }
-    }
 
-    // Get user's accessible locations for stock validation
-    const accessibleLocations = await getUserAccessibleLocationIds(req.user);
+      // Validate payment terms: if dueDate is provided, ensure it doesn't exceed customer's default payment term
+      if (dueDate) {
+        const invoiceDate = new Date();
+        const providedDueDate = new Date(dueDate);
+        const daysDifference = Math.ceil(
+          (providedDueDate.getTime() - invoiceDate.getTime()) /
+            (1000 * 3600 * 24)
+        );
 
-    // Validate inventory items with location-based stock check
-    const inventoryChecks =
-      items && Array.isArray(items) && items.length > 0
-        ? await Promise.all(
-            items.map(async (item: any) => {
-              const inventoryItem = await prisma.inventoryItem.findUnique({
-                where: { id: item.inventoryItemId },
-                include: {
-                  location: {
-                    select: {
-                      id: true,
-                      name: true,
+        if (daysDifference > customer.defaultPaymentTermDays) {
+          return res.status(400).json({
+            success: false,
+            message: `Payment term cannot exceed ${customer.defaultPaymentTermDays} days for this customer. You selected ${daysDifference} days.`,
+          });
+        }
+      }
+
+      // Get user's accessible locations for stock validation
+      const accessibleLocations = await getUserAccessibleLocationIds(req.user);
+
+      // Validate inventory items with location-based stock check
+      const inventoryChecks =
+        items && Array.isArray(items) && items.length > 0
+          ? await Promise.all(
+              items.map(async (item: any) => {
+                const inventoryItem = await prisma.inventoryItem.findUnique({
+                  where: { id: item.inventoryItemId },
+                  include: {
+                    location: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
                     },
+                  },
+                });
+
+                if (!inventoryItem) {
+                  throw new Error(
+                    `Inventory item with ID ${item.inventoryItemId} not found`
+                  );
+                }
+
+                // Verify user has access to this location
+                if (
+                  accessibleLocations !== "ALL" &&
+                  !accessibleLocations.includes(inventoryItem.locationId)
+                ) {
+                  throw new Error(
+                    `You do not have access to add items from location "${inventoryItem.location.name}". You can only add items from your assigned locations.`
+                  );
+                }
+
+                // Check if item has stock at this location
+                if (inventoryItem.currentQuantity <= 0) {
+                  throw new Error(
+                    `Item "${inventoryItem.name}" has no stock available at location "${inventoryItem.location.name}". Current stock: ${inventoryItem.currentQuantity}`
+                  );
+                }
+
+                // Check if there's enough stock for the requested quantity
+                if (inventoryItem.currentQuantity < item.quantity) {
+                  throw new Error(
+                    `Insufficient stock for item "${inventoryItem.name}" at location "${inventoryItem.location.name}". Requested: ${item.quantity}, Available: ${inventoryItem.currentQuantity}`
+                  );
+                }
+
+                return {
+                  ...item,
+                  inventoryItem,
+                  lineTotal: item.quantity * item.unitPrice,
+                };
+              })
+            )
+          : [];
+
+      // Calculate totals
+      const subtotal = inventoryChecks.reduce(
+        (sum, item) => sum + item.lineTotal,
+        0
+      );
+      const totalAmount =
+        subtotal + parseFloat(taxAmount) - parseFloat(discountAmount);
+
+      // Create invoice with transaction to ensure data consistency
+      const result = await prisma.$transaction(async (tx) => {
+        // Use the authenticated user as billed by user
+        const billedByUserId = req.user!.id;
+
+        // Generate unique invoice number using timestamp + random
+        const timestamp = Date.now().toString();
+        const randomSuffix = Math.floor(Math.random() * 1000)
+          .toString()
+          .padStart(3, "0");
+        const invoiceNumber = timestamp.slice(-8) + randomSuffix; // Last 8 digits of timestamp + 3 digit random
+
+        // Create the invoice
+        const invoice = await tx.invoice.create({
+          data: {
+            invoiceNumber,
+            date: new Date(),
+            customerId,
+            customerName: customer.name, // For backward compatibility
+            customerContact: customer.phone || customer.email, // For backward compatibility
+            billedByUserId,
+            teamId: req.user!.teamId,
+            regionId: req.user!.regionId,
+            totalAmount,
+            balance: totalAmount, // Initialize balance to total amount
+            taxAmount: parseFloat(taxAmount),
+            discountAmount: parseFloat(discountAmount),
+            notes,
+            dueDate: dueDate
+              ? new Date(dueDate)
+              : new Date(
+                  Date.now() +
+                    customer.defaultPaymentTermDays * 24 * 60 * 60 * 1000
+                ), // Use customer's default payment term
+            status: isDraft ? "DRAFT" : "OPEN",
+          },
+        });
+
+        // Create invoice items, update inventory, and track monthly targets
+        const invoiceItems = await Promise.all(
+          inventoryChecks.map(async (item) => {
+            // Create invoice item
+            const invoiceItem = await tx.invoiceItem.create({
+              data: {
+                invoiceId: invoice.id,
+                inventoryItemId: item.inventoryItemId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                lineTotal: item.lineTotal,
+              },
+            });
+
+            // Update inventory only when posting (not for drafts)
+            if (!isDraft) {
+              await tx.inventoryItem.update({
+                where: { id: item.inventoryItemId },
+                data: {
+                  currentQuantity: {
+                    decrement: item.quantity,
                   },
                 },
               });
+            }
 
-              if (!inventoryItem) {
-                throw new Error(
-                  `Inventory item with ID ${item.inventoryItemId} not found`
-                );
-              }
-
-              // Verify user has access to this location
-              if (
-                accessibleLocations !== "ALL" &&
-                !accessibleLocations.includes(inventoryItem.locationId)
-              ) {
-                throw new Error(
-                  `You do not have access to add items from location "${inventoryItem.location.name}". You can only add items from your assigned locations.`
-                );
-              }
-
-              // Check if item has stock at this location
-              if (inventoryItem.currentQuantity <= 0) {
-                throw new Error(
-                  `Item "${inventoryItem.name}" has no stock available at location "${inventoryItem.location.name}". Current stock: ${inventoryItem.currentQuantity}`
-                );
-              }
-
-              // Check if there's enough stock for the requested quantity
-              if (inventoryItem.currentQuantity < item.quantity) {
-                throw new Error(
-                  `Insufficient stock for item "${inventoryItem.name}" at location "${inventoryItem.location.name}". Requested: ${item.quantity}, Available: ${inventoryItem.currentQuantity}`
-                );
-              }
-
-              return {
-                ...item,
-                inventoryItem,
-                lineTotal: item.quantity * item.unitPrice,
-              };
-            })
-          )
-        : [];
-
-    // Calculate totals
-    const subtotal = inventoryChecks.reduce(
-      (sum, item) => sum + item.lineTotal,
-      0
-    );
-    const totalAmount =
-      subtotal + parseFloat(taxAmount) - parseFloat(discountAmount);
-
-    // Create invoice with transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
-      // Use the authenticated user as billed by user
-      const billedByUserId = req.user!.id;
-
-      // Generate unique invoice number using timestamp + random
-      const timestamp = Date.now().toString();
-      const randomSuffix = Math.floor(Math.random() * 1000)
-        .toString()
-        .padStart(3, "0");
-      const invoiceNumber = timestamp.slice(-8) + randomSuffix; // Last 8 digits of timestamp + 3 digit random
-
-      // Create the invoice
-      const invoice = await tx.invoice.create({
-        data: {
-          invoiceNumber,
-          date: new Date(),
-          customerId,
-          customerName: customer.name, // For backward compatibility
-          customerContact: customer.phone || customer.email, // For backward compatibility
-          billedByUserId,
-          teamId: req.user!.teamId,
-          regionId: req.user!.regionId,
-          totalAmount,
-          balance: totalAmount, // Initialize balance to total amount
-          taxAmount: parseFloat(taxAmount),
-          discountAmount: parseFloat(discountAmount),
-          notes,
-          dueDate: dueDate
-            ? new Date(dueDate)
-            : new Date(
-                Date.now() +
-                  customer.defaultPaymentTermDays * 24 * 60 * 60 * 1000
-              ), // Use customer's default payment term
-          status: isDraft ? "DRAFT" : "OPEN",
-        },
-      });
-
-      // Create invoice items, update inventory, and track monthly targets
-      const invoiceItems = await Promise.all(
-        inventoryChecks.map(async (item) => {
-          // Create invoice item
-          const invoiceItem = await tx.invoiceItem.create({
-            data: {
-              invoiceId: invoice.id,
-              inventoryItemId: item.inventoryItemId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              lineTotal: item.lineTotal,
-            },
-          });
-
-          // Update inventory only when posting (not for drafts)
-          if (!isDraft) {
-            await tx.inventoryItem.update({
-              where: { id: item.inventoryItemId },
-              data: {
-                currentQuantity: {
-                  decrement: item.quantity,
-                },
-              },
-            });
-          }
-
-          // Track monthly target progress for the product
-          const inventoryItem = item.inventoryItem;
-          if (inventoryItem.productId) {
-            // TODO: Fix monthlySalesTarget property name issue
-            /*
+            // Track monthly target progress for the product
+            const inventoryItem = item.inventoryItem;
+            if (inventoryItem.productId) {
+              // TODO: Fix monthlySalesTarget property name issue
+              /*
             const now = new Date();
             const year = now.getFullYear();
             const month = now.getMonth() + 1; // JavaScript months are 0-based
@@ -1061,87 +1303,88 @@ router.post("/", requirePermission(PERMISSIONS.INVOICES_CREATE), async (req: Aut
               `Monthly sales target updated for user ${req.user!.id}, product ${inventoryItem.productId}: +${item.quantity} units, +$${item.lineTotal}`
             );
             */
-          }
+            }
 
-          return invoiceItem;
-        })
-      );
+            return invoiceItem;
+          })
+        );
 
-      return { invoice, invoiceItems };
-    });
+        return { invoice, invoiceItems };
+      });
 
-    // Fetch the complete invoice data
-    const completeInvoice = await prisma.invoice.findUnique({
-      where: { id: result.invoice.id },
-      include: {
-        customer: true,
-        billedBy: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
+      // Fetch the complete invoice data
+      const completeInvoice = await prisma.invoice.findUnique({
+        where: { id: result.invoice.id },
+        include: {
+          customer: true,
+          billedBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
           },
-        },
-        items: {
-          include: {
-            inventoryItem: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                unit: true,
+          items: {
+            include: {
+              inventoryItem: {
+                select: {
+                  id: true,
+                  name: true,
+                  sku: true,
+                  unit: true,
+                },
               },
             },
           },
         },
-      },
-    });
-
-    // Log invoice creation
-    await logCreate(
-      req.user!.id,
-      "INVOICE",
-      result.invoice.id,
-      completeInvoice
-    );
-
-    res.status(201).json({
-      success: true,
-      data: completeInvoice,
-      message: isDraft
-        ? "Invoice saved as draft"
-        : "Invoice posted successfully",
-    });
-  } catch (error) {
-    logger.error("Error creating invoice:", error);
-
-    // Handle unique constraint violations
-    if (
-      error instanceof Error &&
-      error.message.includes(
-        "Unique constraint failed on the fields: (`invoice_number`)"
-      )
-    ) {
-      logger.warn("Invoice number collision detected, retrying...");
-      return res.status(409).json({
-        success: false,
-        message: "Invoice number collision detected. Please try again.",
-        code: "INVOICE_NUMBER_CONFLICT",
       });
-    }
 
-    // Note: Removed insufficient stock error handling since we now allow out-of-stock sales
+      // Log invoice creation
+      await logCreate(
+        req.user!.id,
+        "INVOICE",
+        result.invoice.id,
+        completeInvoice
+      );
 
-    if (error instanceof Error && error.message.includes("not found")) {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
+      res.status(201).json({
+        success: true,
+        data: completeInvoice,
+        message: isDraft
+          ? "Invoice saved as draft"
+          : "Invoice posted successfully",
       });
-    }
+    } catch (error) {
+      logger.error("Error creating invoice:", error);
 
-    next(error);
+      // Handle unique constraint violations
+      if (
+        error instanceof Error &&
+        error.message.includes(
+          "Unique constraint failed on the fields: (`invoice_number`)"
+        )
+      ) {
+        logger.warn("Invoice number collision detected, retrying...");
+        return res.status(409).json({
+          success: false,
+          message: "Invoice number collision detected. Please try again.",
+          code: "INVOICE_NUMBER_CONFLICT",
+        });
+      }
+
+      // Note: Removed insufficient stock error handling since we now allow out-of-stock sales
+
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      next(error);
+    }
   }
-});
+);
 
 // @desc    Delete invoice
 // @route   DELETE /api/invoices/:id

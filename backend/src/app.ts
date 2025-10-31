@@ -38,6 +38,7 @@ import adminImportRoutes from "./routes/admin-import";
 import adminMaintenanceRoutes from "./routes/admin-maintenance";
 import debugRoutes from "./routes/debug";
 import maintenanceRoutes from "./routes/maintenance";
+import bankAccountRoutes from "./routes/bankAccounts";
 
 /**
  * Creates and configures the Express application
@@ -122,6 +123,7 @@ export function createApp(options: { enableRateLimit?: boolean } = {}) {
   app.use("/api/admin-maintenance", adminMaintenanceRoutes);
   app.use("/api/maintenance", maintenanceRoutes); // Temporary maintenance endpoints
   app.use("/api/debug", debugRoutes); // Debug routes (dev only)
+  app.use("/api/bank-accounts", bankAccountRoutes);
 
   // Error handling middleware
   app.use(notFound);

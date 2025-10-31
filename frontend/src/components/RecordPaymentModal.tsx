@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { apiClient } from "@/lib/api";
 import SearchableCustomerSelect from "./SearchableCustomerSelect";
+import { BankAccountSelect } from "./BankAccountSelect";
 import { Customer } from "@/types";
 
 interface OpenInvoice {
@@ -42,6 +43,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     paymentDate: new Date().toISOString().split("T")[0],
     referenceNumber: "",
     notes: "",
+    bankAccountId: "",
   });
 
   const [openInvoices, setOpenInvoices] = useState<OpenInvoice[]>([]);
@@ -89,9 +91,16 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.amount, selectedCustomer, openInvoices]);
 
+  // Clear bank account when payment method changes away from BANK_TRANSFER
+  useEffect(() => {
+    if (formData.paymentMethod !== "BANK_TRANSFER") {
+      setFormData((prev) => ({ ...prev, bankAccountId: "" }));
+    }
+  }, [formData.paymentMethod]);
+
   const fetchCustomers = async () => {
     try {
-      const response = await apiClient.get("/customers");
+      const response = await apiClient.get("/customers?limit=10000");
       // Backend returns { success, data: customers[], pagination }
       setCustomers(response.data?.data || []);
     } catch (error) {
@@ -211,14 +220,24 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post("/payments", {
+      const paymentPayload: any = {
         customerId: selectedCustomer.id,
         amount: parseFloat(formData.amount),
         paymentMethod: formData.paymentMethod,
         paymentDate: formData.paymentDate,
         referenceNumber: formData.referenceNumber || undefined,
         notes: formData.notes || undefined,
-      });
+      };
+
+      // Include bank account ID if payment method is BANK_TRANSFER
+      if (
+        formData.paymentMethod === "BANK_TRANSFER" &&
+        formData.bankAccountId
+      ) {
+        paymentPayload.bankAccountId = formData.bankAccountId;
+      }
+
+      const response = await apiClient.post("/payments", paymentPayload);
 
       const result = response.data?.data;
       if (result) {
@@ -256,6 +275,7 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
       paymentDate: new Date().toISOString().split("T")[0],
       referenceNumber: "",
       notes: "",
+      bankAccountId: "",
     });
     setSelectedCustomer(customer || null);
     setOpenInvoices([]);
@@ -448,6 +468,20 @@ const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
                   ))}
                 </select>
               </div>
+
+              {/* Bank Account - Show only for BANK_TRANSFER */}
+              {formData.paymentMethod === "BANK_TRANSFER" && (
+                <div>
+                  <BankAccountSelect
+                    value={formData.bankAccountId}
+                    onChange={(value) =>
+                      setFormData({ ...formData, bankAccountId: value })
+                    }
+                    label="Bank Account"
+                    required
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

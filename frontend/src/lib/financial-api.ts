@@ -64,7 +64,7 @@ export const getCustomerLedger = async (
 // Get customers for selection
 export const getCustomers = async (search?: string) => {
   const response = await apiClient.get("/customers", {
-    params: { search, limit: 100 },
+    params: { search, limit: 10000 },
   });
   return response.data.data;
 };

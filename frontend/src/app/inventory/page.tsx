@@ -43,7 +43,13 @@ export default function InventoryPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["inventory", searchTerm, filterCategory, filterStatus, selectedLocationId],
+    queryKey: [
+      "inventory",
+      searchTerm,
+      filterCategory,
+      filterStatus,
+      selectedLocationId,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
@@ -113,7 +119,7 @@ export default function InventoryPage() {
   });
 
   return (
-    <div>
+    <div className="p-6">
       {/* Location Selector */}
       <LocationSelector />
 

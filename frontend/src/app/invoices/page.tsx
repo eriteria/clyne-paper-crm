@@ -18,10 +18,10 @@ import {
   Upload,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
-import { downloadInvoicePDF } from "@/lib/utils";
 import CreateInvoiceModal from "@/components/CreateInvoiceModal";
 import CreateCustomerModal from "@/components/CreateCustomerModal";
 import InvoiceDetailModal from "@/components/InvoiceDetailModal";
+import { BankAccountOverrideModal } from "@/components/BankAccountOverrideModal";
 import { Invoice } from "@/types";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
@@ -48,31 +48,12 @@ export default function InvoicesPage() {
   const { hasPermission } = usePermissions();
   const router = useRouter();
 
-  // Check if user has permission to view invoices
-  if (!hasPermission("invoices:view")) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
-          <div className="mb-4">
-            <FileText className="h-16 w-16 text-red-500 mx-auto" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-6">
-            You don't have permission to view invoices.
-          </p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // All hooks must be called before any conditional returns
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState<Invoice | null>(
+    null
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateRange, setFilterDateRange] = useState("");
@@ -208,6 +189,31 @@ export default function InvoicesPage() {
     return badges[status] || "bg-gray-100 text-gray-800";
   };
 
+  // Check permission after all hooks are declared
+  if (!hasPermission("invoices:view")) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+          <div className="mb-4">
+            <FileText className="h-16 w-16 text-red-500 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 mb-6">
+            You don&apos;t have permission to view invoices.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -218,14 +224,16 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div>
+    <div className="p-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
             Invoice Management
           </h1>
-          <p className="text-sm md:text-base text-gray-600 mt-1">Track sales and manage billing</p>
+          <p className="text-sm md:text-base text-gray-600 mt-1">
+            Track sales and manage billing
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 md:gap-3">
           <button
@@ -514,15 +522,12 @@ export default function InvoicesPage() {
                       <button
                         className="text-green-600 hover:text-green-900 p-2 md:p-1 rounded transition-colors"
                         title="Download PDF"
-                        onClick={async () => {
-                          try {
-                            await downloadInvoicePDF(
-                              invoice.id,
-                              invoice.invoiceNumber
-                            );
-                          } catch {
-                            alert("Failed to download PDF");
-                          }
+                        onClick={() => {
+                          console.log(
+                            "Download button clicked, invoice:",
+                            invoice
+                          );
+                          setDownloadingInvoice(invoice);
                         }}
                       >
                         <Download className="h-5 w-5 md:h-4 md:w-4" />
@@ -644,6 +649,45 @@ export default function InvoicesPage() {
         <InvoiceDetailModal
           invoice={viewingInvoice}
           onClose={() => setViewingInvoice(null)}
+        />
+      )}
+
+      {/* Bank Account Override Modal for PDF Download */}
+      {downloadingInvoice && (
+        <BankAccountOverrideModal
+          isOpen={!!downloadingInvoice}
+          onClose={() => setDownloadingInvoice(null)}
+          onDownload={async (bankAccountId) => {
+            try {
+              const url = bankAccountId
+                ? `/invoices/${downloadingInvoice.id}/pdf?bankAccountId=${bankAccountId}`
+                : `/invoices/${downloadingInvoice.id}/pdf`;
+
+              const response = await apiClient.get(url, {
+                responseType: "blob",
+              });
+
+              const blob = new Blob([response.data], {
+                type: "application/pdf",
+              });
+              const downloadUrl = window.URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = downloadUrl;
+              link.download = `Invoice-${downloadingInvoice.invoiceNumber}.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              window.URL.revokeObjectURL(downloadUrl);
+
+              setDownloadingInvoice(null);
+            } catch (error) {
+              console.error("Failed to download PDF:", error);
+              alert("Failed to download PDF. Please try again.");
+            }
+          }}
+          currentBankAccountId={downloadingInvoice.bankAccountId}
+          currentPaymentMethod={downloadingInvoice.paymentMethod}
+          invoiceNumber={downloadingInvoice.invoiceNumber}
         />
       )}
     </div>

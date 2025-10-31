@@ -111,14 +111,32 @@ router.get("/stream", async (req, res) => {
       `📝 Stored connection for user ${userId}. Total connections: ${activeConnections.size}`
     );
 
+    // Send keep-alive heartbeat every 30 seconds to prevent connection timeout
+    const heartbeatInterval = setInterval(() => {
+      try {
+        res.write(`:heartbeat ${Date.now()}\n\n`);
+        if (res.flush) res.flush();
+      } catch (error) {
+        console.error(`❌ Heartbeat failed for user ${userId}:`, error);
+        clearInterval(heartbeatInterval);
+      }
+    }, 30000);
+
     // Listen for notifications for this user
     const notificationHandler = (notification: any) => {
       console.log(`🔔 Notification event received:`, notification);
       // Send to specific user or broadcast
       if (notification.userId === userId || notification.userId === "all") {
         console.log(`✅ Sending notification to user ${userId}`);
-        res.write(`data: ${JSON.stringify(notification)}\n\n`);
-        if (res.flush) res.flush();
+        try {
+          res.write(`data: ${JSON.stringify(notification)}\n\n`);
+          if (res.flush) res.flush();
+        } catch (error) {
+          console.error(
+            `❌ Failed to send notification to user ${userId}:`,
+            error
+          );
+        }
       } else {
         console.log(`⏭️ Skipping notification (not for this user: ${userId})`);
       }
@@ -129,6 +147,8 @@ router.get("/stream", async (req, res) => {
 
     // Handle client disconnect
     req.on("close", () => {
+      console.log(`🔌 Client disconnected: ${userId}`);
+      clearInterval(heartbeatInterval);
       notificationEmitter.off("notification", notificationHandler);
       activeConnections.delete(userId);
       res.end();

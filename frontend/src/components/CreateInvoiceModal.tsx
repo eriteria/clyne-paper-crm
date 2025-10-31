@@ -17,6 +17,8 @@ import { formatCurrency } from "@/lib/utils";
 import SearchableCustomerSelect from "./SearchableCustomerSelect";
 import { Customer } from "@/types";
 import { useLocation } from "@/contexts/LocationContext";
+import { PaymentMethodSelect, PaymentMethod } from "./PaymentMethodSelect";
+import { BankAccountSelect } from "./BankAccountSelect";
 
 interface InventoryItem {
   id: string;
@@ -90,6 +92,8 @@ export default function CreateInvoiceModal({
   const [taxAmount, setTaxAmount] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [expectedInvoiceNumber, setExpectedInvoiceNumber] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const [bankAccountId, setBankAccountId] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([
     {
       inventoryItemId: "",
@@ -105,7 +109,7 @@ export default function CreateInvoiceModal({
   const { data: customersData } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      const response = await apiClient.get("/customers?limit=100");
+      const response = await apiClient.get("/customers?limit=10000");
       return response.data;
     },
     enabled: isOpen,
@@ -131,6 +135,8 @@ export default function CreateInvoiceModal({
       setTaxAmount(Number(invoice.taxAmount) || 0);
       setDiscountAmount(Number(invoice.discountAmount) || 0);
       setExpectedInvoiceNumber(invoice.invoiceNumber || "");
+      setPaymentMethod((invoice.paymentMethod as PaymentMethod) || "");
+      setBankAccountId(invoice.bankAccountId || "");
       setItems(
         invoice.items && invoice.items.length > 0
           ? invoice.items.map((it) => ({
@@ -164,6 +170,8 @@ export default function CreateInvoiceModal({
       setTaxAmount(0);
       setDiscountAmount(0);
       setExpectedInvoiceNumber("");
+      setPaymentMethod("");
+      setBankAccountId("");
       setItems([
         {
           inventoryItemId: "",
@@ -174,6 +182,13 @@ export default function CreateInvoiceModal({
       ]);
     }
   }, [invoice, isOpen, customers]);
+
+  // Clear bank account when payment method changes to CASH
+  useEffect(() => {
+    if (paymentMethod === "CASH") {
+      setBankAccountId("");
+    }
+  }, [paymentMethod]);
 
   // Prefill fields for edit mode
   useEffect(() => {
@@ -193,6 +208,8 @@ export default function CreateInvoiceModal({
       setTaxAmount(Number(invoice.taxAmount) || 0);
       setDiscountAmount(Number(invoice.discountAmount) || 0);
       setExpectedInvoiceNumber(invoice.invoiceNumber || "");
+      setPaymentMethod((invoice.paymentMethod as PaymentMethod) || "");
+      setBankAccountId(invoice.bankAccountId || "");
       setItems(
         invoice.items && invoice.items.length > 0
           ? invoice.items.map((it) => ({
@@ -228,7 +245,9 @@ export default function CreateInvoiceModal({
       if (selectedLocationId) {
         params.append("locationId", selectedLocationId);
       }
-      const response = await apiClient.get(`/inventory/for-invoicing?${params.toString()}`);
+      const response = await apiClient.get(
+        `/inventory/for-invoicing?${params.toString()}`
+      );
       return response.data;
     },
     enabled: isOpen,
@@ -435,6 +454,14 @@ export default function CreateInvoiceModal({
       discountAmount,
     };
 
+    // Add payment method and bank account if provided
+    if (paymentMethod) {
+      (invoiceData as any).paymentMethod = paymentMethod;
+    }
+    if (paymentMethod === "BANK_TRANSFER" && bankAccountId) {
+      (invoiceData as any).bankAccountId = bankAccountId;
+    }
+
     // Default submit acts like "Post"
     invoiceData.action = "post";
     invoiceData.items = items.map(
@@ -617,10 +644,13 @@ export default function CreateInvoiceModal({
                           }}
                           required
                         >
-                          <option value="" style={{ color: "#6b7280" }}>Select product</option>
+                          <option value="" style={{ color: "#6b7280" }}>
+                            Select product
+                          </option>
                           {inventoryItems.map(
                             (inventoryItem: InventoryItem) => {
-                              const hasStock = inventoryItem.currentQuantity > 0;
+                              const hasStock =
+                                inventoryItem.currentQuantity > 0;
                               return (
                                 <option
                                   key={inventoryItem.id}
@@ -628,7 +658,9 @@ export default function CreateInvoiceModal({
                                   disabled={!hasStock}
                                   style={{
                                     color: hasStock ? "#111827" : "#9ca3af",
-                                    backgroundColor: hasStock ? "#ffffff" : "#f3f4f6",
+                                    backgroundColor: hasStock
+                                      ? "#ffffff"
+                                      : "#f3f4f6",
                                   }}
                                 >
                                   {inventoryItem.product?.productGroup?.name &&
@@ -638,7 +670,8 @@ export default function CreateInvoiceModal({
                                   ({inventoryItem.sku})
                                   {inventoryItem.location?.name &&
                                     ` - ${inventoryItem.location.name}`}{" "}
-                                  - {hasStock ? "Available" : "OUT OF STOCK"}: {inventoryItem.currentQuantity}{" "}
+                                  - {hasStock ? "Available" : "OUT OF STOCK"}:{" "}
+                                  {inventoryItem.currentQuantity}{" "}
                                   {inventoryItem.unit}
                                 </option>
                               );
@@ -664,15 +697,23 @@ export default function CreateInvoiceModal({
                             style={{
                               backgroundColor: "#ffffff",
                               color: "#111827",
-                              borderColor: item.inventoryItem && item.quantity > item.inventoryItem.currentQuantity ? "#ef4444" : "#9ca3af",
+                              borderColor:
+                                item.inventoryItem &&
+                                item.quantity >
+                                  item.inventoryItem.currentQuantity
+                                  ? "#ef4444"
+                                  : "#9ca3af",
                             }}
                             required
                           />
-                          {item.inventoryItem && item.quantity > item.inventoryItem.currentQuantity && (
-                            <p className="text-xs text-red-600 mt-1 font-semibold">
-                              Exceeds available stock ({item.inventoryItem.currentQuantity})
-                            </p>
-                          )}
+                          {item.inventoryItem &&
+                            item.quantity >
+                              item.inventoryItem.currentQuantity && (
+                              <p className="text-xs text-red-600 mt-1 font-semibold">
+                                Exceeds available stock (
+                                {item.inventoryItem.currentQuantity})
+                              </p>
+                            )}
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -776,6 +817,27 @@ export default function CreateInvoiceModal({
             </div>
           </div>
 
+          {/* Payment Method and Bank Account */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <PaymentMethodSelect
+                value={paymentMethod}
+                onChange={setPaymentMethod}
+                label="Payment Method"
+              />
+            </div>
+            {paymentMethod === "BANK_TRANSFER" && (
+              <div>
+                <BankAccountSelect
+                  value={bankAccountId}
+                  onChange={setBankAccountId}
+                  label="Bank Account"
+                  required
+                />
+              </div>
+            )}
+          </div>
+
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -815,6 +877,13 @@ export default function CreateInvoiceModal({
                   discountAmount,
                   action: "save",
                 };
+                // Add payment method and bank account if provided
+                if (paymentMethod) {
+                  (draftData as any).paymentMethod = paymentMethod;
+                }
+                if (paymentMethod === "BANK_TRANSFER" && bankAccountId) {
+                  (draftData as any).bankAccountId = bankAccountId;
+                }
                 // Include items only if user started adding
                 if (items && items.length > 0) {
                   draftData.items = items

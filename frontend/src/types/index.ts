@@ -230,6 +230,9 @@ export interface Invoice {
   notes?: string;
   dueDate?: string;
   status: InvoiceStatus;
+  paymentMethod?: string;
+  bankAccountId?: string;
+  balance?: number;
   createdAt: string;
   updatedAt: string;
   customer?: Customer;
@@ -245,6 +248,12 @@ export interface Invoice {
   region?: {
     id: string;
     name: string;
+  };
+  bankAccount?: {
+    id: string;
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
   };
   items: InvoiceItem[];
 }
