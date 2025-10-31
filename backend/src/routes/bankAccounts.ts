@@ -12,9 +12,11 @@ const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   console.log("🔐 Admin check - User:", JSON.stringify(user, null, 2));
 
   const allowedRoles = ["Admin", "Super Admin"];
-  
+
   if (!user || !user.role || !allowedRoles.includes(user.role)) {
-    console.log(`❌ Access denied. User role: ${user?.role}, Allowed: ${allowedRoles.join(", ")}`);
+    console.log(
+      `❌ Access denied. User role: ${user?.role}, Allowed: ${allowedRoles.join(", ")}`
+    );
     return res.status(403).json({
       success: false,
       message: "Access denied. Admin or Super Admin privileges required.",
