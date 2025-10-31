@@ -5,17 +5,27 @@ import { authenticate } from "../middleware/auth";
 const router = Router();
 const prisma = new PrismaClient();
 
-// Middleware to check if user is admin
+// Middleware to check if user is admin or super admin
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   const user = (req as any).user;
 
-  if (!user || !user.role || user.role !== "Admin") {
+  console.log("🔐 Admin check - User:", JSON.stringify(user, null, 2));
+
+  const allowedRoles = ["Admin", "Super Admin"];
+  
+  if (!user || !user.role || !allowedRoles.includes(user.role)) {
+    console.log(`❌ Access denied. User role: ${user?.role}, Allowed: ${allowedRoles.join(", ")}`);
     return res.status(403).json({
       success: false,
-      message: "Access denied. Admin privileges required.",
+      message: "Access denied. Admin or Super Admin privileges required.",
+      debug: {
+        userRole: user?.role,
+        allowedRoles,
+      },
     });
   }
 
+  console.log("✅ Admin access granted");
   next();
 };
 
