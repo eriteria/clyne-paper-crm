@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   const user = (req as any).user;
 
-  if (!user || !user.role || user.role.name !== "Admin") {
+  if (!user || !user.role || user.role !== "Admin") {
     return res.status(403).json({
       success: false,
       message: "Access denied. Admin privileges required.",
