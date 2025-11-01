@@ -1,0 +1,205 @@
+name: Security Tests
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      
+      - name: Run npm audit (Backend)
+        run: cd backend && npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Run npm audit (Frontend)
+        run: cd frontend && npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Generate audit report
+        run: |
+          echo "# Security Audit Report" > security-report.md
+          echo "" >> security-report.md
+          echo "## Backend Dependencies" >> security-report.md
+          cd backend && npm audit --json > ../backend-audit.json || true
+          cd ..
+          echo "## Frontend Dependencies" >> security-report.md
+          cd frontend && npm audit --json > ../frontend-audit.json || true
+      
+      - name: Upload audit reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-reports
+          path: |
+            backend-audit.json
+            frontend-audit.json
+            security-report.md
+          retention-days: 90
+  
+  security-tests:
+    name: Security Test Suite
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: clyne_crm_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm run install:all
+      
+      - name: Generate Prisma Client
+        run: cd backend && npx prisma generate
+      
+      - name: Run database migrations
+        run: cd backend && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/clyne_crm_test
+      
+      - name: Run security tests
+        run: npm run test:security
+        env:
+          TEST_DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/clyne_crm_test
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-key-for-ci-only
+          JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci-only
+        continue-on-error: true
+      
+      - name: Upload security test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-test-results
+          path: tests/reports/security/
+          retention-days: 90
+  
+  zap-scan:
+    name: OWASP ZAP Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: clyne_crm_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      
+      - name: Install dependencies
+        run: npm run install:all
+      
+      - name: Start application
+        run: |
+          cd backend && npm start &
+          cd frontend && npm start &
+          npx wait-on http://localhost:3000 -t 120000
+        env:
+          DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/clyne_crm_test
+          NODE_ENV: production
+          JWT_SECRET: test-jwt-secret-key-for-ci-only
+          JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci-only
+      
+      - name: Run ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: 'http://localhost:3000'
+          rules_file_name: 'tests/security/zap-rules.conf'
+          cmd_options: '-a -j -l PASS'
+      
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-scan-report
+          path: report_html.html
+          retention-days: 90
+  
+  create-security-issue:
+    name: Create Security Issue
+    runs-on: ubuntu-latest
+    needs: [dependency-scan, security-tests, zap-scan]
+    if: failure() && github.event_name == 'schedule'
+    
+    steps:
+      - name: Create issue for security findings
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title = `🚨 Security Scan Findings - ${new Date().toISOString().split('T')[0]}`;
+            const body = `
+            Security scans have detected potential issues.
+            
+            **Scan Date:** ${new Date().toISOString()}
+            **Workflow:** ${{ github.workflow }}
+            **Run:** ${{ github.run_number }}
+            
+            ## Next Steps
+            1. Review the security scan artifacts
+            2. Investigate each finding
+            3. Update dependencies if needed
+            4. Apply security patches
+            
+            [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['security', 'automated']
+            });
