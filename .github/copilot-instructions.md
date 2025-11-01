@@ -71,7 +71,7 @@ const { data, isLoading } = useQuery({
 
 ### Authentication Flow
 
-- Login → JWT tokens → `localStorage` storage → Auto-injection via Axios interceptors
+- Login → JWT tokens → HTTP-only cookies (secure storage) → Auto-injection via Axios interceptors
 - Refresh token rotation on 401 responses
 - Role-based route protection in frontend layout components
 
