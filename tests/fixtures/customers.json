@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Acme Corporation",
+    "email": "contact@acme.com",
+    "phone": "+2348012345678",
+    "address": "123 Business Street",
+    "city": "Lagos",
+    "state": "Lagos State",
+    "country": "Nigeria",
+    "taxId": "TAX001",
+    "creditLimit": 500000
+  },
+  {
+    "name": "Global Traders Ltd",
+    "email": "info@globaltraders.com",
+    "phone": "+2348023456789",
+    "address": "456 Commerce Road",
+    "city": "Abuja",
+    "state": "FCT",
+    "country": "Nigeria",
+    "taxId": "TAX002",
+    "creditLimit": 1000000
+  },
+  {
+    "name": "Prime Distributors",
+    "email": "sales@primedist.com",
+    "phone": "+2348034567890",
+    "address": "789 Trade Avenue",
+    "city": "Port Harcourt",
+    "state": "Rivers State",
+    "country": "Nigeria",
+    "taxId": "TAX003",
+    "creditLimit": 750000
+  },
+  {
+    "name": "Mega Stores Inc",
+    "email": "orders@megastores.com",
+    "phone": "+2348045678901",
+    "address": "321 Market Square",
+    "city": "Kano",
+    "state": "Kano State",
+    "country": "Nigeria",
+    "taxId": "TAX004",
+    "creditLimit": 300000
+  },
+  {
+    "name": "Supreme Wholesalers",
+    "email": "contact@supremewholesale.com",
+    "phone": "+2348056789012",
+    "address": "654 Industrial Zone",
+    "city": "Ibadan",
+    "state": "Oyo State",
+    "country": "Nigeria",
+    "taxId": "TAX005",
+    "creditLimit": 600000
+  }
+]

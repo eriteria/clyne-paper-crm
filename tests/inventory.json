@@ -1,0 +1,2043 @@
+{
+  "generatedAt": "2025-11-01T09:38:47.267Z",
+  "repository": {
+    "name": "clyne-paper-crm",
+    "description": "CRM system for Clyne Paper Limited tissue paper factory",
+    "stack": {
+      "backend": [
+        "Node.js",
+        "Express",
+        "TypeScript",
+        "Prisma",
+        "PostgreSQL"
+      ],
+      "frontend": [
+        "Next.js 15",
+        "React 19",
+        "TailwindCSS",
+        "React Query"
+      ],
+      "testing": [
+        "Jest",
+        "Supertest",
+        "React Testing Library"
+      ]
+    }
+  },
+  "backend": {
+    "routes": [
+      {
+        "file": "backend/src/routes/admin-import.ts",
+        "method": "POST",
+        "path": "/api/admin-import/google-sheets",
+        "routeFile": "admin-import"
+      },
+      {
+        "file": "backend/src/routes/admin-import.ts",
+        "method": "GET",
+        "path": "/api/admin-import/status",
+        "routeFile": "admin-import"
+      },
+      {
+        "file": "backend/src/routes/admin-import.ts",
+        "method": "POST",
+        "path": "/api/admin-import/fix-payment-allocations",
+        "routeFile": "admin-import"
+      },
+      {
+        "file": "backend/src/routes/admin-maintenance.ts",
+        "method": "POST",
+        "path": "/api/admin-maintenance/fix-roles",
+        "routeFile": "admin-maintenance"
+      },
+      {
+        "file": "backend/src/routes/admin.ts",
+        "method": "GET",
+        "path": "/api/admin/",
+        "routeFile": "admin"
+      },
+      {
+        "file": "backend/src/routes/auditLogs.ts",
+        "method": "GET",
+        "path": "/api/auditLogs/",
+        "routeFile": "auditLogs"
+      },
+      {
+        "file": "backend/src/routes/auditLogs.ts",
+        "method": "GET",
+        "path": "/api/auditLogs/recent",
+        "routeFile": "auditLogs"
+      },
+      {
+        "file": "backend/src/routes/auditLogs.ts",
+        "method": "GET",
+        "path": "/api/auditLogs/stats",
+        "routeFile": "auditLogs"
+      },
+      {
+        "file": "backend/src/routes/auditLogs.ts",
+        "method": "GET",
+        "path": "/api/auditLogs/:id",
+        "routeFile": "auditLogs"
+      },
+      {
+        "file": "backend/src/routes/auth-zoho.ts",
+        "method": "GET",
+        "path": "/api/auth-zoho/login",
+        "routeFile": "auth-zoho"
+      },
+      {
+        "file": "backend/src/routes/auth-zoho.ts",
+        "method": "GET",
+        "path": "/api/auth-zoho/callback",
+        "routeFile": "auth-zoho"
+      },
+      {
+        "file": "backend/src/routes/auth.ts",
+        "method": "POST",
+        "path": "/api/auth/login",
+        "routeFile": "auth"
+      },
+      {
+        "file": "backend/src/routes/auth.ts",
+        "method": "POST",
+        "path": "/api/auth/refresh",
+        "routeFile": "auth"
+      },
+      {
+        "file": "backend/src/routes/auth.ts",
+        "method": "GET",
+        "path": "/api/auth/profile",
+        "routeFile": "auth"
+      },
+      {
+        "file": "backend/src/routes/auth.ts",
+        "method": "POST",
+        "path": "/api/auth/logout",
+        "routeFile": "auth"
+      },
+      {
+        "file": "backend/src/routes/bankAccounts.ts",
+        "method": "GET",
+        "path": "/api/bankAccounts/",
+        "routeFile": "bankAccounts"
+      },
+      {
+        "file": "backend/src/routes/bankAccounts.ts",
+        "method": "GET",
+        "path": "/api/bankAccounts/:id",
+        "routeFile": "bankAccounts"
+      },
+      {
+        "file": "backend/src/routes/dataManagement.ts",
+        "method": "GET",
+        "path": "/api/dataManagement/export",
+        "routeFile": "dataManagement"
+      },
+      {
+        "file": "backend/src/routes/dataManagement.ts",
+        "method": "POST",
+        "path": "/api/dataManagement/import",
+        "routeFile": "dataManagement"
+      },
+      {
+        "file": "backend/src/routes/dataManagement.ts",
+        "method": "POST",
+        "path": "/api/dataManagement/backup",
+        "routeFile": "dataManagement"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "POST",
+        "path": "/api/import/clear-dummy-data",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "POST",
+        "path": "/api/import/customers",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "POST",
+        "path": "/api/import/link-relationship-managers",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "POST",
+        "path": "/api/import/update-last-order-dates",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "POST",
+        "path": "/api/import/full-process",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "GET",
+        "path": "/api/import/template",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "POST",
+        "path": "/api/import/setup-location-teams",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "POST",
+        "path": "/api/import/assign-customers-to-teams",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "GET",
+        "path": "/api/import/location-mappings",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/import.ts",
+        "method": "POST",
+        "path": "/api/import/add-location-mapping",
+        "routeFile": "import"
+      },
+      {
+        "file": "backend/src/routes/inventory.ts",
+        "method": "GET",
+        "path": "/api/inventory/",
+        "routeFile": "inventory"
+      },
+      {
+        "file": "backend/src/routes/inventory.ts",
+        "method": "GET",
+        "path": "/api/inventory/:id",
+        "routeFile": "inventory"
+      },
+      {
+        "file": "backend/src/routes/inventory.ts",
+        "method": "POST",
+        "path": "/api/inventory/",
+        "routeFile": "inventory"
+      },
+      {
+        "file": "backend/src/routes/inventory.ts",
+        "method": "PUT",
+        "path": "/api/inventory/:id",
+        "routeFile": "inventory"
+      },
+      {
+        "file": "backend/src/routes/inventory.ts",
+        "method": "PUT",
+        "path": "/api/inventory/:id/stock",
+        "routeFile": "inventory"
+      },
+      {
+        "file": "backend/src/routes/inventory.ts",
+        "method": "DELETE",
+        "path": "/api/inventory/:id",
+        "routeFile": "inventory"
+      },
+      {
+        "file": "backend/src/routes/locations.ts",
+        "method": "GET",
+        "path": "/api/locations/",
+        "routeFile": "locations"
+      },
+      {
+        "file": "backend/src/routes/maintenance.ts",
+        "method": "POST",
+        "path": "/api/maintenance/fix-admin-role",
+        "routeFile": "maintenance"
+      },
+      {
+        "file": "backend/src/routes/notifications.ts",
+        "method": "GET",
+        "path": "/api/notifications/stream",
+        "routeFile": "notifications"
+      },
+      {
+        "file": "backend/src/routes/notifications.ts",
+        "method": "POST",
+        "path": "/api/notifications/test",
+        "routeFile": "notifications"
+      },
+      {
+        "file": "backend/src/routes/payments.ts",
+        "method": "GET",
+        "path": "/api/payments/summary",
+        "routeFile": "payments"
+      },
+      {
+        "file": "backend/src/routes/payments.ts",
+        "method": "GET",
+        "path": "/api/payments/recent",
+        "routeFile": "payments"
+      },
+      {
+        "file": "backend/src/routes/payments.ts",
+        "method": "POST",
+        "path": "/api/payments/",
+        "routeFile": "payments"
+      },
+      {
+        "file": "backend/src/routes/payments.ts",
+        "method": "GET",
+        "path": "/api/payments/payment-methods",
+        "routeFile": "payments"
+      },
+      {
+        "file": "backend/src/routes/productGroups.ts",
+        "method": "GET",
+        "path": "/api/productGroups/",
+        "routeFile": "productGroups"
+      },
+      {
+        "file": "backend/src/routes/productGroups.ts",
+        "method": "GET",
+        "path": "/api/productGroups/:id",
+        "routeFile": "productGroups"
+      },
+      {
+        "file": "backend/src/routes/productGroups.ts",
+        "method": "POST",
+        "path": "/api/productGroups/",
+        "routeFile": "productGroups"
+      },
+      {
+        "file": "backend/src/routes/productGroups.ts",
+        "method": "PUT",
+        "path": "/api/productGroups/:id",
+        "routeFile": "productGroups"
+      },
+      {
+        "file": "backend/src/routes/productGroups.ts",
+        "method": "DELETE",
+        "path": "/api/productGroups/:id",
+        "routeFile": "productGroups"
+      },
+      {
+        "file": "backend/src/routes/products.ts",
+        "method": "GET",
+        "path": "/api/products/",
+        "routeFile": "products"
+      },
+      {
+        "file": "backend/src/routes/products.ts",
+        "method": "GET",
+        "path": "/api/products/:id",
+        "routeFile": "products"
+      },
+      {
+        "file": "backend/src/routes/products.ts",
+        "method": "POST",
+        "path": "/api/products/",
+        "routeFile": "products"
+      },
+      {
+        "file": "backend/src/routes/products.ts",
+        "method": "PUT",
+        "path": "/api/products/:id",
+        "routeFile": "products"
+      },
+      {
+        "file": "backend/src/routes/products.ts",
+        "method": "DELETE",
+        "path": "/api/products/:id",
+        "routeFile": "products"
+      },
+      {
+        "file": "backend/src/routes/products.ts",
+        "method": "POST",
+        "path": "/api/products/import",
+        "routeFile": "products"
+      },
+      {
+        "file": "backend/src/routes/regions.ts",
+        "method": "GET",
+        "path": "/api/regions/",
+        "routeFile": "regions"
+      },
+      {
+        "file": "backend/src/routes/regions.ts",
+        "method": "GET",
+        "path": "/api/regions/:id",
+        "routeFile": "regions"
+      },
+      {
+        "file": "backend/src/routes/reports.ts",
+        "method": "GET",
+        "path": "/api/reports/overdue-invoices",
+        "routeFile": "reports"
+      },
+      {
+        "file": "backend/src/routes/reports.ts",
+        "method": "GET",
+        "path": "/api/reports/teams",
+        "routeFile": "reports"
+      },
+      {
+        "file": "backend/src/routes/reports.ts",
+        "method": "GET",
+        "path": "/api/reports/executive",
+        "routeFile": "reports"
+      },
+      {
+        "file": "backend/src/routes/reports.ts",
+        "method": "GET",
+        "path": "/api/reports/customers",
+        "routeFile": "reports"
+      },
+      {
+        "file": "backend/src/routes/reports.ts",
+        "method": "GET",
+        "path": "/api/reports/operations",
+        "routeFile": "reports"
+      },
+      {
+        "file": "backend/src/routes/reports.ts",
+        "method": "POST",
+        "path": "/api/reports/export",
+        "routeFile": "reports"
+      },
+      {
+        "file": "backend/src/routes/sales-returns.ts",
+        "method": "GET",
+        "path": "/api/sales-returns/",
+        "routeFile": "sales-returns"
+      },
+      {
+        "file": "backend/src/routes/sales-returns.ts",
+        "method": "GET",
+        "path": "/api/sales-returns/:id",
+        "routeFile": "sales-returns"
+      },
+      {
+        "file": "backend/src/routes/sales-returns.ts",
+        "method": "POST",
+        "path": "/api/sales-returns/",
+        "routeFile": "sales-returns"
+      },
+      {
+        "file": "backend/src/routes/sales-returns.ts",
+        "method": "POST",
+        "path": "/api/sales-returns/:id/process",
+        "routeFile": "sales-returns"
+      },
+      {
+        "file": "backend/src/routes/sales-returns.ts",
+        "method": "GET",
+        "path": "/api/sales-returns/invoice/:invoiceId",
+        "routeFile": "sales-returns"
+      },
+      {
+        "file": "backend/src/routes/salesTargets.ts",
+        "method": "GET",
+        "path": "/api/salesTargets/",
+        "routeFile": "salesTargets"
+      },
+      {
+        "file": "backend/src/routes/salesTargets.ts",
+        "method": "POST",
+        "path": "/api/salesTargets/",
+        "routeFile": "salesTargets"
+      },
+      {
+        "file": "backend/src/routes/settings.ts",
+        "method": "GET",
+        "path": "/api/settings/",
+        "routeFile": "settings"
+      },
+      {
+        "file": "backend/src/routes/settings.ts",
+        "method": "PATCH",
+        "path": "/api/settings/",
+        "routeFile": "settings"
+      },
+      {
+        "file": "backend/src/routes/teams.ts",
+        "method": "GET",
+        "path": "/api/teams/",
+        "routeFile": "teams"
+      },
+      {
+        "file": "backend/src/routes/teams.ts",
+        "method": "GET",
+        "path": "/api/teams/:id",
+        "routeFile": "teams"
+      },
+      {
+        "file": "backend/src/routes/teams.ts",
+        "method": "POST",
+        "path": "/api/teams/",
+        "routeFile": "teams"
+      },
+      {
+        "file": "backend/src/routes/teams.ts",
+        "method": "PUT",
+        "path": "/api/teams/:id",
+        "routeFile": "teams"
+      },
+      {
+        "file": "backend/src/routes/teams.ts",
+        "method": "DELETE",
+        "path": "/api/teams/:id",
+        "routeFile": "teams"
+      },
+      {
+        "file": "backend/src/routes/teams.ts",
+        "method": "POST",
+        "path": "/api/teams/:id/members",
+        "routeFile": "teams"
+      },
+      {
+        "file": "backend/src/routes/teams.ts",
+        "method": "DELETE",
+        "path": "/api/teams/:id/members",
+        "routeFile": "teams"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "GET",
+        "path": "/api/users/roles",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "GET",
+        "path": "/api/users/",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "GET",
+        "path": "/api/users/:id",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "POST",
+        "path": "/api/users/",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "PUT",
+        "path": "/api/users/:id",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "PUT",
+        "path": "/api/users/:id/password",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "DELETE",
+        "path": "/api/users/:id",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "POST",
+        "path": "/api/users/clear-dummy-data",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "POST",
+        "path": "/api/users/import",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "GET",
+        "path": "/api/users/import/template",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/users.ts",
+        "method": "GET",
+        "path": "/api/users/:id/role",
+        "routeFile": "users"
+      },
+      {
+        "file": "backend/src/routes/waybills.ts",
+        "method": "GET",
+        "path": "/api/waybills/",
+        "routeFile": "waybills"
+      },
+      {
+        "file": "backend/src/routes/waybills.ts",
+        "method": "GET",
+        "path": "/api/waybills/:id",
+        "routeFile": "waybills"
+      },
+      {
+        "file": "backend/src/routes/waybills.ts",
+        "method": "POST",
+        "path": "/api/waybills/",
+        "routeFile": "waybills"
+      },
+      {
+        "file": "backend/src/routes/waybills.ts",
+        "method": "PUT",
+        "path": "/api/waybills/:id",
+        "routeFile": "waybills"
+      }
+    ],
+    "middleware": [
+      {
+        "file": "backend/src/middleware/auth.ts",
+        "name": "auth"
+      },
+      {
+        "file": "backend/src/middleware/errorHandler.ts",
+        "name": "errorHandler"
+      },
+      {
+        "file": "backend/src/middleware/locationAccess.ts",
+        "name": "locationAccess"
+      },
+      {
+        "file": "backend/src/middleware/notFound.ts",
+        "name": "notFound"
+      }
+    ],
+    "services": [
+      {
+        "file": "backend/src/services/googleSheets.ts",
+        "name": "googleSheets"
+      },
+      {
+        "file": "backend/src/services/paymentService.ts",
+        "name": "paymentService"
+      }
+    ],
+    "prismaModels": [
+      {
+        "name": "Role",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "permissions",
+            "type": "String"
+          },
+          {
+            "name": "users",
+            "type": "User"
+          }
+        ]
+      },
+      {
+        "name": "Region",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "parentRegionId",
+            "type": "String"
+          },
+          {
+            "name": "invoices",
+            "type": "Invoice"
+          },
+          {
+            "name": "parentRegion",
+            "type": "Region"
+          },
+          {
+            "name": "childRegions",
+            "type": "Region"
+          },
+          {
+            "name": "users",
+            "type": "User"
+          }
+        ]
+      },
+      {
+        "name": "Team",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "leaderUserId",
+            "type": "String"
+          },
+          {
+            "name": "description",
+            "type": "String"
+          },
+          {
+            "name": "customers",
+            "type": "Customer"
+          },
+          {
+            "name": "invoices",
+            "type": "Invoice"
+          },
+          {
+            "name": "locations",
+            "type": "TeamLocation"
+          },
+          {
+            "name": "leader",
+            "type": "User"
+          },
+          {
+            "name": "members",
+            "type": "User"
+          }
+        ]
+      },
+      {
+        "name": "TeamLocation",
+        "fields": [
+          {
+            "name": "teamId",
+            "type": "String"
+          },
+          {
+            "name": "locationId",
+            "type": "String"
+          },
+          {
+            "name": "assignedAt",
+            "type": "DateTime"
+          },
+          {
+            "name": "location",
+            "type": "Location"
+          },
+          {
+            "name": "team",
+            "type": "Team"
+          }
+        ]
+      },
+      {
+        "name": "UserLocation",
+        "fields": [
+          {
+            "name": "userId",
+            "type": "String"
+          },
+          {
+            "name": "locationId",
+            "type": "String"
+          },
+          {
+            "name": "assignedAt",
+            "type": "DateTime"
+          },
+          {
+            "name": "location",
+            "type": "Location"
+          },
+          {
+            "name": "user",
+            "type": "User"
+          }
+        ]
+      },
+      {
+        "name": "User",
+        "fields": [
+          {
+            "name": "fullName",
+            "type": "String"
+          },
+          {
+            "name": "email",
+            "type": "String"
+          },
+          {
+            "name": "phone",
+            "type": "String"
+          },
+          {
+            "name": "passwordHash",
+            "type": "String"
+          },
+          {
+            "name": "roleId",
+            "type": "String"
+          },
+          {
+            "name": "teamId",
+            "type": "String"
+          },
+          {
+            "name": "regionId",
+            "type": "String"
+          },
+          {
+            "name": "isActive",
+            "type": "Boolean"
+          },
+          {
+            "name": "primaryLocationId",
+            "type": "String"
+          },
+          {
+            "name": "auditLogs",
+            "type": "AuditLog"
+          }
+        ]
+      },
+      {
+        "name": "InventoryItem",
+        "fields": [
+          {
+            "name": "sku",
+            "type": "String"
+          },
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "description",
+            "type": "String"
+          },
+          {
+            "name": "unit",
+            "type": "String"
+          },
+          {
+            "name": "unitPrice",
+            "type": "Decimal"
+          },
+          {
+            "name": "currentQuantity",
+            "type": "Decimal"
+          },
+          {
+            "name": "minStock",
+            "type": "Decimal"
+          },
+          {
+            "name": "productId",
+            "type": "String"
+          },
+          {
+            "name": "locationId",
+            "type": "String"
+          },
+          {
+            "name": "location",
+            "type": "Location"
+          }
+        ]
+      },
+      {
+        "name": "ProductGroup",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "products",
+            "type": "Product"
+          }
+        ]
+      },
+      {
+        "name": "Product",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "productGroupId",
+            "type": "String"
+          },
+          {
+            "name": "monthlyTarget",
+            "type": "Decimal"
+          },
+          {
+            "name": "inventoryItems",
+            "type": "InventoryItem"
+          },
+          {
+            "name": "monthlySalesTargets",
+            "type": "MonthlySalesTarget"
+          },
+          {
+            "name": "productGroup",
+            "type": "ProductGroup"
+          }
+        ]
+      },
+      {
+        "name": "Waybill",
+        "fields": [
+          {
+            "name": "waybillNumber",
+            "type": "String"
+          },
+          {
+            "name": "date",
+            "type": "DateTime"
+          },
+          {
+            "name": "supplier",
+            "type": "String"
+          },
+          {
+            "name": "receivedByUserId",
+            "type": "String"
+          },
+          {
+            "name": "notes",
+            "type": "String"
+          },
+          {
+            "name": "locationId",
+            "type": "String"
+          },
+          {
+            "name": "processedAt",
+            "type": "DateTime"
+          },
+          {
+            "name": "processedBy",
+            "type": "String"
+          },
+          {
+            "name": "status",
+            "type": "WaybillStatus"
+          },
+          {
+            "name": "sourceLocationId",
+            "type": "String"
+          }
+        ]
+      },
+      {
+        "name": "WaybillItem",
+        "fields": [
+          {
+            "name": "waybillId",
+            "type": "String"
+          },
+          {
+            "name": "inventoryItemId",
+            "type": "String"
+          },
+          {
+            "name": "quantityReceived",
+            "type": "Decimal"
+          },
+          {
+            "name": "unitCost",
+            "type": "Decimal"
+          },
+          {
+            "name": "batchNo",
+            "type": "String"
+          },
+          {
+            "name": "expiryDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "description",
+            "type": "String"
+          },
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "processedAt",
+            "type": "DateTime"
+          },
+          {
+            "name": "sku",
+            "type": "String"
+          }
+        ]
+      },
+      {
+        "name": "Customer",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "email",
+            "type": "String"
+          },
+          {
+            "name": "phone",
+            "type": "String"
+          },
+          {
+            "name": "address",
+            "type": "String"
+          },
+          {
+            "name": "companyName",
+            "type": "String"
+          },
+          {
+            "name": "contactPerson",
+            "type": "String"
+          },
+          {
+            "name": "relationshipManagerId",
+            "type": "String"
+          },
+          {
+            "name": "lastOrderDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "onboardingDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "relationshipManagerName",
+            "type": "String"
+          }
+        ]
+      },
+      {
+        "name": "Invoice",
+        "fields": [
+          {
+            "name": "invoiceNumber",
+            "type": "String"
+          },
+          {
+            "name": "date",
+            "type": "DateTime"
+          },
+          {
+            "name": "customerName",
+            "type": "String"
+          },
+          {
+            "name": "customerContact",
+            "type": "String"
+          },
+          {
+            "name": "billedByUserId",
+            "type": "String"
+          },
+          {
+            "name": "teamId",
+            "type": "String"
+          },
+          {
+            "name": "regionId",
+            "type": "String"
+          },
+          {
+            "name": "totalAmount",
+            "type": "Decimal"
+          },
+          {
+            "name": "status",
+            "type": "String"
+          },
+          {
+            "name": "customerId",
+            "type": "String"
+          }
+        ]
+      },
+      {
+        "name": "InvoiceItem",
+        "fields": [
+          {
+            "name": "invoiceId",
+            "type": "String"
+          },
+          {
+            "name": "inventoryItemId",
+            "type": "String"
+          },
+          {
+            "name": "quantity",
+            "type": "Decimal"
+          },
+          {
+            "name": "unitPrice",
+            "type": "Decimal"
+          },
+          {
+            "name": "lineTotal",
+            "type": "Decimal"
+          },
+          {
+            "name": "inventoryItem",
+            "type": "InventoryItem"
+          },
+          {
+            "name": "invoice",
+            "type": "Invoice"
+          }
+        ]
+      },
+      {
+        "name": "AuditLog",
+        "fields": [
+          {
+            "name": "userId",
+            "type": "String"
+          },
+          {
+            "name": "actionType",
+            "type": "String"
+          },
+          {
+            "name": "entityType",
+            "type": "String"
+          },
+          {
+            "name": "entityId",
+            "type": "String"
+          },
+          {
+            "name": "previousValue",
+            "type": "String"
+          },
+          {
+            "name": "currentValue",
+            "type": "String"
+          },
+          {
+            "name": "user",
+            "type": "User"
+          }
+        ]
+      },
+      {
+        "name": "Payment",
+        "fields": [
+          {
+            "name": "invoiceId",
+            "type": "String"
+          },
+          {
+            "name": "amount",
+            "type": "Decimal"
+          },
+          {
+            "name": "paymentMethod",
+            "type": "String"
+          },
+          {
+            "name": "paymentDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "referenceNumber",
+            "type": "String"
+          },
+          {
+            "name": "notes",
+            "type": "String"
+          },
+          {
+            "name": "recordedByUserId",
+            "type": "String"
+          },
+          {
+            "name": "status",
+            "type": "String"
+          },
+          {
+            "name": "invoice",
+            "type": "Invoice"
+          },
+          {
+            "name": "recordedBy",
+            "type": "User"
+          }
+        ]
+      },
+      {
+        "name": "CustomerPayment",
+        "fields": [
+          {
+            "name": "customerId",
+            "type": "String"
+          },
+          {
+            "name": "amount",
+            "type": "Decimal"
+          },
+          {
+            "name": "paymentMethod",
+            "type": "String"
+          },
+          {
+            "name": "paymentDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "referenceNumber",
+            "type": "String"
+          },
+          {
+            "name": "notes",
+            "type": "String"
+          },
+          {
+            "name": "recordedByUserId",
+            "type": "String"
+          },
+          {
+            "name": "status",
+            "type": "String"
+          },
+          {
+            "name": "allocatedAmount",
+            "type": "Decimal"
+          },
+          {
+            "name": "creditAmount",
+            "type": "Decimal"
+          }
+        ]
+      },
+      {
+        "name": "PaymentApplication",
+        "fields": [
+          {
+            "name": "customerPaymentId",
+            "type": "String"
+          },
+          {
+            "name": "invoiceId",
+            "type": "String"
+          },
+          {
+            "name": "amountApplied",
+            "type": "Decimal"
+          },
+          {
+            "name": "appliedDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "notes",
+            "type": "String"
+          },
+          {
+            "name": "customerPayment",
+            "type": "CustomerPayment"
+          },
+          {
+            "name": "invoice",
+            "type": "Invoice"
+          }
+        ]
+      },
+      {
+        "name": "Credit",
+        "fields": [
+          {
+            "name": "customerId",
+            "type": "String"
+          },
+          {
+            "name": "amount",
+            "type": "Decimal"
+          },
+          {
+            "name": "availableAmount",
+            "type": "Decimal"
+          },
+          {
+            "name": "sourcePaymentId",
+            "type": "String"
+          },
+          {
+            "name": "reason",
+            "type": "String"
+          },
+          {
+            "name": "description",
+            "type": "String"
+          },
+          {
+            "name": "createdByUserId",
+            "type": "String"
+          },
+          {
+            "name": "status",
+            "type": "String"
+          },
+          {
+            "name": "expiryDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "creditApplications",
+            "type": "CreditApplication"
+          }
+        ]
+      },
+      {
+        "name": "CreditApplication",
+        "fields": [
+          {
+            "name": "creditId",
+            "type": "String"
+          },
+          {
+            "name": "invoiceId",
+            "type": "String"
+          },
+          {
+            "name": "amountApplied",
+            "type": "Decimal"
+          },
+          {
+            "name": "appliedDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "appliedByUserId",
+            "type": "String"
+          },
+          {
+            "name": "notes",
+            "type": "String"
+          },
+          {
+            "name": "appliedBy",
+            "type": "User"
+          },
+          {
+            "name": "credit",
+            "type": "Credit"
+          },
+          {
+            "name": "invoice",
+            "type": "Invoice"
+          }
+        ]
+      },
+      {
+        "name": "TaxRate",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "rate",
+            "type": "Decimal"
+          },
+          {
+            "name": "description",
+            "type": "String"
+          },
+          {
+            "name": "isActive",
+            "type": "Boolean"
+          }
+        ]
+      },
+      {
+        "name": "QuickBooksExport",
+        "fields": [
+          {
+            "name": "exportType",
+            "type": "String"
+          },
+          {
+            "name": "entityIds",
+            "type": "String"
+          },
+          {
+            "name": "exportData",
+            "type": "String"
+          },
+          {
+            "name": "exportedByUserId",
+            "type": "String"
+          },
+          {
+            "name": "exportDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "filename",
+            "type": "String"
+          },
+          {
+            "name": "status",
+            "type": "String"
+          },
+          {
+            "name": "notes",
+            "type": "String"
+          },
+          {
+            "name": "exportedBy",
+            "type": "User"
+          }
+        ]
+      },
+      {
+        "name": "ReportsCache",
+        "fields": [
+          {
+            "name": "reportKey",
+            "type": "String"
+          },
+          {
+            "name": "data",
+            "type": "String"
+          },
+          {
+            "name": "expiresAt",
+            "type": "DateTime"
+          }
+        ]
+      },
+      {
+        "name": "Location",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String"
+          },
+          {
+            "name": "description",
+            "type": "String"
+          },
+          {
+            "name": "isActive",
+            "type": "Boolean"
+          },
+          {
+            "name": "customers",
+            "type": "Customer"
+          },
+          {
+            "name": "inventory",
+            "type": "InventoryItem"
+          },
+          {
+            "name": "teams",
+            "type": "TeamLocation"
+          },
+          {
+            "name": "assignedUsers",
+            "type": "UserLocation"
+          },
+          {
+            "name": "primaryUsers",
+            "type": "User"
+          },
+          {
+            "name": "receivedWaybills",
+            "type": "Waybill"
+          },
+          {
+            "name": "sentWaybills",
+            "type": "Waybill"
+          }
+        ]
+      },
+      {
+        "name": "MonthlySalesTarget",
+        "fields": [
+          {
+            "name": "productId",
+            "type": "String"
+          },
+          {
+            "name": "userId",
+            "type": "String"
+          },
+          {
+            "name": "year",
+            "type": "Int"
+          },
+          {
+            "name": "month",
+            "type": "Int"
+          },
+          {
+            "name": "targetQuantity",
+            "type": "Decimal"
+          },
+          {
+            "name": "achievedQuantity",
+            "type": "Decimal"
+          },
+          {
+            "name": "targetAmount",
+            "type": "Decimal"
+          },
+          {
+            "name": "achievedAmount",
+            "type": "Decimal"
+          },
+          {
+            "name": "product",
+            "type": "Product"
+          },
+          {
+            "name": "user",
+            "type": "User"
+          }
+        ]
+      },
+      {
+        "name": "SalesReturn",
+        "fields": [
+          {
+            "name": "returnNumber",
+            "type": "String"
+          },
+          {
+            "name": "invoiceId",
+            "type": "String"
+          },
+          {
+            "name": "customerId",
+            "type": "String"
+          },
+          {
+            "name": "returnDate",
+            "type": "DateTime"
+          },
+          {
+            "name": "reason",
+            "type": "String"
+          },
+          {
+            "name": "notes",
+            "type": "String"
+          },
+          {
+            "name": "totalAmount",
+            "type": "Decimal"
+          },
+          {
+            "name": "refundMethod",
+            "type": "String"
+          },
+          {
+            "name": "refundStatus",
+            "type": "String"
+          },
+          {
+            "name": "restockStatus",
+            "type": "String"
+          }
+        ]
+      },
+      {
+        "name": "SalesReturnItem",
+        "fields": [
+          {
+            "name": "salesReturnId",
+            "type": "String"
+          },
+          {
+            "name": "invoiceItemId",
+            "type": "String"
+          },
+          {
+            "name": "inventoryItemId",
+            "type": "String"
+          },
+          {
+            "name": "productName",
+            "type": "String"
+          },
+          {
+            "name": "sku",
+            "type": "String"
+          },
+          {
+            "name": "quantityReturned",
+            "type": "Decimal"
+          },
+          {
+            "name": "unitPrice",
+            "type": "Decimal"
+          },
+          {
+            "name": "subtotal",
+            "type": "Decimal"
+          },
+          {
+            "name": "condition",
+            "type": "String"
+          },
+          {
+            "name": "restocked",
+            "type": "Boolean"
+          }
+        ]
+      },
+      {
+        "name": "BankAccount",
+        "fields": [
+          {
+            "name": "accountName",
+            "type": "String"
+          },
+          {
+            "name": "accountNumber",
+            "type": "String"
+          },
+          {
+            "name": "bankName",
+            "type": "String"
+          },
+          {
+            "name": "isActive",
+            "type": "Boolean"
+          },
+          {
+            "name": "invoices",
+            "type": "Invoice"
+          },
+          {
+            "name": "customerPayments",
+            "type": "CustomerPayment"
+          }
+        ]
+      }
+    ]
+  },
+  "frontend": {
+    "pages": [
+      {
+        "file": "frontend/src/app/admin/audit-logs/page.tsx",
+        "route": "/admin/audit-logs",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/admin/bank-accounts/page.tsx",
+        "route": "/admin/bank-accounts",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/admin/import/page.tsx",
+        "route": "/admin/import",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/admin/locations/page.tsx",
+        "route": "/admin/locations",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/admin/opening-balance-import/page.tsx",
+        "route": "/admin/opening-balance-import",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/admin/page.tsx",
+        "route": "/admin",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/admin/roles/page.tsx",
+        "route": "/admin/roles",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/admin/users/page.tsx",
+        "route": "/admin/users",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/admin/waybills/[id]/edit/page.tsx",
+        "route": "/admin/waybills/[id]/edit",
+        "dynamic": true
+      },
+      {
+        "file": "frontend/src/app/admin/waybills/[id]/page.tsx",
+        "route": "/admin/waybills/[id]",
+        "dynamic": true
+      },
+      {
+        "file": "frontend/src/app/admin/waybills/[id]/review/page.tsx",
+        "route": "/admin/waybills/[id]/review",
+        "dynamic": true
+      },
+      {
+        "file": "frontend/src/app/admin/waybills/page.tsx",
+        "route": "/admin/waybills",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/customers/page.tsx",
+        "route": "/customers",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/dashboard/page.tsx",
+        "route": "/dashboard",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/examples/permissions/page.tsx",
+        "route": "/examples/permissions",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/financial/page.tsx",
+        "route": "/financial",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/import/page.tsx",
+        "route": "/import",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/inventory/page.tsx",
+        "route": "/inventory",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/invoices/import/page.tsx",
+        "route": "/invoices/import",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/invoices/page.tsx",
+        "route": "/invoices",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/login/page.tsx",
+        "route": "/login",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/page.tsx",
+        "route": "/",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/payments/page.tsx",
+        "route": "/payments",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/products/page.tsx",
+        "route": "/products",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/reports/page.tsx",
+        "route": "/reports",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/sales-returns/[id]/page.tsx",
+        "route": "/sales-returns/[id]",
+        "dynamic": true
+      },
+      {
+        "file": "frontend/src/app/sales-returns/page.tsx",
+        "route": "/sales-returns",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/settings/page.tsx",
+        "route": "/settings",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/teams/page.tsx",
+        "route": "/teams",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/users/page.tsx",
+        "route": "/users",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/waybills/[id]/edit/page.tsx",
+        "route": "/waybills/[id]/edit",
+        "dynamic": true
+      },
+      {
+        "file": "frontend/src/app/waybills/[id]/page.tsx",
+        "route": "/waybills/[id]",
+        "dynamic": true
+      },
+      {
+        "file": "frontend/src/app/waybills/[id]/review/page.tsx",
+        "route": "/waybills/[id]/review",
+        "dynamic": true
+      },
+      {
+        "file": "frontend/src/app/waybills/page.tsx",
+        "route": "/waybills",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/zoho-auth-complete/page.tsx",
+        "route": "/zoho-auth-complete",
+        "dynamic": false
+      },
+      {
+        "file": "frontend/src/app/zoho-dev-signin/page.tsx",
+        "route": "/zoho-dev-signin",
+        "dynamic": false
+      }
+    ],
+    "components": [
+      {
+        "file": "frontend/src/components/BankAccountOverrideModal.tsx",
+        "name": "BankAccountOverrideModal"
+      },
+      {
+        "file": "frontend/src/components/BankAccountSelect.tsx",
+        "name": "BankAccountSelect"
+      },
+      {
+        "file": "frontend/src/components/CreateCustomerModal.tsx",
+        "name": "CreateCustomerModal"
+      },
+      {
+        "file": "frontend/src/components/CreateInvoiceModal.tsx",
+        "name": "CreateInvoiceModal"
+      },
+      {
+        "file": "frontend/src/components/CreateSalesReturnModal.tsx",
+        "name": "CreateSalesReturnModal"
+      },
+      {
+        "file": "frontend/src/components/CreateTeamModal.tsx",
+        "name": "CreateTeamModal"
+      },
+      {
+        "file": "frontend/src/components/CreateUserModal.tsx",
+        "name": "CreateUserModal"
+      },
+      {
+        "file": "frontend/src/components/CreditManagementModal.tsx",
+        "name": "CreditManagementModal"
+      },
+      {
+        "file": "frontend/src/components/CustomerLedgerExportModal.tsx",
+        "name": "CustomerLedgerExportModal"
+      },
+      {
+        "file": "frontend/src/components/CustomerLedgerModal.tsx",
+        "name": "CustomerLedgerModal"
+      },
+      {
+        "file": "frontend/src/components/CustomersList.tsx",
+        "name": "CustomersList"
+      },
+      {
+        "file": "frontend/src/components/DashboardHeader.tsx",
+        "name": "DashboardHeader"
+      },
+      {
+        "file": "frontend/src/components/EditTeamModal.tsx",
+        "name": "EditTeamModal"
+      },
+      {
+        "file": "frontend/src/components/EditUserModal.tsx",
+        "name": "EditUserModal"
+      },
+      {
+        "file": "frontend/src/components/InvoiceDetailModal.tsx",
+        "name": "InvoiceDetailModal"
+      },
+      {
+        "file": "frontend/src/components/LoadingIndicator.tsx",
+        "name": "LoadingIndicator"
+      },
+      {
+        "file": "frontend/src/components/LocationSelector.tsx",
+        "name": "LocationSelector"
+      },
+      {
+        "file": "frontend/src/components/NotificationBell.tsx",
+        "name": "NotificationBell"
+      },
+      {
+        "file": "frontend/src/components/PaymentMethodSelect.tsx",
+        "name": "PaymentMethodSelect"
+      },
+      {
+        "file": "frontend/src/components/PermissionGate.tsx",
+        "name": "PermissionGate"
+      },
+      {
+        "file": "frontend/src/components/ProgressBar.tsx",
+        "name": "ProgressBar"
+      },
+      {
+        "file": "frontend/src/components/ProgressBarClient.tsx",
+        "name": "ProgressBarClient"
+      },
+      {
+        "file": "frontend/src/components/ProgressBarWrapper.tsx",
+        "name": "ProgressBarWrapper"
+      },
+      {
+        "file": "frontend/src/components/ProtectedRoute.tsx",
+        "name": "ProtectedRoute"
+      },
+      {
+        "file": "frontend/src/components/RecordPaymentModal.tsx",
+        "name": "RecordPaymentModal"
+      },
+      {
+        "file": "frontend/src/components/SearchBar.tsx",
+        "name": "SearchBar"
+      },
+      {
+        "file": "frontend/src/components/SearchableCustomerSelect.tsx",
+        "name": "SearchableCustomerSelect"
+      },
+      {
+        "file": "frontend/src/components/Sidebar.tsx",
+        "name": "Sidebar"
+      },
+      {
+        "file": "frontend/src/components/ViewTeamModal.tsx",
+        "name": "ViewTeamModal"
+      },
+      {
+        "file": "frontend/src/components/admin/waybills/WaybillApproval.tsx",
+        "name": "WaybillApproval"
+      },
+      {
+        "file": "frontend/src/components/admin/waybills/WaybillForm.tsx",
+        "name": "WaybillForm"
+      },
+      {
+        "file": "frontend/src/components/admin/waybills/WaybillList.tsx",
+        "name": "WaybillList"
+      },
+      {
+        "file": "frontend/src/components/ui/ResponsiveTable.tsx",
+        "name": "ResponsiveTable"
+      },
+      {
+        "file": "frontend/src/components/ui/badge.tsx",
+        "name": "badge"
+      },
+      {
+        "file": "frontend/src/components/ui/button.tsx",
+        "name": "button"
+      },
+      {
+        "file": "frontend/src/components/ui/card.tsx",
+        "name": "card"
+      },
+      {
+        "file": "frontend/src/components/ui/input.tsx",
+        "name": "input"
+      },
+      {
+        "file": "frontend/src/components/ui/label.tsx",
+        "name": "label"
+      },
+      {
+        "file": "frontend/src/components/ui/select.tsx",
+        "name": "select"
+      },
+      {
+        "file": "frontend/src/components/ui/separator.tsx",
+        "name": "separator"
+      },
+      {
+        "file": "frontend/src/components/ui/table.tsx",
+        "name": "table"
+      },
+      {
+        "file": "frontend/src/components/ui/textarea.tsx",
+        "name": "textarea"
+      }
+    ]
+  },
+  "externalIntegrations": [
+    {
+      "name": "Email (Nodemailer)",
+      "type": "SMTP",
+      "purpose": "Invoice and notification emails"
+    },
+    {
+      "name": "Google Sheets API",
+      "type": "API",
+      "purpose": "Data import/export"
+    },
+    {
+      "name": "Zoho",
+      "type": "OAuth",
+      "purpose": "Authentication integration"
+    },
+    {
+      "name": "PostgreSQL",
+      "type": "Database",
+      "purpose": "Primary data store"
+    }
+  ],
+  "roleMatrix": [
+    {
+      "role": "admin",
+      "permissions": [
+        "*"
+      ],
+      "description": "Full system access"
+    },
+    {
+      "role": "manager",
+      "permissions": [
+        "read",
+        "write",
+        "approve"
+      ],
+      "description": "Team management and reporting"
+    },
+    {
+      "role": "staff",
+      "permissions": [
+        "read",
+        "write"
+      ],
+      "description": "Basic CRM operations"
+    }
+  ],
+  "statistics": {
+    "totalRoutes": 94,
+    "totalPages": 36,
+    "totalComponents": 42,
+    "totalModels": 28,
+    "totalMiddleware": 4,
+    "totalServices": 2
+  }
+}

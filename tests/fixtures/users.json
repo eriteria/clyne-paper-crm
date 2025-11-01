@@ -1,0 +1,38 @@
+[
+  {
+    "email": "admin@clynepapers.com",
+    "fullName": "System Administrator",
+    "role": "admin",
+    "phone": "+2348011111111"
+  },
+  {
+    "email": "manager1@clynepapers.com",
+    "fullName": "Sales Manager",
+    "role": "manager",
+    "phone": "+2348022222222"
+  },
+  {
+    "email": "manager2@clynepapers.com",
+    "fullName": "Operations Manager",
+    "role": "manager",
+    "phone": "+2348033333333"
+  },
+  {
+    "email": "staff1@clynepapers.com",
+    "fullName": "Sales Staff 1",
+    "role": "staff",
+    "phone": "+2348044444444"
+  },
+  {
+    "email": "staff2@clynepapers.com",
+    "fullName": "Sales Staff 2",
+    "role": "staff",
+    "phone": "+2348055555555"
+  },
+  {
+    "email": "staff3@clynepapers.com",
+    "fullName": "Warehouse Staff",
+    "role": "staff",
+    "phone": "+2348066666666"
+  }
+]

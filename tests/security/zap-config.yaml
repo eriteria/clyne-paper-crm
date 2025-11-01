@@ -1,0 +1,94 @@
+# ZAP Configuration for Clyne Paper CRM Security Scanning
+
+# Authentication
+# Set up authentication for authenticated scanning
+env:
+  contexts:
+    - name: "Clyne Paper CRM"
+      urls:
+        - "http://localhost:3000"
+      includePaths:
+        - "http://localhost:3000/.*"
+      excludePaths:
+        - "http://localhost:3000/static/.*"
+        - "http://localhost:3000/_next/.*"
+      authentication:
+        method: "form"
+        parameters:
+          loginUrl: "http://localhost:3000/login"
+          loginRequestData: "email=admin@clynepapers.com&password=admin123"
+
+# Scan Rules Configuration
+jobs:
+  - type: "passiveScan-config"
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+  
+  - type: "activeScan-config"
+    parameters:
+      maxRuleDurationInMins: 5
+      maxScanDurationInMins: 30
+      threadPerHost: 2
+  
+  # Spider Configuration
+  - type: "spider"
+    parameters:
+      url: "http://localhost:3000"
+      maxDuration: 10
+      maxDepth: 5
+  
+  # Active Scan
+  - type: "activeScan"
+    parameters:
+      context: "Clyne Paper CRM"
+      url: "http://localhost:3000"
+      recurse: true
+      policy: "Default Policy"
+
+# Alert Filters
+# Suppress known false positives
+alertFilters:
+  - ruleId: 10202 # Absence of Anti-CSRF Tokens (Next.js handles this)
+    newRisk: "Info"
+  
+  - ruleId: 10021 # X-Content-Type-Options Header Missing (Next.js sets this)
+    newRisk: "Info"
+
+# Rules to Enable
+# Focus on critical security issues
+rules:
+  - id: 40018 # SQL Injection
+    threshold: "LOW"
+  
+  - id: 40012 # Cross Site Scripting (Reflected)
+    threshold: "LOW"
+  
+  - id: 40014 # Cross Site Scripting (Persistent)
+    threshold: "LOW"
+  
+  - id: 40019 # Path Traversal
+    threshold: "LOW"
+  
+  - id: 90019 # Server Side Code Injection
+    threshold: "LOW"
+  
+  - id: 90020 # Remote OS Command Injection
+    threshold: "LOW"
+  
+  - id: 40003 # CRLF Injection
+    threshold: "LOW"
+
+# Reporting
+outputDir: "./tests/reports/security/"
+report:
+  - type: "html"
+    template: "traditional-html"
+    reportTitle: "Clyne Paper CRM Security Scan"
+    reportDescription: "OWASP ZAP Security Scan Results"
+  
+  - type: "xml"
+    reportFile: "zap-report.xml"
+  
+  - type: "json"
+    reportFile: "zap-report.json"
