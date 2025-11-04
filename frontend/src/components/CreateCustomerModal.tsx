@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, User, Save, Building, Phone, Mail, MapPin } from "lucide-react";
 import { apiClient } from "@/lib/api";
@@ -11,12 +11,14 @@ interface CreateCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (customer: Customer) => void;
+  customer?: Customer | null;
 }
 
 export default function CreateCustomerModal({
   isOpen,
   onClose,
   onSuccess,
+  customer,
 }: CreateCustomerModalProps) {
   const [formData, setFormData] = useState({
     name: "",
@@ -29,6 +31,23 @@ export default function CreateCustomerModal({
     locationId: "",
     defaultPaymentTermDays: 30,
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (customer) {
+      setFormData({
+        name: customer.name || "",
+        email: customer.email || "",
+        phone: customer.phone || "",
+        address: customer.address || "",
+        companyName: customer.companyName || "",
+        contactPerson: customer.contactPerson || "",
+        relationshipManagerId: customer.relationshipManagerId || "",
+        locationId: customer.locationId || "",
+        defaultPaymentTermDays: customer.defaultPaymentTermDays || 30,
+      });
+    }
+  }, [customer]);
 
   const queryClient = useQueryClient();
 
@@ -53,8 +72,8 @@ export default function CreateCustomerModal({
   const users = usersData?.data?.users || [];
   const locations = locationsData?.data || [];
 
-  // Create customer mutation
-  const createCustomerMutation = useMutation({
+  // Create or Update customer mutation
+  const saveCustomerMutation = useMutation({
     mutationFn: async (customerData: {
       name: string;
       email: string;
@@ -66,8 +85,18 @@ export default function CreateCustomerModal({
       locationId: string;
       defaultPaymentTermDays: number;
     }) => {
-      const response = await apiClient.post("/customers", customerData);
-      return response.data;
+      if (customer) {
+        // Update existing customer
+        const response = await apiClient.patch(
+          `/customers/${customer.id}`,
+          customerData
+        );
+        return response.data;
+      } else {
+        // Create new customer
+        const response = await apiClient.post("/customers", customerData);
+        return response.data;
+      }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -104,7 +133,7 @@ export default function CreateCustomerModal({
       return;
     }
 
-    createCustomerMutation.mutate(formData);
+    saveCustomerMutation.mutate(formData);
   };
 
   const handleInputChange = (field: string, value: string | number) => {
@@ -123,7 +152,7 @@ export default function CreateCustomerModal({
           <div className="flex items-center space-x-3">
             <User className="w-6 h-6 text-blue-600" />
             <h2 className="text-xl font-semibold text-gray-900">
-              Add New Customer
+              {customer ? "Edit Customer" : "Add New Customer"}
             </h2>
           </div>
           <button
@@ -319,12 +348,16 @@ export default function CreateCustomerModal({
             </button>
             <button
               type="submit"
-              disabled={createCustomerMutation.isPending}
+              disabled={saveCustomerMutation.isPending}
               className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
-              {createCustomerMutation.isPending
-                ? "Creating..."
+              {saveCustomerMutation.isPending
+                ? customer
+                  ? "Updating..."
+                  : "Creating..."
+                : customer
+                ? "Update Customer"
                 : "Create Customer"}
             </button>
           </div>

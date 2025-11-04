@@ -105,7 +105,7 @@ model User {
 
 model InventoryItem {
   id               String            @id @default(cuid())
-  sku              String            @unique
+  sku              String
   name             String
   description      String?
   unit             String

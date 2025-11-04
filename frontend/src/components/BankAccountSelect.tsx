@@ -40,11 +40,16 @@ export const BankAccountSelect: React.FC<BankAccountSelectProps> = ({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled || isLoading}
         required={required}
-        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${
           error ? "border-red-500" : "border-gray-300"
         } ${
           disabled || isLoading ? "bg-gray-100 cursor-not-allowed" : "bg-white"
         }`}
+        style={{
+          backgroundColor: disabled || isLoading ? "#f3f4f6" : "#ffffff",
+          color: "#111827",
+          borderColor: error ? "#ef4444" : "#9ca3af",
+        }}
       >
         <option value="">{isLoading ? "Loading..." : placeholder}</option>
         {bankAccounts?.map((account) => (

@@ -25,7 +25,9 @@ export default function CustomersPage() {
           <div className="mb-4">
             <UserCheck className="h-16 w-16 text-red-500 mx-auto" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Access Denied
+          </h2>
           <p className="text-gray-600 mb-6">
             You don't have permission to view customers.
           </p>
@@ -78,9 +80,7 @@ export default function CustomersPage() {
         <div className="flex items-center gap-3 mb-4">
           <UserCheck className="h-8 w-8 text-blue-600 flex-shrink-0" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Customers
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
             <p className="text-gray-600 mt-1">
               Manage customer relationships and information
             </p>
@@ -136,6 +136,7 @@ export default function CustomersPage() {
           isOpen={true}
           onClose={() => setEditingCustomer(null)}
           onSuccess={handleCustomerUpdated}
+          customer={editingCustomer}
         />
       )}
 
