@@ -524,37 +524,90 @@ router.post(
           continue;
         }
 
-        // Create new inventory item
-        const newInventoryItem = await prisma.$transaction(async (tx) => {
-          const newItem = await tx.inventoryItem.create({
-            data: {
-              sku: waybillItem.sku,
-              name: productData.name || waybillItem.name,
-              description: productData.description || waybillItem.description,
-              unit: productData.unit || waybillItem.unit,
-              unitPrice: waybillItem.unitCost,
-              currentQuantity: waybillItem.quantityReceived,
-              minStock: productData.minStock || 10,
-              locationId: waybillItem.waybill.locationId,
-            },
-          });
-
-          // Update waybill item
-          await tx.waybillItem.update({
-            where: { id: waybillItemId },
-            data: {
-              inventoryItemId: newItem.id,
-              status: WaybillItemStatus.PROCESSED,
-              processedAt: new Date(),
-            },
-          });
-
-          return newItem;
+        // Check if inventory item already exists with this SKU and location
+        const existingInventoryItem = await prisma.inventoryItem.findFirst({
+          where: {
+            sku: waybillItem.sku,
+            locationId: waybillItem.waybill.locationId,
+          },
         });
+
+        let inventoryItem;
+
+        if (existingInventoryItem) {
+          // Update existing inventory item
+          inventoryItem = await prisma.$transaction(async (tx) => {
+            const updated = await tx.inventoryItem.update({
+              where: { id: existingInventoryItem.id },
+              data: {
+                name: productData.name || waybillItem.name,
+                description: productData.description || waybillItem.description,
+                unit: productData.unit || waybillItem.unit,
+                minStock: productData.minStock || existingInventoryItem.minStock,
+                currentQuantity: {
+                  increment: waybillItem.quantityReceived,
+                },
+                // Update unit cost with weighted average
+                unitPrice: existingInventoryItem.currentQuantity.equals(0)
+                  ? waybillItem.unitCost
+                  : existingInventoryItem.unitPrice.add(
+                      waybillItem.unitCost
+                        .sub(existingInventoryItem.unitPrice)
+                        .mul(waybillItem.quantityReceived)
+                        .div(
+                          existingInventoryItem.currentQuantity.add(
+                            waybillItem.quantityReceived
+                          )
+                        )
+                    ),
+              },
+            });
+
+            // Update waybill item
+            await tx.waybillItem.update({
+              where: { id: waybillItemId },
+              data: {
+                inventoryItemId: existingInventoryItem.id,
+                status: WaybillItemStatus.PROCESSED,
+                processedAt: new Date(),
+              },
+            });
+
+            return updated;
+          });
+        } else {
+          // Create new inventory item
+          inventoryItem = await prisma.$transaction(async (tx) => {
+            const newItem = await tx.inventoryItem.create({
+              data: {
+                sku: waybillItem.sku,
+                name: productData.name || waybillItem.name,
+                description: productData.description || waybillItem.description,
+                unit: productData.unit || waybillItem.unit,
+                unitPrice: waybillItem.unitCost,
+                currentQuantity: waybillItem.quantityReceived,
+                minStock: productData.minStock || 10,
+                locationId: waybillItem.waybill.locationId,
+              },
+            });
+
+            // Update waybill item
+            await tx.waybillItem.update({
+              where: { id: waybillItemId },
+              data: {
+                inventoryItemId: newItem.id,
+                status: WaybillItemStatus.PROCESSED,
+                processedAt: new Date(),
+              },
+            });
+
+            return newItem;
+          });
+        }
 
         results.push({
           waybillItemId,
-          inventoryItem: newInventoryItem,
+          inventoryItem: inventoryItem,
         });
       }
 
