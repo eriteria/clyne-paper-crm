@@ -5,7 +5,8 @@ export interface Waybill {
   date: string;
   locationId: string;
   sourceLocationId?: string;
-  transferType?: "RECEIVING" | "SENDING";
+  destinationCustomerId?: string;
+  transferType?: "RECEIVING" | "SENDING" | "OUTGOING";
   status: WaybillStatus;
   processedAt?: string;
   processedBy?: string;
@@ -22,6 +23,10 @@ export interface Waybill {
     id: string;
     name: string;
     description?: string;
+  };
+  destinationCustomer?: {
+    id: string;
+    name: string;
   };
   // Legacy field for backward compatibility
   location?: {

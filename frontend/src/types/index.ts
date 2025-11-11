@@ -287,7 +287,8 @@ export interface Waybill {
   supplier: string;
   locationId: string;
   sourceLocationId?: string;
-  transferType: "RECEIVING" | "SENDING";
+  destinationCustomerId?: string;
+  transferType: "RECEIVING" | "SENDING" | "OUTGOING";
   status: "PENDING" | "PROCESSING" | "COMPLETED" | "REVIEW";
   processedAt?: string;
   processedBy?: string;
@@ -299,6 +300,10 @@ export interface Waybill {
     name: string;
   };
   sourceLocation?: {
+    id: string;
+    name: string;
+  };
+  destinationCustomer?: {
     id: string;
     name: string;
   };

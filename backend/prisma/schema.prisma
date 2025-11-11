@@ -152,23 +152,25 @@ model Product {
 }
 
 model Waybill {
-  id                  String        @id @default(cuid())
-  waybillNumber       String        @unique @map("waybill_number")
-  date                DateTime
-  supplier            String
-  receivedByUserId    String        @map("received_by_user_id")
-  notes               String?
-  createdAt           DateTime      @default(now()) @map("created_at")
-  locationId          String        @map("location_id")
-  processedAt         DateTime?     @map("processed_at")
-  processedBy         String?       @map("processed_by")
-  status              WaybillStatus @default(PENDING)
-  sourceLocationId    String?       @map("source_location_id")
-  transferType        String        @default("RECEIVING")
-  items               WaybillItem[]
-  destinationLocation Location      @relation("WaybillDestination", fields: [locationId], references: [id])
-  receivedBy          User          @relation(fields: [receivedByUserId], references: [id])
-  sourceLocation      Location?     @relation("WaybillSource", fields: [sourceLocationId], references: [id])
+  id                   String        @id @default(cuid())
+  waybillNumber        String        @unique @map("waybill_number")
+  date                 DateTime
+  supplier             String
+  receivedByUserId     String        @map("received_by_user_id")
+  notes                String?
+  createdAt            DateTime      @default(now()) @map("created_at")
+  locationId           String        @map("location_id")
+  processedAt          DateTime?     @map("processed_at")
+  processedBy          String?       @map("processed_by")
+  status               WaybillStatus @default(PENDING)
+  sourceLocationId     String?       @map("source_location_id")
+  transferType         String        @default("RECEIVING")
+  destinationCustomerId String?      @map("destination_customer_id")
+  items                WaybillItem[]
+  destinationLocation  Location      @relation("WaybillDestination", fields: [locationId], references: [id])
+  receivedBy           User          @relation(fields: [receivedByUserId], references: [id])
+  sourceLocation       Location?     @relation("WaybillSource", fields: [sourceLocationId], references: [id])
+  destinationCustomer  Customer?     @relation(fields: [destinationCustomerId], references: [id])
 
   @@map("waybills")
 }
@@ -214,6 +216,7 @@ model Customer {
   returnPolicyDays        Int               @default(30) @map("return_policy_days")
   credits                 Credit[]
   payments                CustomerPayment[]
+  waybills                Waybill[]
   locationRef             Location?         @relation(fields: [locationId], references: [id])
   relationshipManager     User?             @relation("CustomerRelationshipManager", fields: [relationshipManagerId], references: [id])
   team                    Team?             @relation("TeamCustomers", fields: [teamId], references: [id])

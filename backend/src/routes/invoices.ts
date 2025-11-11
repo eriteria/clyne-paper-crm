@@ -1629,4 +1629,126 @@ router.post(
   }
 );
 
+// @desc    Create automatic waybill from invoice
+// @route   POST /api/invoices/:id/create-waybill
+// @access  Private (requires invoices:view permission)
+router.post(
+  "/:id/create-waybill",
+  requirePermission(PERMISSIONS.INVOICES_VIEW),
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const invoiceId = req.params.id;
+      const userId = req.user!.id;
+
+      // Fetch invoice with items and customer
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          items: {
+            include: {
+              inventoryItem: true,
+            },
+          },
+          customer: true,
+        },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: "Invoice not found",
+        });
+      }
+
+      // Get user's primary location as source
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { primaryLocationId: true },
+      });
+
+      if (!user?.primaryLocationId) {
+        return res.status(400).json({
+          success: false,
+          message: "User must have a primary location to create waybills",
+        });
+      }
+
+      // Get the next waybill number
+      const latestWaybill = await prisma.waybill.findFirst({
+        orderBy: { waybillNumber: "desc" },
+        select: { waybillNumber: true },
+      });
+
+      let nextNumber = 1;
+      if (latestWaybill?.waybillNumber) {
+        const match = latestWaybill.waybillNumber.match(/WB(\d+)/);
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1;
+        }
+      }
+      const waybillNumber = `WB${nextNumber.toString().padStart(6, "0")}`;
+
+      // Create waybill with items
+      const waybill = await prisma.$transaction(async (prisma) => {
+        // Create the waybill
+        const newWaybill = await prisma.waybill.create({
+          data: {
+            waybillNumber,
+            transferType: "OUTGOING",
+            status: "PENDING", // Start as PENDING, not PROCESSING
+            sourceLocationId: user.primaryLocationId!, // Our store (source)
+            locationId: user.primaryLocationId!, // Same as source for OUTGOING (we're sending FROM here)
+            destinationCustomerId: invoice.customerId, // Customer receiving the goods
+            receivedByUserId: userId, // User who created this waybill
+            date: new Date(),
+            supplier: "Clyne Paper Limited", // We are the supplier/sender
+            notes: `Auto-generated from Invoice #${invoice.invoiceNumber}. Delivery to: ${invoice.customerName}`,
+            items: {
+              create: invoice.items.map((item) => ({
+                inventoryItemId: item.inventoryItemId,
+                name: item.inventoryItem.name,
+                sku: item.inventoryItem.sku,
+                quantityReceived: item.quantity,
+                unit: item.inventoryItem.unit,
+                unitCost: item.unitPrice,
+                status: "PENDING",
+              })),
+            },
+          },
+          include: {
+            items: {
+              include: {
+                inventoryItem: true,
+              },
+            },
+            sourceLocation: true,
+            destinationLocation: true,
+            destinationCustomer: true,
+            receivedBy: true,
+          },
+        });
+
+        // Log the creation
+        await logCreate(userId, "WAYBILL", newWaybill.id, {
+          waybillNumber,
+          transferType: "OUTGOING",
+          invoiceNumber: invoice.invoiceNumber,
+          itemCount: invoice.items.length,
+        });
+
+        return newWaybill;
+      });
+
+      res.status(201).json({
+        success: true,
+        data: waybill,
+        message: "Waybill created successfully from invoice",
+      });
+    } catch (error) {
+      logger.error("Error creating waybill from invoice:", error);
+      next(error);
+    }
+  }
+);
+
 export default router;

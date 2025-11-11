@@ -130,10 +130,7 @@ export default function WaybillDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => router.push("/waybills")}
-          >
+          <Button variant="outline" onClick={() => router.push("/waybills")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Waybills
           </Button>
@@ -154,9 +151,7 @@ export default function WaybillDetailPage() {
             <>
               <Button
                 variant="outline"
-                onClick={() =>
-                  router.push(`/waybills/${waybill.id}/edit`)
-                }
+                onClick={() => router.push(`/waybills/${waybill.id}/edit`)}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
@@ -170,9 +165,7 @@ export default function WaybillDetailPage() {
 
           {waybill.status === WaybillStatus.REVIEW && (
             <Button
-              onClick={() =>
-                router.push(`/waybills/${waybill.id}/review`)
-              }
+              onClick={() => router.push(`/waybills/${waybill.id}/review`)}
               className="bg-orange-600 hover:bg-orange-700"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
@@ -197,7 +190,9 @@ export default function WaybillDetailPage() {
                 <FileText className="h-4 w-4" />
                 Waybill Number
               </Label>
-              <p className="font-bold text-lg text-gray-900">{waybill.waybillNumber}</p>
+              <p className="font-bold text-lg text-gray-900">
+                {waybill.waybillNumber}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -220,22 +215,29 @@ export default function WaybillDetailPage() {
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-900 flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                {waybill.transferType === "SENDING" ? "Source Location" : "Destination Location"}
+                {waybill.transferType === "SENDING"
+                  ? "Source Location"
+                  : "Destination Location"}
               </Label>
               <p className="font-semibold text-gray-900">
                 {waybill.transferType === "SENDING"
-                  ? (waybill.sourceLocation?.name || "No location")
-                  : (waybill.destinationLocation?.name || waybill.location?.name || "No location")
-                }
+                  ? waybill.sourceLocation?.name || "No location"
+                  : waybill.destinationLocation?.name ||
+                    waybill.location?.name ||
+                    "No location"}
               </p>
             </div>
 
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-900 flex items-center gap-1">
                 <User className="h-4 w-4" />
-                Received By
+                {waybill.transferType === "OUTGOING"
+                  ? "Created By"
+                  : "Received By"}
               </Label>
-              <p className="font-semibold text-gray-900">{waybill.receivedBy.fullName}</p>
+              <p className="font-semibold text-gray-900">
+                {waybill.receivedBy.fullName}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -249,7 +251,9 @@ export default function WaybillDetailPage() {
               <Label className="text-sm font-medium text-gray-900">
                 Total Items
               </Label>
-              <p className="font-semibold text-gray-900">{waybill.items.length}</p>
+              <p className="font-semibold text-gray-900">
+                {waybill.items.length}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -289,8 +293,12 @@ export default function WaybillDetailPage() {
               <div key={item.id} className="border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h4 className="font-bold text-lg text-gray-900">{item.name}</h4>
-                    <p className="text-gray-800 text-sm font-medium">SKU: {item.sku}</p>
+                    <h4 className="font-bold text-lg text-gray-900">
+                      {item.name}
+                    </h4>
+                    <p className="text-gray-800 text-sm font-medium">
+                      SKU: {item.sku}
+                    </p>
                     {item.description && (
                       <p className="text-gray-800 text-sm mt-1 font-medium">
                         {item.description}
@@ -316,19 +324,25 @@ export default function WaybillDetailPage() {
                     <p className="font-semibold text-gray-900">{item.unit}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-900 font-semibold">Quantity Received</Label>
+                    <Label className="text-gray-900 font-semibold">
+                      Quantity Received
+                    </Label>
                     <p className="font-semibold text-gray-900">
                       {Number(item.quantityReceived)}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-gray-900 font-semibold">Unit Cost</Label>
+                    <Label className="text-gray-900 font-semibold">
+                      Unit Cost
+                    </Label>
                     <p className="font-semibold text-gray-900">
                       ₦{Number(item.unitCost).toFixed(2)}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-gray-900 font-semibold">Total Value</Label>
+                    <Label className="text-gray-900 font-semibold">
+                      Total Value
+                    </Label>
                     <p className="font-semibold text-gray-900">
                       ₦
                       {(
@@ -342,12 +356,18 @@ export default function WaybillDetailPage() {
                   <div className="mt-3 pt-3 border-t">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <Label className="text-gray-900 font-semibold">Batch Number</Label>
-                        <p className="font-semibold text-gray-900">{item.batchNo}</p>
+                        <Label className="text-gray-900 font-semibold">
+                          Batch Number
+                        </Label>
+                        <p className="font-semibold text-gray-900">
+                          {item.batchNo}
+                        </p>
                       </div>
                       {item.expiryDate && (
                         <div>
-                          <Label className="text-gray-900 font-semibold">Expiry Date</Label>
+                          <Label className="text-gray-900 font-semibold">
+                            Expiry Date
+                          </Label>
                           <p className="font-semibold text-gray-900">
                             {new Date(item.expiryDate).toLocaleDateString()}
                           </p>

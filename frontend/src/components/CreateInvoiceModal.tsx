@@ -94,6 +94,12 @@ export default function CreateInvoiceModal({
   const [expectedInvoiceNumber, setExpectedInvoiceNumber] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [bankAccountId, setBankAccountId] = useState("");
+  const [showWaybillDialog, setShowWaybillDialog] = useState(false);
+  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
+  const [createdInvoiceNumber, setCreatedInvoiceNumber] = useState<
+    string | null
+  >(null);
+  const [createWaybill, setCreateWaybill] = useState(true);
   const [items, setItems] = useState<InvoiceItem[]>([
     {
       inventoryItemId: "",
@@ -322,8 +328,11 @@ export default function CreateInvoiceModal({
 
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      onSuccess?.();
-      handleClose();
+
+      // Store created invoice details and show waybill dialog
+      setCreatedInvoiceId(data.data.id);
+      setCreatedInvoiceNumber(actualInvoiceNumber);
+      setShowWaybillDialog(true);
     },
     onError: (error: unknown) => {
       console.error("Invoice creation error:", error);
@@ -342,6 +351,53 @@ export default function CreateInvoiceModal({
       );
     },
   });
+
+  // Create waybill from invoice mutation
+  const createWaybillMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      const response = await apiClient.post(
+        `/invoices/${invoiceId}/create-waybill`
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      alert(`Waybill #${data.data.waybillNumber} created successfully!`);
+      queryClient.invalidateQueries({ queryKey: ["waybills"] });
+      handleWaybillDialogClose();
+    },
+    onError: (error: unknown) => {
+      console.error("Waybill creation error:", error);
+      const apiError = error as {
+        response?: { status?: number; data?: { message?: string } };
+        message?: string;
+      };
+      alert(
+        `Error creating waybill: ${
+          apiError.response?.data?.message ||
+          apiError.message ||
+          "Unknown error"
+        }`
+      );
+      handleWaybillDialogClose();
+    },
+  });
+
+  const handleWaybillDialogClose = () => {
+    setShowWaybillDialog(false);
+    setCreatedInvoiceId(null);
+    setCreatedInvoiceNumber(null);
+    setCreateWaybill(true);
+    onSuccess?.();
+    handleClose();
+  };
+
+  const handleWaybillDialogConfirm = () => {
+    if (createWaybill && createdInvoiceId) {
+      createWaybillMutation.mutate(createdInvoiceId);
+    } else {
+      handleWaybillDialogClose();
+    }
+  };
 
   const inventoryItems = inventoryData?.data || [];
 
@@ -913,6 +969,54 @@ export default function CreateInvoiceModal({
           </div>
         </form>
       </div>
+
+      {/* Waybill Confirmation Dialog */}
+      {showWaybillDialog && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Invoice Created Successfully!
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Invoice{" "}
+              <span className="font-semibold">{createdInvoiceNumber}</span> has
+              been created.
+            </p>
+
+            <label className="flex items-center space-x-3 mb-6 p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+              <input
+                type="checkbox"
+                checked={createWaybill}
+                onChange={(e) => setCreateWaybill(e.target.checked)}
+                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">
+                Create delivery waybill for this invoice
+              </span>
+            </label>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setCreateWaybill(false);
+                  handleWaybillDialogClose();
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={createWaybillMutation.isPending}
+              >
+                Skip
+              </button>
+              <button
+                onClick={handleWaybillDialogConfirm}
+                disabled={createWaybillMutation.isPending}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createWaybillMutation.isPending ? "Creating..." : "Continue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -212,7 +212,7 @@ export default function WaybillList({ onEdit, onApproval }: WaybillListProps) {
                   <TableHead>Location</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Items</TableHead>
-                  <TableHead>Received By</TableHead>
+                  <TableHead>User</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>

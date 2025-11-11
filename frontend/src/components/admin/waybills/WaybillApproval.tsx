@@ -233,13 +233,16 @@ export default function WaybillApproval({
             </div>
             <div>
               <Label className="text-sm font-medium text-gray-700">
-                {waybill.transferType === "SENDING" ? "Source Location" : "Destination Location"}
+                {waybill.transferType === "SENDING"
+                  ? "Source Location"
+                  : "Destination Location"}
               </Label>
               <p className="font-medium">
                 {waybill.transferType === "SENDING"
-                  ? (waybill.sourceLocation?.name || "No location")
-                  : (waybill.destinationLocation?.name || waybill.location?.name || "No location")
-                }
+                  ? waybill.sourceLocation?.name || "No location"
+                  : waybill.destinationLocation?.name ||
+                    waybill.location?.name ||
+                    "No location"}
               </p>
             </div>
             <div>
@@ -250,7 +253,9 @@ export default function WaybillApproval({
             </div>
             <div>
               <Label className="text-sm font-medium text-gray-700">
-                Received By
+                {waybill.transferType === "OUTGOING"
+                  ? "Created By"
+                  : "Received By"}
               </Label>
               <p className="font-medium">{waybill.receivedBy.fullName}</p>
             </div>

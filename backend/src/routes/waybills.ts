@@ -5,6 +5,7 @@ import {
   getUserAccessibleLocationIds,
   getUserPrimaryLocationId,
 } from "../middleware/locationAccess";
+import { sendNotification } from "./notifications";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -12,7 +13,14 @@ const prisma = new PrismaClient();
 // Get all waybills with pagination and filtering
 router.get("/", authenticate, async (req: AuthenticatedRequest, res) => {
   try {
-    const { page = 1, limit = 10, status, locationId, supplier, transferType } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      locationId,
+      supplier,
+      transferType,
+    } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
     const accessibleLocations = await getUserAccessibleLocationIds(req.user);
@@ -34,10 +42,7 @@ router.get("/", authenticate, async (req: AuthenticatedRequest, res) => {
         });
       }
       // Show waybills where user's location is either source or destination
-      where.OR = [
-        { locationId: locationId },
-        { sourceLocationId: locationId },
-      ];
+      where.OR = [{ locationId: locationId }, { sourceLocationId: locationId }];
     } else if (accessibleLocations !== "ALL") {
       // Filter waybills where user's locations are involved
       where.OR = [
@@ -145,7 +150,10 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
     // Validate transfer type and location access
     if (transferType === "RECEIVING") {
       // For receiving, destination should be user's location
-      if (accessibleLocations !== "ALL" && !accessibleLocations.includes(locationId)) {
+      if (
+        accessibleLocations !== "ALL" &&
+        !accessibleLocations.includes(locationId)
+      ) {
         return res.status(403).json({
           error: "You can only receive waybills at your assigned locations",
         });
@@ -153,9 +161,14 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
     } else if (transferType === "SENDING") {
       // For sending, source should be user's location
       if (!sourceLocationId) {
-        return res.status(400).json({ error: "Source location is required for transfers" });
+        return res
+          .status(400)
+          .json({ error: "Source location is required for transfers" });
       }
-      if (accessibleLocations !== "ALL" && !accessibleLocations.includes(sourceLocationId)) {
+      if (
+        accessibleLocations !== "ALL" &&
+        !accessibleLocations.includes(sourceLocationId)
+      ) {
         return res.status(403).json({
           error: "You can only send from your assigned locations",
         });
@@ -219,6 +232,44 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
 
       return { ...newWaybill, items: waybillItems };
     });
+
+    // Send notifications to admins and users with waybills:receive_notifications permission
+    try {
+      // Get users to notify (admins and users with the permission)
+      const usersToNotify = await prisma.user.findMany({
+        where: {
+          OR: [
+            { role: { name: { in: ["Admin", "Super Admin"] } } },
+            {
+              role: {
+                permissions: {
+                  contains: "waybills:receive_notifications",
+                },
+              },
+            },
+          ],
+        },
+        select: { id: true, fullName: true },
+      });
+
+      // Send notification to each user
+      for (const user of usersToNotify) {
+        sendNotification(
+          user.id,
+          "info",
+          "New Waybill Created",
+          `Waybill #${waybillNumber} has been created and requires review.`,
+          {
+            waybillId: waybill.id,
+            waybillNumber: waybillNumber,
+            type: transferType,
+          }
+        );
+      }
+    } catch (notificationError) {
+      console.error("Error sending waybill notifications:", notificationError);
+      // Don't fail the waybill creation if notifications fail
+    }
 
     return res.status(201).json(waybill);
   } catch (error: any) {
@@ -543,7 +594,8 @@ router.post(
                 name: productData.name || waybillItem.name,
                 description: productData.description || waybillItem.description,
                 unit: productData.unit || waybillItem.unit,
-                minStock: productData.minStock || existingInventoryItem.minStock,
+                minStock:
+                  productData.minStock || existingInventoryItem.minStock,
                 currentQuantity: {
                   increment: waybillItem.quantityReceived,
                 },
