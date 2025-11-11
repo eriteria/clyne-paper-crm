@@ -1,6 +1,67 @@
 require("jest-axe/extend-expect");
 require("@testing-library/jest-dom");
 
+// Suppress React Query background refetches and retries in tests
+// This reduces "act" warnings from async updates
+if (typeof jest !== 'undefined') {
+  jest.mock("@tanstack/react-query", () => {
+    const actual = jest.requireActual("@tanstack/react-query");
+    return {
+      ...actual,
+      QueryClient: class extends actual.QueryClient {
+        constructor(config) {
+          super({
+            ...config,
+            defaultOptions: {
+              ...config?.defaultOptions,
+              queries: {
+                ...config?.defaultOptions?.queries,
+                retry: false,
+                refetchOnWindowFocus: false,
+                refetchOnMount: false,
+                refetchOnReconnect: false,
+                staleTime: Infinity,
+                cacheTime: Infinity,
+              },
+              mutations: {
+                ...config?.defaultOptions?.mutations,
+                retry: false,
+              },
+            },
+          });
+        }
+      },
+    };
+  });
+}
+
+// Polyfill window.getComputedStyle to support pseudo-elements
+// This prevents jsdom "Not implemented" errors when axe-core checks styles
+const originalGetComputedStyle = window.getComputedStyle;
+
+window.getComputedStyle = function (elt, pseudoElt) {
+  // If pseudoElt is provided, jsdom throws "Not implemented"
+  // Return a minimal CSSStyleDeclaration-like object for axe's needs
+  if (pseudoElt) {
+    return {
+      getPropertyValue: (prop) => {
+        // Provide commonly requested properties by axe-core
+        if (prop === "color") return "rgb(0, 0, 0)";
+        if (prop === "background-color" || prop === "background") return "rgb(255, 255, 255)";
+        if (prop === "font-size") return "16px";
+        if (prop === "font-weight") return "400";
+        if (prop === "line-height") return "1.5";
+        // fallback
+        return "";
+      },
+    };
+  }
+  // Fallback to original behaviour for non-pseudo elements
+  return originalGetComputedStyle ? originalGetComputedStyle.call(window, elt) : {
+    getPropertyValue: () => "",
+  };
+};
+
 // Mock Next.js router
 jest.mock("next/router", () => ({
   useRouter() {
