@@ -1,0 +1,126 @@
+config:
+  target: "http://localhost:5000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 120
+      arrivalRate: 10
+      name: "Sustained load"
+    - duration: 60
+      arrivalRate: 20
+      name: "Peak load"
+    - duration: 60
+      arrivalRate: 5
+      name: "Cool down"
+  processor: "./artillery-processor.js"
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Dashboard Metrics Load Test"
+    weight: 30
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "admin@clynepapers.com"
+            password: "admin123"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+      - get:
+          url: "/api/dashboard/metrics"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+  - name: "Customer List Performance"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "admin@clynepapers.com"
+            password: "admin123"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+      - get:
+          url: "/api/customers?page=1&limit=50"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+  - name: "Invoice Creation Performance"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "admin@clynepapers.com"
+            password: "admin123"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+      - get:
+          url: "/api/customers?page=1&limit=1"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          capture:
+            - json: "$.data[0].id"
+              as: "customerId"
+      - post:
+          url: "/api/invoices"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            customerId: "{{ customerId }}"
+            dueDate: "2025-12-31"
+            items:
+              - description: "Load Test Item"
+                quantity: 10
+                unitPrice: 100
+          expect:
+            - statusCode: 201
+
+  - name: "Invoice List with Filters"
+    weight: 15
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "admin@clynepapers.com"
+            password: "admin123"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+      - get:
+          url: "/api/invoices?status=PENDING&page=1&limit=20"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  - name: "Inventory Stock Check"
+    weight: 10
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "admin@clynepapers.com"
+            password: "admin123"
+          capture:
+            - json: "$.data.token"
+              as: "authToken"
+      - get:
+          url: "/api/inventory?page=1&limit=50"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+            - contentType: json

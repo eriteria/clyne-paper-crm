@@ -1,0 +1,137 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  e2e-tests:
+    name: E2E Tests with Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: clyne_crm_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm run install:all
+      
+      - name: Install Playwright browsers
+        run: cd tests && npx playwright install --with-deps ${{ matrix.browser }}
+      
+      - name: Generate Prisma Client
+        run: cd backend && npx prisma generate
+      
+      - name: Run database migrations
+        run: cd backend && npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/clyne_crm_test
+      
+      - name: Seed test database
+        run: cd backend && npm run db:seed
+        env:
+          DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/clyne_crm_test
+          NODE_ENV: test
+      
+      - name: Build frontend
+        run: cd frontend && npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:5000
+      
+      - name: Start backend server
+        run: |
+          cd backend && npm start &
+          echo $! > backend.pid
+        env:
+          DATABASE_URL: postgresql://testuser:testpassword@localhost:5432/clyne_crm_test
+          PORT: 5000
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-key-for-ci-only
+          JWT_REFRESH_SECRET: test-refresh-secret-key-for-ci-only
+      
+      - name: Start frontend server
+        run: |
+          cd frontend && npm start &
+          echo $! > frontend.pid
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:5000
+          PORT: 3000
+      
+      - name: Wait for servers to be ready
+        run: |
+          npx wait-on http://localhost:5000/api/health -t 60000
+          npx wait-on http://localhost:3000 -t 60000
+      
+      - name: Run E2E tests
+        run: cd tests && npx playwright test --project=${{ matrix.browser }}
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          API_BASE_URL: http://localhost:5000
+      
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: tests/playwright-report/
+          retention-days: 30
+      
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos-${{ matrix.browser }}
+          path: tests/test-results/
+          retention-days: 7
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          [ -f backend.pid ] && kill $(cat backend.pid) || true
+          [ -f frontend.pid ] && kill $(cat frontend.pid) || true
+  
+  e2e-summary:
+    name: E2E Test Summary
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "E2E tests completed across multiple browsers" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Chromium: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Firefox: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- WebKit: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
