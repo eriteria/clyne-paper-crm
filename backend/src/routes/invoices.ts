@@ -130,6 +130,12 @@ router.get(
                 fullName: true,
               },
             },
+            approvedBy: {
+              select: {
+                id: true,
+                fullName: true,
+              },
+            },
             team: {
               select: {
                 id: true,
@@ -511,10 +517,10 @@ router.get(
         });
       }
 
-      // Create PDF document with Letter size
+      // Create PDF document with A5 size
       const doc = new PDFDocument({
-        size: "A4",
-        margin: 40,
+        size: "A5",
+        margin: 30,
       });
 
       // Set response headers for PDF download
@@ -530,30 +536,30 @@ router.get(
       const path = require("path");
       const logoPath = path.join(__dirname, "../../public/clyne_logo.png");
 
-      // Add logo (top-left)
+      // Add logo (top-left) - scaled for A5
       try {
-        doc.image(logoPath, 40, 30, { width: 100 });
+        doc.image(logoPath, 30, 25, { width: 70 });
       } catch (err) {
         logger.warn("Could not load logo image:", err);
       }
 
-      // Company contact details (top-right)
+      // Company contact details (top-right) - adjusted for A5
       doc
-        .fontSize(9)
+        .fontSize(7)
         .font("Helvetica-Bold")
-        .text("1 AVTI Road, Kuje, Abuja", 400, 30, {
+        .text("1 AVTI Road, Kuje, Abuja", 280, 25, {
           align: "right",
-          width: 155,
+          width: 110,
         })
         .font("Helvetica")
-        .text("info@clynepaper.com.ng", 400, 45, { align: "right", width: 155 })
-        .text("07082028790, 09026833...", 400, 60, {
+        .text("info@clynepaper.com.ng", 280, 38, { align: "right", width: 110 })
+        .text("07082028790, 09026833...", 280, 51, {
           align: "right",
-          width: 155,
+          width: 110,
         });
 
-      // Account information section (full width)
-      let currentY = 95;
+      // Account information section (full width) - adjusted for A5
+      let currentY = 80;
 
       // Determine which bank account to display
       let bankAccountToDisplay: any = null;
@@ -573,54 +579,54 @@ router.get(
         });
       }
 
-      // Display bank account or payment method
-      doc.fontSize(10).font("Helvetica-Bold");
+      // Display bank account or payment method - adjusted for A5
+      doc.fontSize(8).font("Helvetica-Bold");
 
       if (invoice.paymentMethod === "CASH") {
-        doc.text("PAYMENT METHOD: CASH", 40, currentY, {
-          width: 515,
+        doc.text("PAYMENT METHOD: CASH", 30, currentY, {
+          width: 360,
           align: "left",
         });
       } else if (bankAccountToDisplay) {
         doc.text(
           `ACCOUNT NAME: ${bankAccountToDisplay.accountName}   ACCOUNT NO: ${bankAccountToDisplay.accountNumber}   BANK: ${bankAccountToDisplay.bankName}`,
-          40,
+          30,
           currentY,
-          { width: 515, align: "left" }
+          { width: 360, align: "left" }
         );
       } else {
         // Fallback if no bank account found
-        doc.text("PAYMENT METHOD: BANK TRANSFER", 40, currentY, {
-          width: 515,
+        doc.text("PAYMENT METHOD: BANK TRANSFER", 30, currentY, {
+          width: 360,
           align: "left",
         });
       }
 
-      // Invoice header row (black background)
+      // Invoice header row (black background) - adjusted for A5
       currentY += 20;
       const headerY = currentY;
-      doc.rect(40, headerY, 515, 22).fillAndStroke("#000000", "#000000");
+      doc.rect(30, headerY, 360, 20).fillAndStroke("#000000", "#000000");
 
-      // Header text (white on black)
+      // Header text (white on black) - adjusted for A5
       doc
         .fillColor("#FFFFFF")
-        .fontSize(10)
+        .fontSize(8)
         .font("Helvetica-Bold")
-        .text("INVOICE NO", 50, headerY + 7, { width: 100, continued: false })
-        .text("CUSTOMER", 240, headerY + 7, { width: 150, align: "center" })
-        .text("DATE", 480, headerY + 7, { align: "right", width: 65 });
+        .text("INVOICE NO", 35, headerY + 6, { width: 80, continued: false })
+        .text("CUSTOMER", 150, headerY + 6, { width: 120, align: "center" })
+        .text("DATE", 320, headerY + 6, { align: "right", width: 60 });
 
-      // Header values row (white background with border)
-      currentY = headerY + 22;
-      doc.rect(40, currentY, 515, 22).stroke("#000000");
+      // Header values row (white background with border) - adjusted for A5
+      currentY = headerY + 20;
+      doc.rect(30, currentY, 360, 20).stroke("#000000");
 
       doc
         .fillColor("#000000")
-        .fontSize(11)
+        .fontSize(8)
         .font("Helvetica")
-        .text(invoice.invoiceNumber, 50, currentY + 7, { width: 100 })
-        .text(invoice.customerName.toUpperCase(), 200, currentY + 7, {
-          width: 200,
+        .text(invoice.invoiceNumber, 35, currentY + 6, { width: 80 })
+        .text(invoice.customerName.toUpperCase(), 150, currentY + 6, {
+          width: 120,
           align: "center",
         })
         .text(
@@ -631,24 +637,24 @@ router.get(
               year: "numeric",
             })
             .replace(/\//g, " - "),
-          450,
-          currentY + 7,
-          { align: "right", width: 95 }
+          320,
+          currentY + 6,
+          { align: "right", width: 60 }
         );
 
-      // Table headers
-      currentY += 25;
+      // Table headers - adjusted for A5
+      currentY += 23;
       const tableTop = currentY;
       const colX = {
-        sn: 40,
-        description: 90,
-        qty: 380,
-        unitPrice: 440,
-        amount: 495,
+        sn: 30,
+        description: 65,
+        qty: 260,
+        unitPrice: 300,
+        amount: 345,
       };
-      const rowHeight = 22; // Reduced from 25 to 22
+      const rowHeight = 20; // Reduced for A5
 
-      // Draw header row background and borders
+      // Draw header row background and borders - adjusted for A5
       doc
         .rect(colX.sn, tableTop, colX.description - colX.sn, rowHeight)
         .stroke();
@@ -666,30 +672,30 @@ router.get(
       doc
         .rect(colX.unitPrice, tableTop, colX.amount - colX.unitPrice, rowHeight)
         .stroke();
-      doc.rect(colX.amount, tableTop, 555 - colX.amount, rowHeight).stroke();
+      doc.rect(colX.amount, tableTop, 390 - colX.amount, rowHeight).stroke();
 
-      // Header text
+      // Header text - adjusted for A5
       doc
-        .fontSize(9)
+        .fontSize(7)
         .font("Helvetica-Bold")
-        .text("S/N", colX.sn + 5, tableTop + 8, {
-          width: colX.description - colX.sn - 10,
+        .text("S/N", colX.sn + 3, tableTop + 7, {
+          width: colX.description - colX.sn - 6,
           align: "center",
         })
-        .text("DESCRIPTION", colX.description + 5, tableTop + 8, {
-          width: colX.qty - colX.description - 10,
+        .text("DESCRIPTION", colX.description + 3, tableTop + 7, {
+          width: colX.qty - colX.description - 6,
         })
-        .text("QTY", colX.qty + 5, tableTop + 8, {
-          width: colX.unitPrice - colX.qty - 10,
+        .text("QTY", colX.qty + 3, tableTop + 7, {
+          width: colX.unitPrice - colX.qty - 6,
           align: "center",
         })
-        .text("UNIT\nPRICE", colX.unitPrice + 3, tableTop + 4, {
-          width: colX.amount - colX.unitPrice - 6,
+        .text("UNIT\nPRICE", colX.unitPrice + 2, tableTop + 4, {
+          width: colX.amount - colX.unitPrice - 4,
           align: "center",
           lineGap: -2,
         })
-        .text("AMOUNT", colX.amount + 5, tableTop + 8, {
-          width: 555 - colX.amount - 10,
+        .text("AMOUNT", colX.amount + 3, tableTop + 7, {
+          width: 390 - colX.amount - 6,
           align: "right",
         });
 
@@ -703,7 +709,7 @@ router.get(
           const unitPrice = Number(item.unitPrice);
           const quantity = Number(item.quantity);
 
-          // Draw row borders
+          // Draw row borders - adjusted for A5
           doc
             .rect(colX.sn, currentY, colX.description - colX.sn, rowHeight)
             .stroke();
@@ -727,55 +733,55 @@ router.get(
             )
             .stroke();
           doc
-            .rect(colX.amount, currentY, 555 - colX.amount, rowHeight)
+            .rect(colX.amount, currentY, 390 - colX.amount, rowHeight)
             .stroke();
 
-          // Row data
+          // Row data - adjusted for A5
           doc
-            .fontSize(10)
+            .fontSize(7)
             .font("Helvetica")
-            .text(serialNumber.toString(), colX.sn + 5, currentY + 8, {
-              width: colX.description - colX.sn - 10,
+            .text(serialNumber.toString(), colX.sn + 3, currentY + 7, {
+              width: colX.description - colX.sn - 6,
               align: "center",
             })
             .text(
               item.inventoryItem?.name || "Product",
-              colX.description + 5,
-              currentY + 8,
-              { width: colX.qty - colX.description - 10 }
+              colX.description + 3,
+              currentY + 7,
+              { width: colX.qty - colX.description - 6 }
             )
-            .text(quantity.toString(), colX.qty + 5, currentY + 8, {
-              width: colX.unitPrice - colX.qty - 10,
+            .text(quantity.toString(), colX.qty + 3, currentY + 7, {
+              width: colX.unitPrice - colX.qty - 6,
               align: "center",
             })
             .text(
               `N${unitPrice.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              colX.unitPrice + 3,
-              currentY + 8,
-              { width: colX.amount - colX.unitPrice - 8, align: "right" }
+              colX.unitPrice + 2,
+              currentY + 7,
+              { width: colX.amount - colX.unitPrice - 5, align: "right" }
             )
             .text(
               `N${itemTotal.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              colX.amount + 3,
-              currentY + 8,
-              { width: 555 - colX.amount - 8, align: "right" }
+              colX.amount + 2,
+              currentY + 7,
+              { width: 390 - colX.amount - 5, align: "right" }
             );
 
           currentY += rowHeight;
           serialNumber++;
         });
       } else {
-        // Empty row if no items
-        doc.rect(colX.sn, currentY, 515, rowHeight).stroke();
+        // Empty row if no items - adjusted for A5
+        doc.rect(colX.sn, currentY, 360, rowHeight).stroke();
         doc
-          .fontSize(10)
+          .fontSize(7)
           .font("Helvetica-Oblique")
-          .text("No items", colX.description + 5, currentY + 8);
+          .text("No items", colX.description + 3, currentY + 7);
         currentY += rowHeight;
       }
 
-      // Fill remaining rows (up to 15 total rows)
-      const maxRows = 15;
+      // Fill remaining rows (up to 12 total rows for A5 page fit) - adjusted for A5
+      const maxRows = 12;
       const currentRows = serialNumber - 1;
       for (let i = currentRows; i < maxRows; i++) {
         doc
@@ -800,27 +806,27 @@ router.get(
             rowHeight
           )
           .stroke();
-        doc.rect(colX.amount, currentY, 555 - colX.amount, rowHeight).stroke();
+        doc.rect(colX.amount, currentY, 390 - colX.amount, rowHeight).stroke();
         currentY += rowHeight;
       }
 
-      // Total row (bold, larger font)
+      // Total row (bold, larger font) - adjusted for A5
       const totalAmount = Number(invoice.totalAmount);
       doc
-        .rect(colX.sn, currentY, 515, rowHeight)
+        .rect(colX.sn, currentY, 360, rowHeight)
         .fillAndStroke("#F0F0F0", "#000000");
 
-      doc.fillColor("#000000").fontSize(11).font("Helvetica-Bold");
+      doc.fillColor("#000000").fontSize(8).font("Helvetica-Bold");
 
-      // Draw "Total:" label
-      doc.text("Total:", colX.unitPrice + 3, currentY + 8, {
-        width: 50,
+      // Draw "Total:" label - adjusted for A5
+      doc.text("Total:", colX.unitPrice + 2, currentY + 7, {
+        width: 40,
         align: "left",
         continued: false,
         lineBreak: false,
       });
 
-      // Draw the total amount in the AMOUNT column with explicit positioning
+      // Draw the total amount in the AMOUNT column with explicit positioning - adjusted for A5
       const formattedTotal = totalAmount.toLocaleString("en-NG", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -829,92 +835,92 @@ router.get(
       // Calculate the x position to right-align within the cell
       const totalText = `N${formattedTotal}`;
       const textWidth = doc.widthOfString(totalText);
-      const rightMargin = 8;
-      const cellWidth = 555 - colX.amount;
-      const xPosition = 555 - textWidth - rightMargin;
+      const rightMargin = 5;
+      const cellWidth = 390 - colX.amount;
+      const xPosition = 390 - textWidth - rightMargin;
 
-      doc.text(totalText, xPosition, currentY + 8, {
+      doc.text(totalText, xPosition, currentY + 7, {
         lineBreak: false,
         continued: false,
       });
 
-      // Signature section
-      currentY += 35; // Reduced from 50 to 35
+      // Signature section - adjusted for A5
+      currentY += 28;
 
-      // Signature line
+      // Signature line - adjusted for A5
       doc
-        .moveTo(40, currentY + 20)
-        .lineTo(200, currentY + 20)
-        .stroke("#000000"); // Reduced from 30 to 20
+        .moveTo(30, currentY + 15)
+        .lineTo(150, currentY + 15)
+        .stroke("#000000");
 
-      // Prepared by label and name
+      // Prepared by label and name - adjusted for A5
       doc
-        .fontSize(9)
+        .fontSize(7)
         .font("Helvetica")
-        .text("Prepared by:", 40, currentY + 25)
-        .fontSize(10)
+        .text("Prepared by:", 30, currentY + 20)
+        .fontSize(8)
         .font("Helvetica-Bold")
-        .text(invoice.billedBy?.fullName || "N/A", 40, currentY + 40);
+        .text(invoice.billedBy?.fullName || "N/A", 30, currentY + 32);
 
-      // Disclaimers section
-      currentY += 65; // Reduced from 90 to 65
+      // Disclaimers section - adjusted for A5
+      currentY += 52;
 
       // Get payment terms and return policy from customer or use defaults
       const paymentTermDays = invoice.customer?.defaultPaymentTermDays || 30;
       const returnPolicyDays = invoice.customer?.returnPolicyDays || 30;
 
-      // Disclaimers header
+      // Disclaimers header - adjusted for A5
       doc
-        .fontSize(8)
+        .fontSize(7)
         .font("Helvetica-Bold")
-        .text("TERMS AND CONDITIONS:", 40, currentY, { underline: true });
+        .text("TERMS AND CONDITIONS:", 30, currentY, { underline: true });
 
-      currentY += 12;
+      currentY += 10;
 
-      // Disclaimer 1: Payment Terms
+      // Disclaimer 1: Payment Terms - adjusted for A5
       doc
-        .fontSize(7.5)
+        .fontSize(6.5)
         .font("Helvetica-Bold")
-        .text("1. Payment Terms: ", 40, currentY, { continued: true })
+        .text("1. Payment Terms: ", 30, currentY, { continued: true })
         .font("Helvetica")
         .text(
           `Payment is due within ${paymentTermDays} days of the invoice date. Late payments may incur additional charges.`,
           {
-            width: 515,
+            width: 360,
             align: "left",
           }
         );
 
-      currentY += 20;
+      currentY += 16;
 
-      // Disclaimer 2: Goods and Services Accuracy
+      // Disclaimer 2: Goods and Services Accuracy - adjusted for A5
       doc
-        .fontSize(7.5)
+        .fontSize(6.5)
         .font("Helvetica-Bold")
-        .text("2. Goods and Services Accuracy: ", 40, currentY, {
+        .text("2. Goods and Services Accuracy: ", 30, currentY, {
           continued: true,
         })
         .font("Helvetica")
         .text(
           "The descriptions of the goods and services provided are deemed accurate at the time of invoicing. Please ensure that all items received are in accordance with the details specified herein. Discrepancies must be reported immediately at the point of receipt.",
           {
-            width: 515,
+            width: 360,
             align: "left",
           }
         );
 
-      currentY += 28;
+      currentY += 23;
 
-      // Disclaimer 3: Returns and Refunds
+      // Disclaimer 3: Returns and Refunds - adjusted for A5
       doc
-        .fontSize(7.5)
+        .fontSize(6.5)
         .font("Helvetica-Bold")
-        .text("3. Returns and Refunds: ", 40, currentY, { continued: true })
+        .text("3. Returns and Refunds: ", 30, currentY, { continued: true })
         .font("Helvetica")
         .text(
           `All sales are final, no cash refund. Returns may be accepted at the discretion of Clyne Paper Limited within ${returnPolicyDays} days of purchase, in original condition, and with prior authorization.`,
           {
-            width: 515,
+            width: 360,
             align: "left",
           }
         );
@@ -1746,6 +1752,194 @@ router.post(
       });
     } catch (error) {
       logger.error("Error creating waybill from invoice:", error);
+      next(error);
+    }
+  }
+);
+
+// @desc    Approve an invoice
+// @route   POST /api/invoices/:id/approve
+// @access  Private (requires invoices:approve permission)
+router.post(
+  "/:id/approve",
+  requirePermission(PERMISSIONS.INVOICES_APPROVE),
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const invoiceId = req.params.id;
+      const userId = req.user!.id;
+
+      // Fetch the invoice
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: invoiceId },
+        select: {
+          id: true,
+          approvalStatus: true,
+          billedByUserId: true,
+        },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: "Invoice not found",
+        });
+      }
+
+      // Validate: Only PENDING invoices can be approved
+      if (invoice.approvalStatus !== "PENDING") {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot approve invoice with status: ${invoice.approvalStatus}`,
+        });
+      }
+
+      // Fetch user role to check if admin
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      const isAdmin =
+        user?.role?.name === "Admin" || user?.role?.name === "Super Admin";
+
+      // Validate: Prevent self-approval (unless user is admin)
+      if (invoice.billedByUserId === userId && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "You cannot approve your own invoice",
+        });
+      }
+
+      // Update invoice to approved
+      const updatedInvoice = await prisma.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          approvalStatus: "APPROVED",
+          approvedByUserId: userId,
+          approvedAt: new Date(),
+        },
+        include: {
+          billedBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          approvedBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      logger.info(`Invoice ${invoice.id} approved by user ${userId}`);
+
+      res.json({
+        success: true,
+        data: updatedInvoice,
+        message: "Invoice approved successfully",
+      });
+    } catch (error) {
+      logger.error("Error approving invoice:", error);
+      next(error);
+    }
+  }
+);
+
+// @desc    Reject an invoice
+// @route   POST /api/invoices/:id/reject
+// @access  Private (requires invoices:approve permission)
+router.post(
+  "/:id/reject",
+  requirePermission(PERMISSIONS.INVOICES_APPROVE),
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const invoiceId = req.params.id;
+      const { rejectionReason } = req.body;
+
+      // Validate rejection reason
+      if (!rejectionReason || rejectionReason.trim().length < 10) {
+        return res.status(400).json({
+          success: false,
+          message: "Rejection reason is required (minimum 10 characters)",
+        });
+      }
+
+      // Fetch the invoice
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: invoiceId },
+        select: {
+          id: true,
+          approvalStatus: true,
+        },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({
+          success: false,
+          message: "Invoice not found",
+        });
+      }
+
+      // Validate: Only PENDING invoices can be rejected
+      if (invoice.approvalStatus !== "PENDING") {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot reject invoice with status: ${invoice.approvalStatus}`,
+        });
+      }
+
+      // Update invoice to rejected
+      const updatedInvoice = await prisma.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          approvalStatus: "REJECTED",
+          rejectionReason: rejectionReason.trim(),
+        },
+        include: {
+          billedBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      logger.info(
+        `Invoice ${invoice.id} rejected with reason: ${rejectionReason}`
+      );
+
+      res.json({
+        success: true,
+        data: updatedInvoice,
+        message: "Invoice rejected",
+      });
+    } catch (error) {
+      logger.error("Error rejecting invoice:", error);
       next(error);
     }
   }

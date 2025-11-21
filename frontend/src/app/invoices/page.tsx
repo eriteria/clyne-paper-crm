@@ -159,6 +159,42 @@ export default function InvoicesPage() {
     },
   });
 
+  // Approve mutation
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.post(`/invoices/${id}/approve`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice-stats"] });
+      alert(`Invoice approved successfully!`);
+    },
+    onError: (error: Error) => {
+      const errorMessage = (error as { response?: { data?: { message?: string } } }).response?.data?.message || error.message || "Failed to approve invoice";
+      alert(`Error: ${errorMessage}`);
+      console.error("Approve error:", error);
+    },
+  });
+
+  // Reject mutation
+  const rejectMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const res = await apiClient.post(`/invoices/${id}/reject`, { reason });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice-stats"] });
+      alert(`Invoice rejected successfully!`);
+    },
+    onError: (error: Error) => {
+      const errorMessage = (error as { response?: { data?: { message?: string } } }).response?.data?.message || error.message || "Failed to reject invoice";
+      alert(`Error: ${errorMessage}`);
+      console.error("Reject error:", error);
+    },
+  });
+
   const invoices = invoicesData?.data || [];
   const pagination = invoicesData?.pagination || {
     total: 0,
@@ -187,6 +223,20 @@ export default function InvoicesPage() {
       cancelled: "bg-red-100 text-red-800",
     };
     return badges[status] || "bg-gray-100 text-gray-800";
+  };
+
+  const getApprovalBadge = (approvalStatus: string) => {
+    const badges: { [key: string]: { color: string; label: string } } = {
+      PENDING: { color: "bg-yellow-100 text-yellow-800", label: "Pending" },
+      APPROVED: { color: "bg-green-100 text-green-800", label: "Approved" },
+      REJECTED: { color: "bg-red-100 text-red-800", label: "Rejected" },
+    };
+    return (
+      badges[approvalStatus] || {
+        color: "bg-gray-100 text-gray-800",
+        label: approvalStatus,
+      }
+    );
   };
 
   // Check permission after all hooks are declared
@@ -453,6 +503,9 @@ export default function InvoicesPage() {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Approval
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -495,6 +548,24 @@ export default function InvoicesPage() {
                       {invoice.status.charAt(0).toUpperCase() +
                         invoice.status.slice(1)}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        getApprovalBadge(invoice.approvalStatus || "PENDING")
+                          .color
+                      }`}
+                    >
+                      {
+                        getApprovalBadge(invoice.approvalStatus || "PENDING")
+                          .label
+                      }
+                    </span>
+                    {invoice.approvedBy && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        by {invoice.approvedBy.fullName}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(invoice.createdAt).toLocaleDateString()}
@@ -557,6 +628,58 @@ export default function InvoicesPage() {
                           )}
                         </button>
                       )}
+                      {/* Approve button - only show for pending invoices and users with approve permission */}
+                      {invoice.approvalStatus === "PENDING" &&
+                        invoice.status !== "DRAFT" &&
+                        hasPermission("invoices:approve") && (
+                          <button
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  "Are you sure you want to approve this invoice?"
+                                )
+                              ) {
+                                approveMutation.mutate(invoice.id);
+                              }
+                            }}
+                            className="text-green-600 hover:text-green-900 p-2 md:p-1 rounded transition-colors"
+                            title="Approve invoice"
+                            disabled={approveMutation.isPending}
+                          >
+                            {approveMutation.isPending ? (
+                              <span className="text-xs">...</span>
+                            ) : (
+                              <span className="text-xs font-semibold">✓</span>
+                            )}
+                          </button>
+                        )}
+                      {/* Reject button - only show for pending invoices and users with approve permission */}
+                      {invoice.approvalStatus === "PENDING" &&
+                        invoice.status !== "DRAFT" &&
+                        hasPermission("invoices:approve") && (
+                          <button
+                            onClick={() => {
+                              const reason = window.prompt(
+                                "Please provide a reason for rejection:"
+                              );
+                              if (reason && reason.trim()) {
+                                rejectMutation.mutate({
+                                  id: invoice.id,
+                                  reason: reason.trim(),
+                                });
+                              }
+                            }}
+                            className="text-orange-600 hover:text-orange-900 p-2 md:p-1 rounded transition-colors"
+                            title="Reject invoice"
+                            disabled={rejectMutation.isPending}
+                          >
+                            {rejectMutation.isPending ? (
+                              <span className="text-xs">...</span>
+                            ) : (
+                              <span className="text-xs font-semibold">✕</span>
+                            )}
+                          </button>
+                        )}
                       <button
                         onClick={() => deleteMutation.mutate(invoice.id)}
                         className="text-red-600 hover:text-red-900 p-2 md:p-1 rounded transition-colors"

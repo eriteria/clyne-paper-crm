@@ -33,18 +33,20 @@ router.get(
         locationFilter = `AND location_id = '${locationId}'`;
       } else if (accessibleLocations !== "ALL") {
         // Filter by accessible locations
-        const locationIds = accessibleLocations.map((id) => `'${id}'`).join(",");
+        const locationIds = accessibleLocations
+          .map((id) => `'${id}'`)
+          .join(",");
         if (locationIds) {
           locationFilter = `AND location_id IN (${locationIds})`;
         }
       }
 
       // Use raw SQL for the comparison since Prisma doesn't support field-to-field comparison
-      const lowStockItems = await prisma.$queryRaw`
+      const lowStockItems = (await prisma.$queryRaw`
       SELECT * FROM inventory_items
       WHERE current_quantity <= min_stock ${locationFilter}
       ORDER BY current_quantity ASC, name ASC
-    ` as any;
+    `) as any;
 
       res.json({
         success: true,
@@ -65,7 +67,14 @@ router.get(
 // @access  Private
 router.get("/", authenticate, async (req: AuthenticatedRequest, res, next) => {
   try {
-    const { page = 1, limit = 10, search, inStock, lowStock, locationId } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      inStock,
+      lowStock,
+      locationId,
+    } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -175,15 +184,31 @@ router.get(
   authenticate,
   async (req: AuthenticatedRequest, res, next) => {
     try {
-      const { location } = req.query;
+      const { locationId } = req.query;
+
+      const accessibleLocations = await getUserAccessibleLocationIds(req.user);
 
       // Build filters - include all items, not just those linked to products
       const where: any = {
         currentQuantity: { gt: 0 }, // Only items in stock
       };
 
-      if (location) {
-        where.location = { contains: location as string, mode: "insensitive" };
+      // Location filtering based on user's accessible locations
+      if (locationId && typeof locationId === "string") {
+        // Verify user has access to this location
+        if (
+          accessibleLocations !== "ALL" &&
+          !accessibleLocations.includes(locationId)
+        ) {
+          return res.status(403).json({
+            success: false,
+            error: "You do not have access to this location",
+          });
+        }
+        where.locationId = locationId;
+      } else if (accessibleLocations !== "ALL") {
+        // Filter by accessible locations
+        where.locationId = { in: accessibleLocations };
       }
 
       const items = await prisma.inventoryItem.findMany({

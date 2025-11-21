@@ -88,7 +88,8 @@ model User {
   createdCredits           Credit[]             @relation("CreditCreatedBy")
   recordedCustomerPayments CustomerPayment[]    @relation("CustomerPaymentRecordedBy")
   managedCustomers         Customer[]           @relation("CustomerRelationshipManager")
-  invoices                 Invoice[]
+  invoicesBilled           Invoice[]            @relation("InvoicesBilledBy")
+  invoicesApproved         Invoice[]            @relation("InvoicesApprovedBy")
   monthlySalesTargets      MonthlySalesTarget[]
   recordedPayments         Payment[]            @relation("PaymentRecordedBy")
   quickbooksExports        QuickBooksExport[]   @relation("QuickBooksExportUser")
@@ -237,6 +238,10 @@ model Invoice {
   regionId            String?              @map("region_id")
   totalAmount         Decimal              @map("total_amount") @db.Decimal(12, 2)
   status              String               @default("DRAFT")
+  approvalStatus      String               @default("PENDING") @map("approval_status") // PENDING, APPROVED, REJECTED
+  approvedByUserId    String?              @map("approved_by_user_id")
+  approvedAt          DateTime?            @map("approved_at")
+  rejectionReason     String?              @map("rejection_reason")
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
   customerId          String               @map("customer_id")
@@ -249,7 +254,8 @@ model Invoice {
   bankAccountId       String?              @map("bank_account_id")
   creditApplications  CreditApplication[]  @relation("CreditApplications")
   items               InvoiceItem[]
-  billedBy            User                 @relation(fields: [billedByUserId], references: [id])
+  billedBy            User                 @relation("InvoicesBilledBy", fields: [billedByUserId], references: [id])
+  approvedBy          User?                @relation("InvoicesApprovedBy", fields: [approvedByUserId], references: [id])
   customer            Customer             @relation(fields: [customerId], references: [id])
   region              Region?              @relation(fields: [regionId], references: [id])
   team                Team?                @relation(fields: [teamId], references: [id])

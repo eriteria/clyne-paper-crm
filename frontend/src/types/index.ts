@@ -233,10 +233,19 @@ export interface Invoice {
   paymentMethod?: string;
   bankAccountId?: string;
   balance?: number;
+  approvalStatus: string; // PENDING, APPROVED, REJECTED
+  approvedByUserId?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
   customer?: Customer;
   billedBy?: {
+    id: string;
+    fullName: string;
+    email: string;
+  };
+  approvedBy?: {
     id: string;
     fullName: string;
     email: string;
