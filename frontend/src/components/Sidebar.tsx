@@ -320,12 +320,18 @@ export default function Sidebar() {
           }`}
         >
           {!isCollapsed && (
-            <div className="flex items-center gap-3 mb-3">
+            <div
+              className="flex items-center gap-3 mb-3"
+              data-testid="user-menu"
+            >
               <div className="bg-blue-100 rounded-full p-2">
                 <Users className="h-5 w-5 text-blue-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p
+                  className="text-sm font-medium text-gray-900 truncate"
+                  data-testid="user-name"
+                >
                   {user?.fullName || "User"}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
@@ -335,7 +341,7 @@ export default function Sidebar() {
             </div>
           )}
           {isCollapsed && (
-            <div className="flex justify-center mb-2">
+            <div className="flex justify-center mb-2" data-testid="user-menu">
               <div className="bg-blue-100 rounded-full p-2">
                 <Users className="h-5 w-5 text-blue-600" />
               </div>

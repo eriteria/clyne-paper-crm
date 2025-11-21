@@ -59,7 +59,7 @@ interface Overview {
 
 export default function DashboardPage() {
   usePageTitle("Dashboard");
-  
+
   const { data: dashboardData, isLoading, error } = useDashboardStats();
   const { data: recentInvoices, isLoading: invoicesLoading } =
     useRecentInvoices();
@@ -191,7 +191,9 @@ export default function DashboardPage() {
             value={formatCurrency(overview.totalInventoryValue || 0)}
             change={
               overview.inventoryValueChange !== undefined
-                ? `${overview.inventoryValueChange >= 0 ? "+" : ""}${overview.inventoryValueChange.toFixed(1)}%`
+                ? `${
+                    overview.inventoryValueChange >= 0 ? "+" : ""
+                  }${overview.inventoryValueChange.toFixed(1)}%`
                 : undefined
             }
             changeType={
@@ -252,7 +254,13 @@ export default function DashboardPage() {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="memberCount"
-                  label={({ name, memberCount }: { name: string; memberCount: number }) => `${name}: ${memberCount}`}
+                  label={({
+                    name,
+                    memberCount,
+                  }: {
+                    name: string;
+                    memberCount: number;
+                  }) => `${name}: ${memberCount}`}
                 >
                   {teams.map((entry: unknown, index: number) => (
                     <Cell

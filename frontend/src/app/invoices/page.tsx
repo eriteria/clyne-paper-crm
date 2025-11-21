@@ -47,7 +47,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function InvoicesPage() {
   usePageTitle("Invoices");
-  
+
   const { hasPermission } = usePermissions();
   const router = useRouter();
 
@@ -174,7 +174,11 @@ export default function InvoicesPage() {
       alert(`Invoice approved successfully!`);
     },
     onError: (error: Error) => {
-      const errorMessage = (error as { response?: { data?: { message?: string } } }).response?.data?.message || error.message || "Failed to approve invoice";
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } }).response?.data
+          ?.message ||
+        error.message ||
+        "Failed to approve invoice";
       alert(`Error: ${errorMessage}`);
       console.error("Approve error:", error);
     },
@@ -192,7 +196,11 @@ export default function InvoicesPage() {
       alert(`Invoice rejected successfully!`);
     },
     onError: (error: Error) => {
-      const errorMessage = (error as { response?: { data?: { message?: string } } }).response?.data?.message || error.message || "Failed to reject invoice";
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } }).response?.data
+          ?.message ||
+        error.message ||
+        "Failed to reject invoice";
       alert(`Error: ${errorMessage}`);
       console.error("Reject error:", error);
     },

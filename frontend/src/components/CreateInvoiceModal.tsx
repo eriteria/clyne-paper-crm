@@ -558,6 +558,7 @@ export default function CreateInvoiceModal({
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label="Close modal"
           >
             <X className="w-6 h-6" />
           </button>
@@ -568,14 +569,19 @@ export default function CreateInvoiceModal({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Invoice Number Display */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="invoice-number"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <FileText className="w-4 h-4 inline mr-1" />
                 Invoice Number
               </label>
               <input
+                id="invoice-number"
                 type="text"
                 value={expectedInvoiceNumber || "Loading..."}
                 readOnly
+                aria-label="Invoice number (auto-generated)"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
               />
             </div>
@@ -591,11 +597,15 @@ export default function CreateInvoiceModal({
 
             {/* Invoice Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="invoice-date"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <Calendar className="w-4 h-4 inline mr-1" />
                 Invoice Date *
               </label>
               <input
+                id="invoice-date"
                 type="date"
                 value={invoiceDate}
                 onChange={(e) => setInvoiceDate(e.target.value)}
@@ -607,11 +617,15 @@ export default function CreateInvoiceModal({
 
             {/* Due Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="due-date"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <Calendar className="w-4 h-4 inline mr-1" />
                 Due Date
               </label>
               <input
+                id="due-date"
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
@@ -692,6 +706,7 @@ export default function CreateInvoiceModal({
                           onChange={(e) =>
                             updateItem(index, "inventoryItemId", e.target.value)
                           }
+                          aria-label={`Product for line item ${index + 1}`}
                           className="w-full px-3 py-2 border-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                           style={{
                             backgroundColor: "#ffffff",
@@ -749,6 +764,7 @@ export default function CreateInvoiceModal({
                                 parseFloat(e.target.value) || 0
                               )
                             }
+                            aria-label={`Quantity for line item ${index + 1}`}
                             className="w-full px-3 py-2 border-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                             style={{
                               backgroundColor: "#ffffff",
@@ -785,6 +801,7 @@ export default function CreateInvoiceModal({
                               parseFloat(e.target.value) || 0
                             )
                           }
+                          aria-label={`Unit price for line item ${index + 1}`}
                           className="w-full px-3 py-2 border-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                           style={{
                             backgroundColor: "#ffffff",
@@ -829,10 +846,14 @@ export default function CreateInvoiceModal({
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="tax-amount"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Tax Amount:
                   </label>
                   <input
+                    id="tax-amount"
                     type="number"
                     min="0"
                     step="0.01"
@@ -845,10 +866,14 @@ export default function CreateInvoiceModal({
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="discount-amount"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Discount:
                   </label>
                   <input
+                    id="discount-amount"
                     type="number"
                     min="0"
                     step="0.01"

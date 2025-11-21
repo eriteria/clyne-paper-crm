@@ -26,6 +26,11 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Set page title
+  useEffect(() => {
+    document.title = "Login - Clyne Paper CRM";
+  }, []);
+
   // Check for OAuth errors in URL params
   useEffect(() => {
     const oauthError = searchParams.get("error");
@@ -97,7 +102,7 @@ function LoginPageContent() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <div className="error-message bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <h3 className="text-sm font-medium text-red-800">

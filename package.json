@@ -42,6 +42,7 @@
     "lint:frontend": "cd frontend && npm run lint"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@types/jest": "^30.0.0",
     "concurrently": "^8.2.2"
   },

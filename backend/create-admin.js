@@ -16,10 +16,19 @@ async function createAdmin() {
       adminRole = await prisma.role.create({
         data: {
           name: "Admin",
-          permissions: JSON.stringify({ admin: ["full-access"] }),
+          permissions: JSON.stringify(["*"]), // Wildcard permission for full access
         },
       });
       console.log("✅ Admin role created");
+    } else {
+      // Update existing role to have wildcard permissions
+      adminRole = await prisma.role.update({
+        where: { id: adminRole.id },
+        data: {
+          permissions: JSON.stringify(["*"]), // Ensure wildcard for full access
+        },
+      });
+      console.log("✅ Admin role updated with wildcard permissions");
     }
 
     // Check if admin user exists

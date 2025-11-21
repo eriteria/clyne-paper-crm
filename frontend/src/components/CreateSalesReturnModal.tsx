@@ -176,10 +176,14 @@ export default function CreateSalesReturnModal({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="return-reason"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Reason for Return *
                   </label>
                   <select
+                    id="return-reason"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     className="w-full px-3 py-2 text-gray-900 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -201,10 +205,14 @@ export default function CreateSalesReturnModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="refund-method"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Refund Method *
                   </label>
                   <select
+                    id="refund-method"
                     value={refundMethod}
                     onChange={(e) =>
                       setRefundMethod(e.target.value as RefundMethod)
@@ -218,10 +226,14 @@ export default function CreateSalesReturnModal({
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="return-notes"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Additional Notes
                   </label>
                   <textarea
+                    id="return-notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
@@ -282,6 +294,7 @@ export default function CreateSalesReturnModal({
                               checked={isSelected}
                               onChange={() => toggleItem(item)}
                               className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                              aria-label={`Select ${item.productName} for return`}
                             />
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900 font-medium">
@@ -307,6 +320,7 @@ export default function CreateSalesReturnModal({
                               }
                               disabled={!isSelected}
                               className="w-20 px-2 py-1 text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                              aria-label={`Return quantity for ${item.productName}`}
                             />
                           </td>
                           <td className="px-4 py-3">
@@ -320,6 +334,7 @@ export default function CreateSalesReturnModal({
                               }
                               disabled={!isSelected}
                               className="px-2 py-1 text-gray-900 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                              aria-label={`Condition of ${item.productName}`}
                             >
                               <option value="Good">Good</option>
                               <option value="Damaged">Damaged</option>

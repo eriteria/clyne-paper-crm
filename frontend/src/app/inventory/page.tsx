@@ -31,7 +31,7 @@ interface InventoryItem {
 
 export default function InventoryPage() {
   usePageTitle("Inventory");
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");

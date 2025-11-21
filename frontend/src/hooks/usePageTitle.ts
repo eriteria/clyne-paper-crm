@@ -7,7 +7,7 @@ import { useEffect } from "react";
 export function usePageTitle(title: string) {
   useEffect(() => {
     document.title = `${title} - Clyne Paper CRM`;
-    
+
     // Cleanup: reset to default title when component unmounts
     return () => {
       document.title = "Clyne Paper CRM";

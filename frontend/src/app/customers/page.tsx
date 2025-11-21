@@ -16,7 +16,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function CustomersPage() {
   usePageTitle("Customers");
-  
+
   const { hasPermission } = usePermissions();
   const router = useRouter();
 

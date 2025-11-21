@@ -90,6 +90,7 @@ export function ResponsiveTable<T>({
             {data.map((item, index) => (
               <tr
                 key={keyExtractor(item, index)}
+                data-testid="customer-row"
                 className={`hover:bg-gray-50 transition-colors ${
                   onRowClick ? "cursor-pointer" : ""
                 }`}
@@ -116,6 +117,7 @@ export function ResponsiveTable<T>({
         {data.map((item, index) => (
           <div
             key={keyExtractor(item, index)}
+            data-testid="customer-row"
             className={`bg-white border border-gray-200 rounded-lg shadow-sm ${
               onRowClick ? "cursor-pointer active:bg-gray-50" : ""
             }`}

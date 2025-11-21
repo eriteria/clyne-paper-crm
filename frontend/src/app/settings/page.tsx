@@ -60,7 +60,7 @@ interface SystemSettings {
 
 export default function SettingsPage() {
   usePageTitle("Settings");
-  
+
   const [activeTab, setActiveTab] = useState("profile");
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({

@@ -158,6 +158,7 @@ export default function CreateCustomerModal({
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label="Close modal"
           >
             <X className="w-6 h-6" />
           </button>
@@ -167,11 +168,15 @@ export default function CreateCustomerModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Customer Name */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-name"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <User className="w-4 h-4 inline mr-1" />
                 Customer Name *
               </label>
               <input
+                id="customer-name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
@@ -183,11 +188,15 @@ export default function CreateCustomerModal({
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <Mail className="w-4 h-4 inline mr-1" />
                 Email Address
               </label>
               <input
+                id="customer-email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
@@ -198,11 +207,15 @@ export default function CreateCustomerModal({
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-phone"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <Phone className="w-4 h-4 inline mr-1" />
                 Phone Number
               </label>
               <input
+                id="customer-phone"
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
@@ -213,11 +226,15 @@ export default function CreateCustomerModal({
 
             {/* Company Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-company"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <Building className="w-4 h-4 inline mr-1" />
                 Company Name
               </label>
               <input
+                id="customer-company"
                 type="text"
                 value={formData.companyName}
                 onChange={(e) =>
@@ -230,11 +247,15 @@ export default function CreateCustomerModal({
 
             {/* Contact Person */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-contact"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <User className="w-4 h-4 inline mr-1" />
                 Contact Person
               </label>
               <input
+                id="customer-contact"
                 type="text"
                 value={formData.contactPerson}
                 onChange={(e) =>
@@ -247,11 +268,15 @@ export default function CreateCustomerModal({
 
             {/* Relationship Manager */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-relationship-manager"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <User className="w-4 h-4 inline mr-1" />
                 Relationship Manager
               </label>
               <select
+                id="customer-relationship-manager"
                 value={formData.relationshipManagerId}
                 onChange={(e) =>
                   handleInputChange("relationshipManagerId", e.target.value)
@@ -269,11 +294,15 @@ export default function CreateCustomerModal({
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-location"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <MapPin className="w-4 h-4 inline mr-1" />
                 Location *
               </label>
               <select
+                id="customer-location"
                 value={formData.locationId}
                 onChange={(e) =>
                   handleInputChange("locationId", e.target.value)
@@ -298,11 +327,15 @@ export default function CreateCustomerModal({
 
             {/* Payment Terms */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-payment-terms"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <Building className="w-4 h-4 inline mr-1" />
                 Default Payment Terms (Days)
               </label>
               <select
+                id="customer-payment-terms"
                 value={formData.defaultPaymentTermDays}
                 onChange={(e) =>
                   handleInputChange(
@@ -323,11 +356,15 @@ export default function CreateCustomerModal({
 
             {/* Address */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="customer-address"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 <MapPin className="w-4 h-4 inline mr-1" />
                 Address
               </label>
               <textarea
+                id="customer-address"
                 value={formData.address}
                 onChange={(e) => handleInputChange("address", e.target.value)}
                 rows={3}

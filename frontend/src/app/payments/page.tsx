@@ -65,7 +65,7 @@ interface OutstandingInvoice {
 
 export default function PaymentsPage() {
   usePageTitle("Payments");
-  
+
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);

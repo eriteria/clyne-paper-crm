@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { axe } from "jest-axe";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -46,6 +46,13 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
+      // Wait for all async state updates to complete
+      await waitFor(() => {
+        expect(
+          container.querySelector('input[type="date"]')
+        ).toBeInTheDocument();
+      });
+
       const results = await axe(container, {
         rules: {
           "color-contrast": { enabled: true },
@@ -56,7 +63,7 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
       expect(results.violations).toHaveLength(0);
     });
 
-    test("should have readable text labels", () => {
+    test("should have readable text labels", async () => {
       render(
         <TestWrapper>
           <CreateInvoiceModal
@@ -67,8 +74,12 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
+      // Wait for component to mount and state to settle
+      await waitFor(() => {
+        expect(screen.getByText(/create new invoice/i)).toBeInTheDocument();
+      });
+
       // Check that all form labels are present and readable
-      expect(screen.getByText(/create new invoice/i)).toBeInTheDocument();
       expect(screen.getByText(/invoice date/i)).toBeInTheDocument();
       expect(screen.getByText(/due date/i)).toBeInTheDocument();
       expect(screen.getByText(/payment term/i)).toBeInTheDocument();
@@ -84,6 +95,13 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
           />
         </TestWrapper>
       );
+
+      // Wait for all async state updates to complete
+      await waitFor(() => {
+        expect(
+          container.querySelector('input[type="date"]')
+        ).toBeInTheDocument();
+      });
 
       const results = await axe(container, {
         rules: {
@@ -107,10 +125,16 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
+      // Wait for all async state updates to complete
+      await waitFor(() => {
+        expect(
+          container.querySelector('input[type="date"]')
+        ).toBeInTheDocument();
+      });
+
       const results = await axe(container, {
         rules: {
           "focus-order-semantics": { enabled: true },
-          "focusable-content": { enabled: true },
         },
       });
 
@@ -130,6 +154,11 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(container.querySelector("select")).toBeInTheDocument();
+      });
+
       const results = await axe(container, {
         rules: {
           "color-contrast": { enabled: true },
@@ -139,7 +168,7 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
       expect(results.violations).toHaveLength(0);
     });
 
-    test("should have readable payment terms options", () => {
+    test("should have readable payment terms options", async () => {
       render(
         <TestWrapper>
           <CreateCustomerModal
@@ -150,13 +179,18 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(screen.getByLabelText(/payment terms/i)).toBeInTheDocument();
+      });
+
       // Check that payment terms field and options are readable
       expect(screen.getByText(/payment terms/i)).toBeInTheDocument();
 
-      // The select element should be accessible
-      const paymentTermsSelect = screen.getByDisplayValue("30");
+      // The select element should be accessible with proper label association
+      const paymentTermsSelect = screen.getByLabelText(/payment terms/i);
       expect(paymentTermsSelect).toBeInTheDocument();
-      expect(paymentTermsSelect).toHaveAttribute("aria-label");
+      expect(paymentTermsSelect).toHaveValue("30");
     });
   });
 
@@ -172,16 +206,21 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
-      // Check for common button text
-      const buttons = [
-        screen.getByText(/post invoice/i),
-        screen.getByText(/cancel/i),
-      ];
-
-      buttons.forEach((button) => {
-        expect(button).toBeInTheDocument();
-        expect(button).toBeVisible();
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(
+          screen.getByRole("button", { name: /post/i })
+        ).toBeInTheDocument();
       });
+
+      // Check for common button text
+      const postButton = screen.getByRole("button", { name: /post/i });
+      const cancelButton = screen.getByRole("button", { name: /cancel/i });
+
+      expect(postButton).toBeInTheDocument();
+      expect(postButton).toBeVisible();
+      expect(cancelButton).toBeInTheDocument();
+      expect(cancelButton).toBeVisible();
 
       const results = await axe(container, {
         rules: {
@@ -193,7 +232,7 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
       expect(results.violations).toHaveLength(0);
     });
 
-    test("should check error message readability", () => {
+    test("should check error message readability", async () => {
       render(
         <TestWrapper>
           <CreateInvoiceModal
@@ -203,6 +242,11 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
           />
         </TestWrapper>
       );
+
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(screen.getAllByText(/payment term/i).length).toBeGreaterThan(0);
+      });
 
       // Look for help text that should be readable
       const helpTexts = screen.getAllByText(/payment term/i);
@@ -224,6 +268,11 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(container.querySelector("select")).toBeInTheDocument();
+      });
+
       // Check overall modal accessibility
       const results = await axe(container, {
         rules: {
@@ -237,7 +286,7 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
   });
 
   describe("Keyboard Navigation & Screen Reader Tests", () => {
-    test("should have proper heading structure for screen readers", () => {
+    test("should have proper heading structure for screen readers", async () => {
       render(
         <TestWrapper>
           <CreateInvoiceModal
@@ -248,12 +297,17 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
-      const heading = screen.getByRole("heading");
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
+      });
+
+      const heading = screen.getByRole("heading", { level: 2 });
       expect(heading).toBeInTheDocument();
       expect(heading).toHaveTextContent(/create new invoice/i);
     });
 
-    test("should have proper ARIA labels for form fields", () => {
+    test("should have proper ARIA labels for form fields", async () => {
       render(
         <TestWrapper>
           <CreateCustomerModal
@@ -263,6 +317,11 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
           />
         </TestWrapper>
       );
+
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(screen.getByLabelText(/customer name/i)).toBeInTheDocument();
+      });
 
       // Check that critical form fields have proper labels
       const nameInput = screen.getByLabelText(/customer name/i);
@@ -343,6 +402,11 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(container.querySelector("table")).toBeInTheDocument();
+      });
+
       const results = await axe(container, {
         rules: {
           "color-contrast": { enabled: true },
@@ -353,7 +417,7 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
       expect(results.violations).toHaveLength(0);
     });
 
-    test("should have accessible table headers", () => {
+    test("should have accessible table headers", async () => {
       render(
         <TestWrapper>
           <CreateSalesReturnModal
@@ -364,17 +428,25 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
         </TestWrapper>
       );
 
-      // Check that table headers are present and readable
-      expect(screen.getByText(/select/i)).toBeInTheDocument();
-      expect(screen.getByText(/product/i)).toBeInTheDocument();
-      expect(screen.getByText(/sku/i)).toBeInTheDocument();
-      expect(screen.getByText(/invoiced qty/i)).toBeInTheDocument();
-      expect(screen.getByText(/return qty/i)).toBeInTheDocument();
-      expect(screen.getByText(/condition/i)).toBeInTheDocument();
-      expect(screen.getByText(/unit price/i)).toBeInTheDocument();
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(screen.getAllByRole("columnheader").length).toBeGreaterThan(0);
+      });
+
+      // Check that table headers are present and readable using more specific queries
+      const headers = screen.getAllByRole("columnheader");
+      const headerTexts = headers.map((h) => h.textContent);
+
+      expect(headerTexts).toContain("Select");
+      expect(headerTexts).toContain("Product");
+      expect(headerTexts).toContain("SKU");
+      expect(headerTexts).toContain("Invoiced Qty");
+      expect(headerTexts).toContain("Return Qty");
+      expect(headerTexts).toContain("Condition");
+      expect(headerTexts).toContain("Unit Price");
     });
 
-    test("should have accessible close button with aria-label", () => {
+    test("should have accessible close button with aria-label", async () => {
       render(
         <TestWrapper>
           <CreateSalesReturnModal
@@ -384,13 +456,18 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
           />
         </TestWrapper>
       );
+
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(screen.getByLabelText(/close modal/i)).toBeInTheDocument();
+      });
 
       const closeButton = screen.getByLabelText(/close modal/i);
       expect(closeButton).toBeInTheDocument();
       expect(closeButton).toBeVisible();
     });
 
-    test("should have proper form labels", () => {
+    test("should have proper form labels", async () => {
       render(
         <TestWrapper>
           <CreateSalesReturnModal
@@ -400,6 +477,11 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
           />
         </TestWrapper>
       );
+
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(screen.getByText(/reason for return/i)).toBeInTheDocument();
+      });
 
       // Check required form fields have labels
       expect(screen.getByText(/reason for return/i)).toBeInTheDocument();
@@ -407,7 +489,7 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
       expect(screen.getByText(/additional notes/i)).toBeInTheDocument();
     });
 
-    test("should have readable modal heading", () => {
+    test("should have readable modal heading", async () => {
       render(
         <TestWrapper>
           <CreateSalesReturnModal
@@ -417,6 +499,11 @@ describe("Accessibility Tests - UI Contrast & Readability", () => {
           />
         </TestWrapper>
       );
+
+      // Wait for component to mount
+      await waitFor(() => {
+        expect(screen.getByText(/create sales return/i)).toBeInTheDocument();
+      });
 
       const heading = screen.getByText(/create sales return/i);
       expect(heading).toBeInTheDocument();

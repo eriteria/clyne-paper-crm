@@ -1,0 +1,6 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="56.592088">
+<testsuite name="auth\authentication.spec.ts" timestamp="2025-11-11T15:08:38.494Z" hostname="chromium" tests="1" failures="0" skipped="0" time="25.515" errors="0">
+<testcase name="Authentication › should login with valid credentials" classname="auth\authentication.spec.ts" time="25.515">
+</testcase>
+</testsuite>
+</testsuites>
