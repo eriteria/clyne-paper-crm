@@ -8,10 +8,13 @@ import WaybillList from "@/components/admin/waybills/WaybillList";
 import WaybillForm from "@/components/admin/waybills/WaybillForm";
 import WaybillApproval from "@/components/admin/waybills/WaybillApproval";
 import { Waybill } from "@/types/waybill";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 type ViewMode = "list" | "create" | "edit" | "approval";
 
 export default function WaybillsPage() {
+  usePageTitle("Waybills");
+  
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedWaybill, setSelectedWaybill] = useState<Waybill | null>(null);
   const [selectedWaybillId, setSelectedWaybillId] = useState<string>("");

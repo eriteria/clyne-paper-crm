@@ -8,6 +8,7 @@ import { apiClient } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { useLocation } from "@/contexts/LocationContext";
 import LocationSelector from "@/components/LocationSelector";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface InventoryItem {
   id: string;
@@ -29,6 +30,8 @@ interface InventoryItem {
 }
 
 export default function InventoryPage() {
+  usePageTitle("Inventory");
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");

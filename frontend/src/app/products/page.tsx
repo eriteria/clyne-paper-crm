@@ -14,6 +14,7 @@ import {
 import { apiClient } from "@/lib/api";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useRouter } from "next/navigation";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface ProductGroup {
   id: string;
@@ -52,6 +53,8 @@ interface Product {
 }
 
 export default function ProductsPage() {
+  usePageTitle("Products");
+  
   const { hasPermission } = usePermissions();
   const router = useRouter();
 

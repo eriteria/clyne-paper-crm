@@ -12,8 +12,11 @@ import CustomersList from "@/components/CustomersList";
 import { Customer } from "@/types";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useRouter } from "next/navigation";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function CustomersPage() {
+  usePageTitle("Customers");
+  
   const { hasPermission } = usePermissions();
   const router = useRouter();
 

@@ -21,6 +21,7 @@ import EditUserModal from "@/components/EditUserModal";
 import CreateUserModal from "@/components/CreateUserModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useRouter } from "next/navigation";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface User {
   id: string;
@@ -49,6 +50,8 @@ interface User {
 }
 
 export default function UsersPage() {
+  usePageTitle("Users");
+  
   const { hasPermission } = usePermissions();
   const router = useRouter();
 

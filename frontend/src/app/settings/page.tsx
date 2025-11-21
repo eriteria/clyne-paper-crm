@@ -23,6 +23,7 @@ import {
   Info,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface UserProfile {
   id: string;
@@ -58,6 +59,8 @@ interface SystemSettings {
 }
 
 export default function SettingsPage() {
+  usePageTitle("Settings");
+  
   const [activeTab, setActiveTab] = useState("profile");
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({

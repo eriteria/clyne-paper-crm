@@ -4,8 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSalesReturns } from "@/hooks/useSalesReturns";
 import { RefundStatus } from "@/types";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function SalesReturnsPage() {
+  usePageTitle("Sales Returns");
+  
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({

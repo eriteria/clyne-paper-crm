@@ -26,6 +26,7 @@ import { Invoice } from "@/types";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { usePermissions } from "@/hooks/usePermissions";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 // Custom hook for debouncing
 function useDebounce<T>(value: T, delay: number): T {
@@ -45,6 +46,8 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function InvoicesPage() {
+  usePageTitle("Invoices");
+  
   const { hasPermission } = usePermissions();
   const router = useRouter();
 

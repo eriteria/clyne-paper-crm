@@ -16,6 +16,7 @@ import { apiClient } from "@/lib/api";
 import RecordPaymentModal from "@/components/RecordPaymentModal";
 import CustomerLedgerModal from "@/components/CustomerLedgerModal";
 import { formatCurrency } from "@/lib/utils";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface PaymentSummary {
   totalPaymentsToday: number;
@@ -63,6 +64,8 @@ interface OutstandingInvoice {
 }
 
 export default function PaymentsPage() {
+  usePageTitle("Payments");
+  
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);

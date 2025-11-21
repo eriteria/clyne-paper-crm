@@ -28,6 +28,7 @@ import {
   useRecentInvoices,
   useRecentWaybills,
 } from "@/hooks/useDashboard";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Invoice, Waybill } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -57,6 +58,8 @@ interface Overview {
 }
 
 export default function DashboardPage() {
+  usePageTitle("Dashboard");
+  
   const { data: dashboardData, isLoading, error } = useDashboardStats();
   const { data: recentInvoices, isLoading: invoicesLoading } =
     useRecentInvoices();

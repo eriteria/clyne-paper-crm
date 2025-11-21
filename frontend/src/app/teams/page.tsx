@@ -20,6 +20,7 @@ import { Team, Location } from "@/types";
 import CreateTeamModal from "@/components/CreateTeamModal";
 import EditTeamModal from "@/components/EditTeamModal";
 import ViewTeamModal from "@/components/ViewTeamModal";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface TeamsResponse {
   teams: Team[];
@@ -34,6 +35,8 @@ interface TeamsResponse {
 }
 
 export default function TeamsPage() {
+  usePageTitle("Teams");
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
