@@ -1,6 +1,6 @@
-import { Router, Request, Response } from "express";
+import { Router, Response } from "express";
 import Joi from "joi";
-import { authenticate } from "../middleware/auth";
+import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 import * as settingsService from "../services/settings.service";
 
 const router = Router();
@@ -20,9 +20,9 @@ const customSettingsSchema = Joi.object().pattern(Joi.string(), Joi.any());
  * GET /api/user-settings
  * Get current user's settings
  */
-router.get("/", authenticate, async (req: Request, res: Response) => {
+router.get("/", authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const settings = await settingsService.getUserSettings(userId);
 
     res.json({
@@ -45,7 +45,7 @@ router.get("/", authenticate, async (req: Request, res: Response) => {
 router.patch(
   "/structured",
   authenticate,
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
       // Validate request body
       const { error, value } = structuredSettingsSchema.validate(req.body);
@@ -56,7 +56,7 @@ router.patch(
         });
       }
 
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const updatedSettings = await settingsService.updateStructuredSettings(
         userId,
         value
@@ -81,7 +81,7 @@ router.patch(
  * PATCH /api/user-settings/custom
  * Merge custom settings
  */
-router.patch("/custom", authenticate, async (req: Request, res: Response) => {
+router.patch("/custom", authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Validate request body
     const { error, value } = customSettingsSchema.validate(req.body);
@@ -92,7 +92,7 @@ router.patch("/custom", authenticate, async (req: Request, res: Response) => {
       });
     }
 
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const updatedSettings = await settingsService.updateCustomSettings(
       userId,
       value
@@ -116,7 +116,7 @@ router.patch("/custom", authenticate, async (req: Request, res: Response) => {
  * PUT /api/user-settings/custom
  * Replace entire custom settings
  */
-router.put("/custom", authenticate, async (req: Request, res: Response) => {
+router.put("/custom", authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Validate request body
     const { error, value } = customSettingsSchema.validate(req.body);
@@ -127,7 +127,7 @@ router.put("/custom", authenticate, async (req: Request, res: Response) => {
       });
     }
 
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const updatedSettings = await settingsService.setCustomSettings(
       userId,
       value
@@ -154,9 +154,9 @@ router.put("/custom", authenticate, async (req: Request, res: Response) => {
 router.delete(
   "/custom/:key",
   authenticate,
-  async (req: Request, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const { key } = req.params;
 
       const updatedSettings = await settingsService.deleteCustomSettingKey(
@@ -183,9 +183,9 @@ router.delete(
  * POST /api/user-settings/reset
  * Reset all settings to defaults
  */
-router.post("/reset", authenticate, async (req: Request, res: Response) => {
+router.post("/reset", authenticate, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const resetSettings = await settingsService.resetToDefaults(userId);
 
     res.json({
