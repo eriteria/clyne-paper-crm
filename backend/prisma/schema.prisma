@@ -95,6 +95,7 @@ model User {
   quickbooksExports        QuickBooksExport[]   @relation("QuickBooksExportUser")
   ledTeams                 Team[]               @relation("TeamLeader")
   assignedLocations        UserLocation[]
+  settings                 UserSettings?
   primaryLocation          Location?            @relation("UserPrimaryLocation", fields: [primaryLocationId], references: [id])
   region                   Region?              @relation(fields: [regionId], references: [id])
   role                     Role                 @relation(fields: [roleId], references: [id])
@@ -102,6 +103,28 @@ model User {
   waybills                 Waybill[]
 
   @@map("users")
+}
+
+model UserSettings {
+  id                   String   @id @default(cuid())
+  userId               String   @unique @map("user_id")
+  
+  // Structured settings (stable)
+  emailNotifications   Boolean  @default(true) @map("email_notifications")
+  smsNotifications     Boolean  @default(false) @map("sms_notifications")
+  defaultDashboardView String?  @map("default_dashboard_view")
+  preferredChartType   String?  @map("preferred_chart_type")
+  defaultDateRange     Int      @default(30) @map("default_date_range")
+  
+  // Flexible JSON settings (experiments, UI flags, extra preferences)
+  customSettings       Json?    @map("custom_settings")
+  
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_settings")
 }
 
 model InventoryItem {

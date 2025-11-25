@@ -31,6 +31,7 @@ import paymentRoutes from "./routes/payments";
 import notificationRoutes from "./routes/notifications";
 import dataManagementRoutes from "./routes/dataManagement";
 import settingsRoutes from "./routes/settings";
+import userSettingsRoutes from "./routes/user-settings";
 import locationRoutes from "./routes/locations";
 import zohoAuthRoutes from "./routes/auth-zoho";
 import salesReturnsRoutes from "./routes/sales-returns";
@@ -116,6 +117,7 @@ export function createApp(options: { enableRateLimit?: boolean } = {}) {
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/data-management", dataManagementRoutes);
   app.use("/api/settings", settingsRoutes);
+  app.use("/api/user-settings", userSettingsRoutes);
   app.use("/api/locations", locationRoutes);
   app.use("/api/auth/zoho", zohoAuthRoutes);
   app.use("/api/sales-returns", salesReturnsRoutes);
