@@ -146,7 +146,7 @@ function SalesTab({ data, isLoading }: SalesTabProps) {
         <MetricCard
           icon={TrendingUp}
           iconColor="text-orange-600"
-          title="Top Performer"
+          title="Top Relationship Manager"
           value={data.topPerformers[0]?.fullName || "-"}
           change={`₦${formatNumber(
             data.topPerformers[0]?.totalSales || 0
@@ -174,14 +174,14 @@ function SalesTab({ data, isLoading }: SalesTabProps) {
       {/* Top Performers Table */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Top Sales Performers
+          Top Sales Performers (by Relationship Manager)
         </h3>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
+                  Relationship Manager
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email

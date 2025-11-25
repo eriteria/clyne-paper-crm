@@ -1074,39 +1074,64 @@ router.get(
       _sum: { totalAmount: true },
     });
 
-    // Get top performing users
-    const topUsers = await prisma.invoice.groupBy({
-      by: ["billedByUserId"],
+    // Get top performing relationship managers (not billers)
+    // Fetch invoices with customer relationship manager info
+    const invoicesWithRM = await prisma.invoice.findMany({
       where,
-      _count: { id: true },
-      _sum: { totalAmount: true },
-      orderBy: { _sum: { totalAmount: "desc" } },
-      take: 10,
-    });
-
-    // Get user details for top performers
-    const userIds = topUsers.map((u: any) => u.billedByUserId);
-    const users = await prisma.user.findMany({
-      where: { id: { in: userIds } },
       select: {
         id: true,
-        fullName: true,
-        email: true,
-        team: { select: { name: true } },
+        totalAmount: true,
+        customer: {
+          select: {
+            relationshipManagerId: true,
+            relationshipManager: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                team: { select: { name: true } },
+              },
+            },
+          },
+        },
       },
     });
 
-    const topUsersWithDetails = topUsers.map((sale: any) => {
-      const user = users.find((u: any) => u.id === sale.billedByUserId);
-      return {
-        userId: sale.billedByUserId,
-        fullName: user?.fullName || "Unknown",
-        email: user?.email || "Unknown",
-        teamName: user?.team?.name || "No Team",
-        invoiceCount: sale._count.id,
-        totalSales: sale._sum.totalAmount || 0,
-      };
+    // Group by relationship manager manually
+    const salesByRM = new Map<string, { 
+      userId: string;
+      fullName: string;
+      email: string;
+      teamName: string;
+      invoiceCount: number;
+      totalSales: number;
+    }>();
+
+    invoicesWithRM.forEach((invoice) => {
+      const rmId = invoice.customer?.relationshipManagerId;
+      if (!rmId) return; // Skip invoices without relationship manager
+
+      const rm = invoice.customer?.relationshipManager;
+      if (!salesByRM.has(rmId)) {
+        salesByRM.set(rmId, {
+          userId: rmId,
+          fullName: rm?.fullName || "Unknown",
+          email: rm?.email || "Unknown",
+          teamName: rm?.team?.name || "No Team",
+          invoiceCount: 0,
+          totalSales: 0,
+        });
+      }
+
+      const data = salesByRM.get(rmId)!;
+      data.invoiceCount++;
+      data.totalSales += invoice.totalAmount || 0;
     });
+
+    // Convert to array and sort by total sales descending
+    const topUsersWithDetails = Array.from(salesByRM.values())
+      .sort((a, b) => b.totalSales - a.totalSales)
+      .slice(0, 10);
 
     res.json({
       success: true,
