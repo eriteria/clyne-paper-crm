@@ -1134,6 +1134,70 @@ router.get(
       .sort((a, b) => b.totalSales - a.totalSales)
       .slice(0, 10);
 
+    // Get sales over time (grouped by date)
+    const salesOverTime = await prisma.invoice.groupBy({
+      by: ["date"],
+      where,
+      _sum: { totalAmount: true },
+      _count: { id: true },
+      orderBy: { date: "asc" },
+    });
+
+    // Get top customers by revenue for contribution analysis
+    const topCustomers = await prisma.invoice.groupBy({
+      by: ["customerId"],
+      where,
+      _sum: { totalAmount: true },
+      orderBy: { _sum: { totalAmount: "desc" } },
+      take: 10,
+    });
+
+    // Get customer details for top customers
+    const customerIds = topCustomers.map((c: any) => c.customerId);
+    const customers = await prisma.customer.findMany({
+      where: { id: { in: customerIds } },
+      select: { id: true, name: true },
+    });
+
+    // Get sales over time by top customers for stacked area chart
+    const salesByCustomerOverTime = await prisma.invoice.findMany({
+      where: {
+        ...where,
+        customerId: { in: customerIds },
+      },
+      select: {
+        date: true,
+        customerId: true,
+        totalAmount: true,
+        customer: { select: { name: true } },
+      },
+      orderBy: { date: "asc" },
+    });
+
+    // Group sales by date and customer
+    const salesByDateAndCustomer = new Map<string, Map<string, number>>();
+    salesByCustomerOverTime.forEach((invoice) => {
+      const dateKey = invoice.date.toISOString().split("T")[0];
+      if (!salesByDateAndCustomer.has(dateKey)) {
+        salesByDateAndCustomer.set(dateKey, new Map());
+      }
+      const dateMap = salesByDateAndCustomer.get(dateKey)!;
+      const customerName = invoice.customer?.name || "Unknown";
+      const currentTotal = dateMap.get(customerName) || 0;
+      dateMap.set(customerName, currentTotal + Number(invoice.totalAmount));
+    });
+
+    // Convert to array format for frontend
+    const customerContribution = Array.from(salesByDateAndCustomer.entries())
+      .map(([date, customerMap]) => {
+        const entry: any = { date };
+        customerMap.forEach((amount, customerName) => {
+          entry[customerName] = amount;
+        });
+        return entry;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
     res.json({
       success: true,
       data: {
@@ -1147,6 +1211,20 @@ router.get(
           count: status._count.id,
           totalAmount: status._sum.totalAmount || 0,
         })),
+        salesOverTime: salesOverTime.map((item: any) => ({
+          date: item.date,
+          totalAmount: Number(item._sum.totalAmount) || 0,
+          invoiceCount: item._count.id,
+        })),
+        customerContribution,
+        topCustomers: topCustomers.map((c: any) => {
+          const customer = customers.find((cust) => cust.id === c.customerId);
+          return {
+            customerId: c.customerId,
+            customerName: customer?.name || "Unknown",
+            totalSales: Number(c._sum.totalAmount) || 0,
+          };
+        }),
         topPerformers: topUsersWithDetails,
         filters: {
           startDate: startDate || null,

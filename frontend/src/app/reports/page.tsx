@@ -13,6 +13,11 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  Legend,
 } from "recharts";
 import {
   Download,
@@ -155,21 +160,162 @@ function SalesTab({ data, isLoading }: SalesTabProps) {
         />
       </div>
 
-      {/* Sales by Status */}
+      {/* Sales Over Time Chart */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Sales by Status
+          Sales Trend Over Time
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data.byStatus}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="status" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} tickFormatter={formatNumber} />
-            <Tooltip formatter={formatNumber} />
-            <Bar dataKey="totalAmount" fill="#3B82F6" name="Total Sales" />
-          </BarChart>
+        <ResponsiveContainer width="100%" height={350}>
+          <LineChart data={data.salesOverTime || []}>
+            <defs>
+              <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12, fill: "#6B7280" }}
+              tickFormatter={(date) => {
+                const d = new Date(date);
+                return `${d.getMonth() + 1}/${d.getDate()}`;
+              }}
+            />
+            <YAxis 
+              tick={{ fontSize: 12, fill: "#6B7280" }}
+              tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip 
+              formatter={(value: any) => [formatCurrency(value), "Total Sales"]}
+              labelFormatter={(label) => {
+                const date = new Date(label);
+                return date.toLocaleDateString("en-US", { 
+                  month: "short", 
+                  day: "numeric", 
+                  year: "numeric" 
+                });
+              }}
+              contentStyle={{
+                backgroundColor: "white",
+                border: "1px solid #E5E7EB",
+                borderRadius: "8px",
+                padding: "12px",
+              }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="totalAmount" 
+              stroke="#3B82F6" 
+              strokeWidth={3}
+              dot={{ fill: "#3B82F6", r: 5 }}
+              activeDot={{ r: 7, fill: "#2563EB" }}
+              name="Total Sales"
+            />
+          </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Customer Contribution Chart */}
+      {data.customerContribution && data.customerContribution.length > 0 && (
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Customer Contribution to Sales
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Stacked view showing how each top customer contributes to total sales over time
+            </p>
+          </div>
+          <ResponsiveContainer width="100%" height={400}>
+            <AreaChart data={data.customerContribution}>
+              <defs>
+                {data.topCustomers?.slice(0, 10).map((customer, index) => {
+                  const colors = [
+                    ["#3B82F6", "#1D4ED8"], // Blue
+                    ["#10B981", "#059669"], // Green
+                    ["#F59E0B", "#D97706"], // Amber
+                    ["#EF4444", "#DC2626"], // Red
+                    ["#8B5CF6", "#7C3AED"], // Purple
+                    ["#EC4899", "#DB2777"], // Pink
+                    ["#14B8A6", "#0D9488"], // Teal
+                    ["#F97316", "#EA580C"], // Orange
+                    ["#6366F1", "#4F46E5"], // Indigo
+                    ["#06B6D4", "#0891B2"], // Cyan
+                  ];
+                  const [startColor, endColor] = colors[index % colors.length];
+                  return (
+                    <linearGradient 
+                      key={customer.customerId} 
+                      id={`color${customer.customerId}`} 
+                      x1="0" 
+                      y1="0" 
+                      x2="0" 
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor={startColor} stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor={endColor} stopOpacity={0.3}/>
+                    </linearGradient>
+                  );
+                })}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis 
+                dataKey="date" 
+                tick={{ fontSize: 12, fill: "#6B7280" }}
+                tickFormatter={(date) => {
+                  const d = new Date(date);
+                  return `${d.getMonth() + 1}/${d.getDate()}`;
+                }}
+              />
+              <YAxis 
+                tick={{ fontSize: 12, fill: "#6B7280" }}
+                tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip 
+                formatter={(value: any, name: string) => [formatCurrency(value), name]}
+                labelFormatter={(label) => {
+                  const date = new Date(label);
+                  return date.toLocaleDateString("en-US", { 
+                    month: "short", 
+                    day: "numeric", 
+                    year: "numeric" 
+                  });
+                }}
+                contentStyle={{
+                  backgroundColor: "white",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "8px",
+                  padding: "12px",
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                }}
+              />
+              <Legend 
+                wrapperStyle={{ paddingTop: "20px" }}
+                iconType="circle"
+              />
+              {data.topCustomers?.slice(0, 10).map((customer, index) => {
+                const colors = [
+                  "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6",
+                  "#EC4899", "#14B8A6", "#F97316", "#6366F1", "#06B6D4",
+                ];
+                return (
+                  <Area
+                    key={customer.customerId}
+                    type="monotone"
+                    dataKey={customer.customerName}
+                    stackId="1"
+                    stroke={colors[index % colors.length]}
+                    fill={`url(#color${customer.customerId})`}
+                    name={customer.customerName}
+                  />
+                );
+              })}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Top Performers Table */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
