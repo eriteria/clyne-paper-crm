@@ -360,9 +360,7 @@ export default function UsersPage() {
                 )}
                 {hasPermission("users:edit") && (
                   <button
-                    onClick={() =>
-                      toggleStatusMutation.mutate(user.id)
-                    }
+                    onClick={() => toggleStatusMutation.mutate(user.id)}
                     className={`p-2 rounded-lg transition ${
                       user.isActive
                         ? "text-red-600 hover:bg-red-50"

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useCreateSalesReturn } from "@/hooks/useSalesReturns";
 import {
   Invoice,
-  InvoiceItem,
   ItemCondition,
   RefundMethod,
   CreateSalesReturnItem,

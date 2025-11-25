@@ -20,7 +20,20 @@ export default function CustomersPage() {
   const { hasPermission } = usePermissions();
   const router = useRouter();
 
-  // Check if user has permission to view customers
+  // State hooks - must be called before conditional returns
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showLedgerModal, setShowLedgerModal] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [selectedCustomerForPayment, setSelectedCustomerForPayment] =
+    useState<Customer | null>(null);
+
+  const queryClient = useQueryClient();
+
+  // Check if user has permission to view customers - after all hooks
   if (!hasPermission("customers:view")) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
@@ -44,19 +57,6 @@ export default function CustomersPage() {
       </div>
     );
   }
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
-
-  // Payment management states
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showLedgerModal, setShowLedgerModal] = useState(false);
-  const [showCreditModal, setShowCreditModal] = useState(false);
-  const [selectedCustomerForPayment, setSelectedCustomerForPayment] =
-    useState<Customer | null>(null);
-
-  const queryClient = useQueryClient();
 
   const handleSearchChange = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm);
