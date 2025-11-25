@@ -1125,7 +1125,8 @@ router.get(
 
       const data = salesByRM.get(rmId)!;
       data.invoiceCount++;
-      data.totalSales += invoice.totalAmount || 0;
+      // Convert Decimal to number to avoid string concatenation
+      data.totalSales += Number(invoice.totalAmount) || 0;
     });
 
     // Convert to array and sort by total sales descending
