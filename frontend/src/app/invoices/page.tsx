@@ -614,14 +614,16 @@ export default function InvoicesPage() {
                       >
                         <Download className="h-5 w-5 md:h-4 md:w-4" />
                       </button>
-                      <button
-                        className="text-blue-600 hover:text-blue-900 p-2 md:p-1 rounded transition-colors"
-                        title="Edit invoice"
-                        onClick={() => setEditingInvoice(invoice)}
-                      >
-                        <Edit className="h-5 w-5 md:h-4 md:w-4" />
-                      </button>
-                      {invoice.status === "DRAFT" && (
+                      {hasPermission("invoices:edit") && (
+                        <button
+                          className="text-blue-600 hover:text-blue-900 p-2 md:p-1 rounded transition-colors"
+                          title="Edit invoice"
+                          onClick={() => setEditingInvoice(invoice)}
+                        >
+                          <Edit className="h-5 w-5 md:h-4 md:w-4" />
+                        </button>
+                      )}
+                      {invoice.status === "DRAFT" && hasPermission("invoices:edit") && (
                         <button
                           onClick={() => postDraftMutation.mutate(invoice.id)}
                           className="text-green-600 hover:text-green-900 p-2 md:p-1 rounded transition-colors"
@@ -691,13 +693,15 @@ export default function InvoicesPage() {
                             )}
                           </button>
                         )}
-                      <button
-                        onClick={() => deleteMutation.mutate(invoice.id)}
-                        className="text-red-600 hover:text-red-900 p-2 md:p-1 rounded transition-colors"
-                        title="Delete invoice"
-                      >
-                        <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
-                      </button>
+                      {hasPermission("invoices:delete") && (
+                        <button
+                          onClick={() => deleteMutation.mutate(invoice.id)}
+                          className="text-red-600 hover:text-red-900 p-2 md:p-1 rounded transition-colors"
+                          title="Delete invoice"
+                        >
+                          <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
