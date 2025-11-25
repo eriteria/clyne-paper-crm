@@ -33,12 +33,12 @@ export default function RootLayout({
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5 * 60 * 1000, // 5 minutes
-            gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+            staleTime: 30 * 1000, // 30 seconds - data is considered fresh
+            gcTime: 5 * 60 * 1000, // 5 minutes - how long unused data stays in cache
             retry: 1,
-            refetchOnWindowFocus: false,
-            refetchOnMount: false,
-            refetchOnReconnect: false,
+            refetchOnWindowFocus: true, // Refetch when window regains focus
+            refetchOnMount: true, // Refetch when component mounts
+            refetchOnReconnect: true, // Refetch when reconnecting to internet
           },
         },
       })
