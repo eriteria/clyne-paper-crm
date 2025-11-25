@@ -279,11 +279,11 @@ router.get(
   "/dashboard",
   requirePermission(PERMISSIONS.REPORTS_VIEW_DASHBOARD),
   async (req, res, next) => {
-  try {
-    const startTime = Date.now();
+    try {
+      const startTime = Date.now();
 
-    // Optimize: Use raw SQL for counts - much faster than individual Prisma queries
-    const countsQuery = `
+      // Optimize: Use raw SQL for counts - much faster than individual Prisma queries
+      const countsQuery = `
       SELECT 
         (SELECT COUNT(*) FROM users) as total_users,
         (SELECT COUNT(*) FROM users WHERE is_active = true) as active_users,
@@ -294,98 +294,101 @@ router.get(
         (SELECT COUNT(*) FROM waybills) as total_waybills
     `;
 
-    const [countsResult] = (await prisma.$queryRawUnsafe(countsQuery)) as any[];
+      const [countsResult] = (await prisma.$queryRawUnsafe(
+        countsQuery
+      )) as any[];
 
-    // Convert BigInt values to numbers
-    const counts = {
-      totalUsers: Number(countsResult.total_users),
-      activeUsers: Number(countsResult.active_users),
-      totalInventoryItems: Number(countsResult.total_inventory_items),
-      lowStockCount: Number(countsResult.low_stock_count),
-      totalInvoices: Number(countsResult.total_invoices),
-      pendingInvoices: Number(countsResult.pending_invoices),
-      totalWaybills: Number(countsResult.total_waybills),
-    };
+      // Convert BigInt values to numbers
+      const counts = {
+        totalUsers: Number(countsResult.total_users),
+        activeUsers: Number(countsResult.active_users),
+        totalInventoryItems: Number(countsResult.total_inventory_items),
+        lowStockCount: Number(countsResult.low_stock_count),
+        totalInvoices: Number(countsResult.total_invoices),
+        pendingInvoices: Number(countsResult.pending_invoices),
+        totalWaybills: Number(countsResult.total_waybills),
+      };
 
-    // Calculate total inventory value by multiplying unitPrice * currentQuantity for each item
-    const inventoryItems = await prisma.inventoryItem.findMany({
-      select: {
-        unitPrice: true,
-        currentQuantity: true,
-      },
-    });
-
-    const totalInventoryValue = inventoryItems.reduce((total, item) => {
-      return total + (Number(item.unitPrice) * Number(item.currentQuantity));
-    }, 0);
-
-    // Simplified teams query - just get essential data
-    const teams = await prisma.team.findMany({
-      select: {
-        id: true,
-        name: true,
-        _count: {
-          select: { members: true },
+      // Calculate total inventory value by multiplying unitPrice * currentQuantity for each item
+      const inventoryItems = await prisma.inventoryItem.findMany({
+        select: {
+          unitPrice: true,
+          currentQuantity: true,
         },
-      },
-    });
+      });
 
-    // Optimized low stock items query
-    const lowStockItems = await prisma.inventoryItem.findMany({
-      where: {
-        currentQuantity: {
-          lte: prisma.inventoryItem.fields.minStock,
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        sku: true,
-        currentQuantity: true,
-        minStock: true,
-        location: {
-          select: {
-            name: true,
+      const totalInventoryValue = inventoryItems.reduce((total, item) => {
+        return total + Number(item.unitPrice) * Number(item.currentQuantity);
+      }, 0);
+
+      // Simplified teams query - just get essential data
+      const teams = await prisma.team.findMany({
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: { members: true },
           },
         },
-      },
-      orderBy: {
-        currentQuantity: "asc",
-      },
-      take: 5,
-    });
+      });
 
-    const queryTime = Date.now() - startTime;
-    logger.info(`Dashboard query completed in ${queryTime}ms`);
-
-    res.json({
-      success: true,
-      data: {
-        overview: {
-          ...counts,
-          totalInventoryValue: totalInventoryValue,
-          inventoryValueChange: 0, // Simplified for performance
+      // Optimized low stock items query
+      const lowStockItems = await prisma.inventoryItem.findMany({
+        where: {
+          currentQuantity: {
+            lte: prisma.inventoryItem.fields.minStock,
+          },
         },
-        teams: teams.map((team: any) => ({
-          id: team.id,
-          name: team.name,
-          memberCount: team._count.members,
-        })),
-        lowStockItems: lowStockItems.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          sku: item.sku,
-          current_quantity: item.currentQuantity,
-          min_stock: item.minStock,
-          location_name: item.location?.name,
-        })),
-      },
-    });
-  } catch (error) {
-    logger.error("Error fetching dashboard data:", error);
-    next(error);
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          currentQuantity: true,
+          minStock: true,
+          location: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          currentQuantity: "asc",
+        },
+        take: 5,
+      });
+
+      const queryTime = Date.now() - startTime;
+      logger.info(`Dashboard query completed in ${queryTime}ms`);
+
+      res.json({
+        success: true,
+        data: {
+          overview: {
+            ...counts,
+            totalInventoryValue: totalInventoryValue,
+            inventoryValueChange: 0, // Simplified for performance
+          },
+          teams: teams.map((team: any) => ({
+            id: team.id,
+            name: team.name,
+            memberCount: team._count.members,
+          })),
+          lowStockItems: lowStockItems.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            sku: item.sku,
+            current_quantity: item.currentQuantity,
+            min_stock: item.minStock,
+            location_name: item.location?.name,
+          })),
+        },
+      });
+    } catch (error) {
+      logger.error("Error fetching dashboard data:", error);
+      next(error);
+    }
   }
-});
+);
 
 // @desc    Dynamic report query endpoint - flexible reporting without hardcoded endpoints
 // @route   POST /api/reports/query
@@ -806,31 +809,31 @@ router.get(
   "/inventory",
   requirePermission(PERMISSIONS.REPORTS_VIEW_INVENTORY),
   async (req, res, next) => {
-  try {
-    // Get inventory statistics
-    const [totalItems, totalValue, lowStockItems] = await Promise.all([
-      prisma.inventoryItem.count(),
-      prisma.inventoryItem.aggregate({
-        _sum: { unitPrice: true, currentQuantity: true },
-        _avg: { unitPrice: true, currentQuantity: true },
-      }),
-      prisma.$queryRaw`
+    try {
+      // Get inventory statistics
+      const [totalItems, totalValue, lowStockItems] = await Promise.all([
+        prisma.inventoryItem.count(),
+        prisma.inventoryItem.aggregate({
+          _sum: { unitPrice: true, currentQuantity: true },
+          _avg: { unitPrice: true, currentQuantity: true },
+        }),
+        prisma.$queryRaw`
         SELECT COUNT(*) as count 
         FROM inventory_items 
         WHERE current_quantity <= min_stock
       `,
-    ]);
+      ]);
 
-    // Get inventory by location
-    const inventoryByLocation = await prisma.inventoryItem.groupBy({
-      by: ["locationId"],
-      _count: { id: true },
-      _sum: { currentQuantity: true, unitPrice: true },
-      orderBy: { _count: { id: "desc" } },
-    });
+      // Get inventory by location
+      const inventoryByLocation = await prisma.inventoryItem.groupBy({
+        by: ["locationId"],
+        _count: { id: true },
+        _sum: { currentQuantity: true, unitPrice: true },
+        orderBy: { _count: { id: "desc" } },
+      });
 
-    // Get top items by quantity - using raw SQL for consistency
-    const topItemsByQuantity = await prisma.$queryRaw`
+      // Get top items by quantity - using raw SQL for consistency
+      const topItemsByQuantity = await prisma.$queryRaw`
       SELECT 
         i.name, 
         i.sku, 
@@ -843,8 +846,8 @@ router.get(
       LIMIT 10
     `;
 
-    // Get items needing reorder - using raw SQL with proper join
-    const itemsNeedingReorder = await prisma.$queryRaw`
+      // Get items needing reorder - using raw SQL with proper join
+      const itemsNeedingReorder = await prisma.$queryRaw`
       SELECT 
         i.name, 
         i.sku, 
@@ -858,45 +861,49 @@ router.get(
       ORDER BY shortage DESC
     `;
 
-    // Get location details for mapping
-    const locationIds = inventoryByLocation.map((item: any) => item.locationId);
-    const locations = await prisma.location.findMany({
-      where: { id: { in: locationIds } },
-      select: { id: true, name: true },
-    });
-    const locationMap = new Map(locations.map((loc) => [loc.id, loc.name]));
+      // Get location details for mapping
+      const locationIds = inventoryByLocation.map(
+        (item: any) => item.locationId
+      );
+      const locations = await prisma.location.findMany({
+        where: { id: { in: locationIds } },
+        select: { id: true, name: true },
+      });
+      const locationMap = new Map(locations.map((loc) => [loc.id, loc.name]));
 
-    res.json({
-      success: true,
-      data: {
-        summary: {
-          totalItems,
-          totalValue: totalValue._sum.unitPrice || 0,
-          averageItemValue: totalValue._avg.unitPrice || 0,
-          totalQuantity: totalValue._sum.currentQuantity || 0,
-          averageQuantity: totalValue._avg.currentQuantity || 0,
-          lowStockCount: (() => {
-            const v = (lowStockItems as any[])[0]?.count;
-            if (typeof v === "bigint") return Number(v);
-            if (typeof v === "string") return parseInt(v, 10) || 0;
-            return v || 0;
-          })(),
+      res.json({
+        success: true,
+        data: {
+          summary: {
+            totalItems,
+            totalValue: totalValue._sum.unitPrice || 0,
+            averageItemValue: totalValue._avg.unitPrice || 0,
+            totalQuantity: totalValue._sum.currentQuantity || 0,
+            averageQuantity: totalValue._avg.currentQuantity || 0,
+            lowStockCount: (() => {
+              const v = (lowStockItems as any[])[0]?.count;
+              if (typeof v === "bigint") return Number(v);
+              if (typeof v === "string") return parseInt(v, 10) || 0;
+              return v || 0;
+            })(),
+          },
+          byLocation: inventoryByLocation.map((location: any) => ({
+            location:
+              locationMap.get(location.locationId) || "Unknown Location",
+            itemCount: location._count.id,
+            totalQuantity: location._sum.currentQuantity || 0,
+            totalValue: location._sum.unitPrice || 0,
+          })),
+          topItems: topItemsByQuantity,
+          reorderNeeded: itemsNeedingReorder,
         },
-        byLocation: inventoryByLocation.map((location: any) => ({
-          location: locationMap.get(location.locationId) || "Unknown Location",
-          itemCount: location._count.id,
-          totalQuantity: location._sum.currentQuantity || 0,
-          totalValue: location._sum.unitPrice || 0,
-        })),
-        topItems: topItemsByQuantity,
-        reorderNeeded: itemsNeedingReorder,
-      },
-    });
-  } catch (error) {
-    logger.error("Error fetching inventory analytics:", error);
-    next(error);
+      });
+    } catch (error) {
+      logger.error("Error fetching inventory analytics:", error);
+      next(error);
+    }
   }
-});
+);
 
 // @desc    Get overdue invoices
 // @route   GET /api/reports/overdue-invoices
@@ -1003,243 +1010,249 @@ router.get(
   "/sales",
   requirePermission(PERMISSIONS.REPORTS_VIEW_SALES),
   async (req, res, next) => {
-  // DEBUG: Run a raw SQL query to print all invoice IDs and dates
-  try {
-    const rawInvoices =
-      await prisma.$queryRaw`SELECT id, date FROM invoices ORDER BY date DESC LIMIT 10`;
-    logger.info(
-      `[SALES REPORT][RAW SQL] Sample invoices: ${JSON.stringify(rawInvoices)}`
-    );
-  } catch (rawErr) {
-    logger.error(`[SALES REPORT][RAW SQL] Error: ${rawErr}`);
-  }
-  try {
-    const { startDate, endDate, userId, teamId, regionId } = req.query;
-
-    // Log all parameters
-    logger.info(
-      `[SALES REPORT] Parameters received: startDate=${startDate}, endDate=${endDate}, userId=${userId}, teamId=${teamId}, regionId=${regionId}`
-    );
-
-    // Build date filter (use createdAt to match working invoices endpoint)
-    const dateFilter: any = {};
-    if (startDate) {
-      dateFilter.gte = new Date(startDate as string);
-      logger.info(`[SALES REPORT] Added startDate filter: ${dateFilter.gte}`);
+    // DEBUG: Run a raw SQL query to print all invoice IDs and dates
+    try {
+      const rawInvoices =
+        await prisma.$queryRaw`SELECT id, date FROM invoices ORDER BY date DESC LIMIT 10`;
+      logger.info(
+        `[SALES REPORT][RAW SQL] Sample invoices: ${JSON.stringify(rawInvoices)}`
+      );
+    } catch (rawErr) {
+      logger.error(`[SALES REPORT][RAW SQL] Error: ${rawErr}`);
     }
-    if (endDate) {
-      // For endDate, set to end of day (23:59:59.999) instead of start of day
-      const endOfDay = new Date(endDate as string);
-      endOfDay.setHours(23, 59, 59, 999);
-      dateFilter.lte = endOfDay;
-      logger.info(`[SALES REPORT] Added endDate filter: ${dateFilter.lte}`);
-    }
+    try {
+      const { startDate, endDate, userId, teamId, regionId } = req.query;
 
-    // Build where clause (use createdAt like the working invoices endpoint)
-    const where: any = {};
-    if (Object.keys(dateFilter).length > 0) {
-      where.createdAt = dateFilter;
-    }
+      // Log all parameters
+      logger.info(
+        `[SALES REPORT] Parameters received: startDate=${startDate}, endDate=${endDate}, userId=${userId}, teamId=${teamId}, regionId=${regionId}`
+      );
 
-    logger.info(
-      `[SALES REPORT] Final where clause: ${JSON.stringify(where, null, 2)}`
-    );
+      // Build date filter (use createdAt to match working invoices endpoint)
+      const dateFilter: any = {};
+      if (startDate) {
+        dateFilter.gte = new Date(startDate as string);
+        logger.info(`[SALES REPORT] Added startDate filter: ${dateFilter.gte}`);
+      }
+      if (endDate) {
+        // For endDate, set to end of day (23:59:59.999) instead of start of day
+        const endOfDay = new Date(endDate as string);
+        endOfDay.setHours(23, 59, 59, 999);
+        dateFilter.lte = endOfDay;
+        logger.info(`[SALES REPORT] Added endDate filter: ${dateFilter.lte}`);
+      }
 
-    // Debug: log invoice count and sample IDs/dates for this query (using createdAt)
-    const debugInvoices = await prisma.invoice.findMany({
-      where,
-      select: { id: true, createdAt: true, date: true },
-      take: 5,
-    });
-    logger.info(
-      `[SALES REPORT] Invoice count for query: ${debugInvoices.length}, sample: ${JSON.stringify(debugInvoices)}`
-    );
+      // Build where clause (use createdAt like the working invoices endpoint)
+      const where: any = {};
+      if (Object.keys(dateFilter).length > 0) {
+        where.createdAt = dateFilter;
+      }
 
-    // Get sales metrics
-    const [totalInvoices, salesSummary] = await Promise.all([
-      prisma.invoice.count({ where }),
-      prisma.invoice.aggregate({
+      logger.info(
+        `[SALES REPORT] Final where clause: ${JSON.stringify(where, null, 2)}`
+      );
+
+      // Debug: log invoice count and sample IDs/dates for this query (using createdAt)
+      const debugInvoices = await prisma.invoice.findMany({
         where,
-        _sum: { totalAmount: true },
-        _avg: { totalAmount: true },
+        select: { id: true, createdAt: true, date: true },
+        take: 5,
+      });
+      logger.info(
+        `[SALES REPORT] Invoice count for query: ${debugInvoices.length}, sample: ${JSON.stringify(debugInvoices)}`
+      );
+
+      // Get sales metrics
+      const [totalInvoices, salesSummary] = await Promise.all([
+        prisma.invoice.count({ where }),
+        prisma.invoice.aggregate({
+          where,
+          _sum: { totalAmount: true },
+          _avg: { totalAmount: true },
+          _count: { id: true },
+        }),
+      ]);
+
+      // Get sales by status
+      const salesByStatus = await prisma.invoice.groupBy({
+        by: ["status"],
+        where,
         _count: { id: true },
-      }),
-    ]);
+        _sum: { totalAmount: true },
+      });
 
-    // Get sales by status
-    const salesByStatus = await prisma.invoice.groupBy({
-      by: ["status"],
-      where,
-      _count: { id: true },
-      _sum: { totalAmount: true },
-    });
-
-    // Get top performing relationship managers (not billers)
-    // Fetch invoices with customer relationship manager info
-    const invoicesWithRM = await prisma.invoice.findMany({
-      where,
-      select: {
-        id: true,
-        totalAmount: true,
-        customer: {
-          select: {
-            relationshipManagerId: true,
-            relationshipManager: {
-              select: {
-                id: true,
-                fullName: true,
-                email: true,
-                team: { select: { name: true } },
+      // Get top performing relationship managers (not billers)
+      // Fetch invoices with customer relationship manager info
+      const invoicesWithRM = await prisma.invoice.findMany({
+        where,
+        select: {
+          id: true,
+          totalAmount: true,
+          customer: {
+            select: {
+              relationshipManagerId: true,
+              relationshipManager: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  team: { select: { name: true } },
+                },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    // Group by relationship manager manually
-    const salesByRM = new Map<string, { 
-      userId: string;
-      fullName: string;
-      email: string;
-      teamName: string;
-      invoiceCount: number;
-      totalSales: number;
-    }>();
+      // Group by relationship manager manually
+      const salesByRM = new Map<
+        string,
+        {
+          userId: string;
+          fullName: string;
+          email: string;
+          teamName: string;
+          invoiceCount: number;
+          totalSales: number;
+        }
+      >();
 
-    invoicesWithRM.forEach((invoice) => {
-      const rmId = invoice.customer?.relationshipManagerId;
-      if (!rmId) return; // Skip invoices without relationship manager
+      invoicesWithRM.forEach((invoice) => {
+        const rmId = invoice.customer?.relationshipManagerId;
+        if (!rmId) return; // Skip invoices without relationship manager
 
-      const rm = invoice.customer?.relationshipManager;
-      if (!salesByRM.has(rmId)) {
-        salesByRM.set(rmId, {
-          userId: rmId,
-          fullName: rm?.fullName || "Unknown",
-          email: rm?.email || "Unknown",
-          teamName: rm?.team?.name || "No Team",
-          invoiceCount: 0,
-          totalSales: 0,
-        });
-      }
+        const rm = invoice.customer?.relationshipManager;
+        if (!salesByRM.has(rmId)) {
+          salesByRM.set(rmId, {
+            userId: rmId,
+            fullName: rm?.fullName || "Unknown",
+            email: rm?.email || "Unknown",
+            teamName: rm?.team?.name || "No Team",
+            invoiceCount: 0,
+            totalSales: 0,
+          });
+        }
 
-      const data = salesByRM.get(rmId)!;
-      data.invoiceCount++;
-      // Convert Decimal to number to avoid string concatenation
-      data.totalSales += Number(invoice.totalAmount) || 0;
-    });
+        const data = salesByRM.get(rmId)!;
+        data.invoiceCount++;
+        // Convert Decimal to number to avoid string concatenation
+        data.totalSales += Number(invoice.totalAmount) || 0;
+      });
 
-    // Convert to array and sort by total sales descending
-    const topUsersWithDetails = Array.from(salesByRM.values())
-      .sort((a, b) => b.totalSales - a.totalSales)
-      .slice(0, 10);
+      // Convert to array and sort by total sales descending
+      const topUsersWithDetails = Array.from(salesByRM.values())
+        .sort((a, b) => b.totalSales - a.totalSales)
+        .slice(0, 10);
 
-    // Get sales over time (grouped by date)
-    const salesOverTime = await prisma.invoice.groupBy({
-      by: ["date"],
-      where,
-      _sum: { totalAmount: true },
-      _count: { id: true },
-      orderBy: { date: "asc" },
-    });
+      // Get sales over time (grouped by date)
+      const salesOverTime = await prisma.invoice.groupBy({
+        by: ["date"],
+        where,
+        _sum: { totalAmount: true },
+        _count: { id: true },
+        orderBy: { date: "asc" },
+      });
 
-    // Get top customers by revenue for contribution analysis
-    const topCustomers = await prisma.invoice.groupBy({
-      by: ["customerId"],
-      where,
-      _sum: { totalAmount: true },
-      orderBy: { _sum: { totalAmount: "desc" } },
-      take: 10,
-    });
+      // Get top customers by revenue for contribution analysis
+      const topCustomers = await prisma.invoice.groupBy({
+        by: ["customerId"],
+        where,
+        _sum: { totalAmount: true },
+        orderBy: { _sum: { totalAmount: "desc" } },
+        take: 10,
+      });
 
-    // Get customer details for top customers
-    const customerIds = topCustomers.map((c: any) => c.customerId);
-    const customers = await prisma.customer.findMany({
-      where: { id: { in: customerIds } },
-      select: { id: true, name: true },
-    });
+      // Get customer details for top customers
+      const customerIds = topCustomers.map((c: any) => c.customerId);
+      const customers = await prisma.customer.findMany({
+        where: { id: { in: customerIds } },
+        select: { id: true, name: true },
+      });
 
-    // Get sales over time by top customers for stacked area chart
-    const salesByCustomerOverTime = await prisma.invoice.findMany({
-      where: {
-        ...where,
-        customerId: { in: customerIds },
-      },
-      select: {
-        date: true,
-        customerId: true,
-        totalAmount: true,
-        customer: { select: { name: true } },
-      },
-      orderBy: { date: "asc" },
-    });
-
-    // Group sales by date and customer
-    const salesByDateAndCustomer = new Map<string, Map<string, number>>();
-    salesByCustomerOverTime.forEach((invoice) => {
-      const dateKey = invoice.date.toISOString().split("T")[0];
-      if (!salesByDateAndCustomer.has(dateKey)) {
-        salesByDateAndCustomer.set(dateKey, new Map());
-      }
-      const dateMap = salesByDateAndCustomer.get(dateKey)!;
-      const customerName = invoice.customer?.name || "Unknown";
-      const currentTotal = dateMap.get(customerName) || 0;
-      dateMap.set(customerName, currentTotal + Number(invoice.totalAmount));
-    });
-
-    // Convert to array format for frontend
-    const customerContribution = Array.from(salesByDateAndCustomer.entries())
-      .map(([date, customerMap]) => {
-        const entry: any = { date };
-        customerMap.forEach((amount, customerName) => {
-          entry[customerName] = amount;
-        });
-        return entry;
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    res.json({
-      success: true,
-      data: {
-        summary: {
-          totalInvoices,
-          totalSales: salesSummary._sum.totalAmount || 0,
-          averageSale: salesSummary._avg.totalAmount || 0,
+      // Get sales over time by top customers for stacked area chart
+      const salesByCustomerOverTime = await prisma.invoice.findMany({
+        where: {
+          ...where,
+          customerId: { in: customerIds },
         },
-        byStatus: salesByStatus.map((status: any) => ({
-          status: status.status,
-          count: status._count.id,
-          totalAmount: status._sum.totalAmount || 0,
-        })),
-        salesOverTime: salesOverTime.map((item: any) => ({
-          date: item.date,
-          totalAmount: Number(item._sum.totalAmount) || 0,
-          invoiceCount: item._count.id,
-        })),
-        customerContribution,
-        topCustomers: topCustomers.map((c: any) => {
-          const customer = customers.find((cust) => cust.id === c.customerId);
-          return {
-            customerId: c.customerId,
-            customerName: customer?.name || "Unknown",
-            totalSales: Number(c._sum.totalAmount) || 0,
-          };
-        }),
-        topPerformers: topUsersWithDetails,
-        filters: {
-          startDate: startDate || null,
-          endDate: endDate || null,
-          userId: userId || null,
-          teamId: teamId || null,
-          regionId: regionId || null,
+        select: {
+          date: true,
+          customerId: true,
+          totalAmount: true,
+          customer: { select: { name: true } },
         },
-      },
-    });
-  } catch (error) {
-    logger.error("Error fetching sales analytics:", error);
-    next(error);
+        orderBy: { date: "asc" },
+      });
+
+      // Group sales by date and customer
+      const salesByDateAndCustomer = new Map<string, Map<string, number>>();
+      salesByCustomerOverTime.forEach((invoice) => {
+        const dateKey = invoice.date.toISOString().split("T")[0];
+        if (!salesByDateAndCustomer.has(dateKey)) {
+          salesByDateAndCustomer.set(dateKey, new Map());
+        }
+        const dateMap = salesByDateAndCustomer.get(dateKey)!;
+        const customerName = invoice.customer?.name || "Unknown";
+        const currentTotal = dateMap.get(customerName) || 0;
+        dateMap.set(customerName, currentTotal + Number(invoice.totalAmount));
+      });
+
+      // Convert to array format for frontend
+      const customerContribution = Array.from(salesByDateAndCustomer.entries())
+        .map(([date, customerMap]) => {
+          const entry: any = { date };
+          customerMap.forEach((amount, customerName) => {
+            entry[customerName] = amount;
+          });
+          return entry;
+        })
+        .sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+      res.json({
+        success: true,
+        data: {
+          summary: {
+            totalInvoices,
+            totalSales: salesSummary._sum.totalAmount || 0,
+            averageSale: salesSummary._avg.totalAmount || 0,
+          },
+          byStatus: salesByStatus.map((status: any) => ({
+            status: status.status,
+            count: status._count.id,
+            totalAmount: status._sum.totalAmount || 0,
+          })),
+          salesOverTime: salesOverTime.map((item: any) => ({
+            date: item.date,
+            totalAmount: Number(item._sum.totalAmount) || 0,
+            invoiceCount: item._count.id,
+          })),
+          customerContribution,
+          topCustomers: topCustomers.map((c: any) => {
+            const customer = customers.find((cust) => cust.id === c.customerId);
+            return {
+              customerId: c.customerId,
+              customerName: customer?.name || "Unknown",
+              totalSales: Number(c._sum.totalAmount) || 0,
+            };
+          }),
+          topPerformers: topUsersWithDetails,
+          filters: {
+            startDate: startDate || null,
+            endDate: endDate || null,
+            userId: userId || null,
+            teamId: teamId || null,
+            regionId: regionId || null,
+          },
+        },
+      });
+    } catch (error) {
+      logger.error("Error fetching sales analytics:", error);
+      next(error);
+    }
   }
-});
+);
 
 // @desc    Get team performance analytics
 // @route   GET /api/reports/teams

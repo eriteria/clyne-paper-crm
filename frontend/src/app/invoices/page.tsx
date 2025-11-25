@@ -623,24 +623,25 @@ export default function InvoicesPage() {
                           <Edit className="h-5 w-5 md:h-4 md:w-4" />
                         </button>
                       )}
-                      {invoice.status === "DRAFT" && hasPermission("invoices:edit") && (
-                        <button
-                          onClick={() => postDraftMutation.mutate(invoice.id)}
-                          className="text-green-600 hover:text-green-900 p-2 md:p-1 rounded transition-colors"
-                          title={
-                            postDraftMutation.isPending
-                              ? "Posting..."
-                              : "Post now"
-                          }
-                          disabled={postDraftMutation.isPending}
-                        >
-                          {postDraftMutation.isPending ? (
-                            <span className="text-xs">Posting…</span>
-                          ) : (
-                            <span className="text-xs font-medium">Post</span>
-                          )}
-                        </button>
-                      )}
+                      {invoice.status === "DRAFT" &&
+                        hasPermission("invoices:edit") && (
+                          <button
+                            onClick={() => postDraftMutation.mutate(invoice.id)}
+                            className="text-green-600 hover:text-green-900 p-2 md:p-1 rounded transition-colors"
+                            title={
+                              postDraftMutation.isPending
+                                ? "Posting..."
+                                : "Post now"
+                            }
+                            disabled={postDraftMutation.isPending}
+                          >
+                            {postDraftMutation.isPending ? (
+                              <span className="text-xs">Posting…</span>
+                            ) : (
+                              <span className="text-xs font-medium">Post</span>
+                            )}
+                          </button>
+                        )}
                       {/* Approve button - only show for pending invoices and users with approve permission */}
                       {invoice.approvalStatus === "PENDING" &&
                         invoice.status !== "DRAFT" &&

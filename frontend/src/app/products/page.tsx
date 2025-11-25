@@ -146,7 +146,8 @@ export default function ProductsPage() {
                 <Upload className="h-4 w-4 mr-2" />
                 Import Products
               </button>
-            )})
+            )}
+            )
             {hasPermission("products:create") && (
               <button
                 onClick={() => setShowCreateGroupModal(true)}
@@ -155,7 +156,8 @@ export default function ProductsPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 New Group
               </button>
-            )})
+            )}
+            )
             {hasPermission("products:create") && (
               <button
                 onClick={() => setShowCreateProductModal(true)}
