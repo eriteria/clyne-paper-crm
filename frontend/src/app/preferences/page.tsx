@@ -134,7 +134,7 @@ export default function PreferencesPage() {
   const isUpdating = updateStructured.isPending || updateCustom.isPending || resetSettings.isPending;
 
   return (
-    <div className="p-6">
+    <div>
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
