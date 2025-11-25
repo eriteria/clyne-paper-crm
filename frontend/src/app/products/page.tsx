@@ -138,27 +138,33 @@ export default function ProductsPage() {
             </p>
           </div>
           <div className="flex space-x-3">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Import Products
-            </button>
-            <button
-              onClick={() => setShowCreateGroupModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Group
-            </button>
-            <button
-              onClick={() => setShowCreateProductModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Product
-            </button>
+            {hasPermission("products:create") && (
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Import Products
+              </button>
+            )})
+            {hasPermission("products:create") && (
+              <button
+                onClick={() => setShowCreateGroupModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Group
+              </button>
+            )})
+            {hasPermission("products:create") && (
+              <button
+                onClick={() => setShowCreateProductModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Product
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -416,15 +422,28 @@ function ProductCard({
           </div>
         </div>
 
-        <div className="flex space-x-2 ml-4">
-          <button className="p-2 text-gray-400 hover:text-blue-600">
-            <Edit className="h-4 w-4" />
-          </button>
-          <button className="p-2 text-gray-400 hover:text-red-600">
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+        <ProductCardActions />
       </div>
+    </div>
+  );
+}
+
+// Product Card Actions Component
+function ProductCardActions() {
+  const { hasPermission } = usePermissions();
+
+  return (
+    <div className="flex space-x-2 ml-4">
+      {hasPermission("products:edit") && (
+        <button className="p-2 text-gray-400 hover:text-blue-600">
+          <Edit className="h-4 w-4" />
+        </button>
+      )}
+      {hasPermission("products:delete") && (
+        <button className="p-2 text-gray-400 hover:text-red-600">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
