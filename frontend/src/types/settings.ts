@@ -22,6 +22,12 @@ export interface UserSettings {
 }
 
 export interface CustomSettings {
+  theme?: Theme;
+  sidebarCollapsed?: boolean;
+  table?: {
+    density?: TableDensity;
+    defaultPageSize?: number;
+  };
   [key: string]: unknown;
 }
 
@@ -36,6 +42,12 @@ export interface UpdateStructuredSettingsRequest {
 export interface UpdateCustomSettingsRequest {
   [key: string]: unknown;
 }
+
+// Themes
+export type Theme = "light" | "dark" | "system";
+
+// Table density
+export type TableDensity = "comfortable" | "compact" | "standard";
 
 // Common dashboard views
 export enum DashboardView {
