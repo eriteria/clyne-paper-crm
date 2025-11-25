@@ -32,7 +32,7 @@ export default function CustomersPage() {
             Access Denied
           </h2>
           <p className="text-gray-600 mb-6">
-            You don't have permission to view customers.
+            You don&apos;t have permission to view customers.
           </p>
           <button
             onClick={() => router.push("/dashboard")}

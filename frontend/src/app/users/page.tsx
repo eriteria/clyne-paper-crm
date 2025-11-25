@@ -55,31 +55,7 @@ export default function UsersPage() {
   const { hasPermission } = usePermissions();
   const router = useRouter();
 
-  // Check if user has permission to view users
-  if (!hasPermission("users:view")) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
-          <div className="mb-4">
-            <Users className="h-16 w-16 text-red-500 mx-auto" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Access Denied
-          </h2>
-          <p className="text-gray-600 mb-6">
-            You don't have permission to view users.
-          </p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Initialize all hooks before any conditional returns
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -99,40 +75,37 @@ export default function UsersPage() {
     queryKey: ["users", "all"],
     queryFn: async () => {
       // Fetch all users without pagination or filters
-      const response = await apiClient.get("/users?limit=1000");
+      const response = await apiClient.get("/users");
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Reset to first page when filters change
   React.useEffect(() => {
+    // Reset to page 1 when filters change
     setCurrentPage(1);
   }, [searchTerm, filterRole, filterStatus]);
 
-  // Fetch all roles for filter dropdown
   const { data: rolesData } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
-      const response = await apiClient.get("/users/roles");
+      const response = await apiClient.get("/roles");
       return response.data;
     },
   });
 
-  // Toggle user status mutation
   const toggleStatusMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      await apiClient.patch(`/users/${id}`, { isActive: !isActive });
+    mutationFn: async (userId: string) => {
+      await apiClient.patch(`/users/${userId}/toggle-status`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 
-  // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.delete(`/users/${id}`);
+    mutationFn: async (userId: string) => {
+      await apiClient.delete(`/users/${userId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -152,6 +125,32 @@ export default function UsersPage() {
     return colors[role] || "bg-gray-100 text-gray-800";
   };
 
+  // Check if user has permission to view users - after hooks
+  if (!hasPermission("users:view")) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+          <div className="mb-4">
+            <Users className="h-16 w-16 text-red-500 mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Access Denied
+          </h2>
+          <p className="text-gray-600 mb-6">
+            You don&apos;t have permission to view users.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -362,10 +361,7 @@ export default function UsersPage() {
                 {hasPermission("users:edit") && (
                   <button
                     onClick={() =>
-                      toggleStatusMutation.mutate({
-                        id: user.id,
-                        isActive: user.isActive,
-                      })
+                      toggleStatusMutation.mutate(user.id)
                     }
                     className={`p-2 rounded-lg transition ${
                       user.isActive

@@ -17,20 +17,20 @@ The system uses **both structured columns and JSON** for maximum flexibility:
 model UserSettings {
   id                   String   @id @default(cuid())
   userId               String   @unique @map("user_id")
-  
+
   // Structured settings (stable)
   emailNotifications   Boolean  @default(true)
   smsNotifications     Boolean  @default(false)
   defaultDashboardView String?
   preferredChartType   String?
   defaultDateRange     Int      @default(30)
-  
+
   // Flexible JSON settings
   customSettings       Json?
-  
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 ```
@@ -54,9 +54,11 @@ model UserSettings {
 All routes require authentication.
 
 #### `GET /api/user-settings`
+
 Get current user's settings.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -79,9 +81,11 @@ Get current user's settings.
 ```
 
 #### `PATCH /api/user-settings/structured`
+
 Partial update of structured settings.
 
 **Request:**
+
 ```json
 {
   "emailNotifications": false,
@@ -90,15 +94,18 @@ Partial update of structured settings.
 ```
 
 **Validation:**
+
 - At least one field required
 - `defaultDateRange`: 1-365 days
 - `emailNotifications`, `smsNotifications`: boolean
 - `defaultDashboardView`, `preferredChartType`: string or null
 
 #### `PATCH /api/user-settings/custom`
+
 Deep merge into customSettings (preserves existing keys).
 
 **Request:**
+
 ```json
 {
   "theme": "dark",
@@ -109,6 +116,7 @@ Deep merge into customSettings (preserves existing keys).
 ```
 
 If existing customSettings was:
+
 ```json
 {
   "sidebarCollapsed": false,
@@ -119,6 +127,7 @@ If existing customSettings was:
 ```
 
 Result after merge:
+
 ```json
 {
   "sidebarCollapsed": false,
@@ -131,9 +140,11 @@ Result after merge:
 ```
 
 #### `PUT /api/user-settings/custom`
+
 Replace entire customSettings (overwrites everything).
 
 **Request:**
+
 ```json
 {
   "theme": "dark"
@@ -141,11 +152,13 @@ Replace entire customSettings (overwrites everything).
 ```
 
 #### `DELETE /api/user-settings/custom/:key`
+
 Delete a specific custom setting key.
 
 **Example:** `DELETE /api/user-settings/custom/theme`
 
 #### `POST /api/user-settings/reset`
+
 Reset all settings to defaults.
 
 ## Frontend Integration
@@ -188,7 +201,11 @@ enum ChartType {
 ### API Client (`frontend/src/lib/settings-api.ts`)
 
 ```typescript
-import { getUserSettings, updateStructuredSettings, updateCustomSettings } from "@/lib/settings-api";
+import {
+  getUserSettings,
+  updateStructuredSettings,
+  updateCustomSettings,
+} from "@/lib/settings-api";
 
 // Get settings
 const settings = await getUserSettings();
@@ -196,12 +213,12 @@ const settings = await getUserSettings();
 // Update structured settings
 await updateStructuredSettings({
   emailNotifications: false,
-  defaultDateRange: 60
+  defaultDateRange: 60,
 });
 
 // Merge custom settings
 await updateCustomSettings({
-  theme: "dark"
+  theme: "dark",
 });
 ```
 
@@ -221,7 +238,7 @@ function SettingsComponent() {
 
   const handleToggleNotifications = () => {
     updateStructured.mutate({
-      emailNotifications: !settings?.emailNotifications
+      emailNotifications: !settings?.emailNotifications,
     });
   };
 
@@ -229,21 +246,19 @@ function SettingsComponent() {
     updateCustom.mutate({ theme });
   };
 
-  return (
-    <div>
-      {/* Your UI */}
-    </div>
-  );
+  return <div>{/* Your UI */}</div>;
 }
 ```
 
 ## Auto-Initialization
 
 Default settings are automatically created when:
+
 1. A new user is created (`POST /api/users`)
 2. A user's settings are accessed for the first time (`GET /api/user-settings`)
 
 **Defaults:**
+
 ```typescript
 {
   emailNotifications: true,
@@ -260,7 +275,7 @@ Default settings are automatically created when:
 ```typescript
 // Store user's preferred dashboard view
 await updateStructuredSettings({
-  defaultDashboardView: "sales"
+  defaultDashboardView: "sales",
 });
 
 // Store chart preferences in custom settings
@@ -268,8 +283,8 @@ await updateCustomSettings({
   dashboard: {
     chartType: "area",
     showLegend: true,
-    colorScheme: "blue"
-  }
+    colorScheme: "blue",
+  },
 });
 ```
 
@@ -280,8 +295,8 @@ await updateCustomSettings({
 await updateCustomSettings({
   features: {
     betaReports: true,
-    advancedFilters: false
-  }
+    advancedFilters: false,
+  },
 });
 ```
 
@@ -293,8 +308,8 @@ await updateCustomSettings({
   ui: {
     sidebarCollapsed: true,
     tablePageSize: 25,
-    favoriteReports: ["sales", "customers"]
-  }
+    favoriteReports: ["sales", "customers"],
+  },
 });
 ```
 
@@ -303,6 +318,7 @@ await updateCustomSettings({
 ### When to Use Structured Columns
 
 ✅ **Use structured columns for:**
+
 - Settings that affect core functionality
 - Settings queried frequently
 - Settings that need database-level validation
@@ -311,6 +327,7 @@ await updateCustomSettings({
 ### When to Use JSON customSettings
 
 ✅ **Use JSON for:**
+
 - Experimental features
 - UI state (collapsed panels, sort preferences)
 - Feature flags
@@ -321,6 +338,7 @@ await updateCustomSettings({
 ### Migration Path
 
 If a custom setting becomes stable:
+
 1. Add a new structured column
 2. Migrate data from JSON to column
 3. Update code to use structured field
@@ -344,6 +362,7 @@ If a custom setting becomes stable:
 ## Future Enhancements
 
 Potential additions:
+
 - Settings versioning/history
 - Settings export/import
 - Admin-managed default settings templates

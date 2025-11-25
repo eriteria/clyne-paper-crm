@@ -20,7 +20,7 @@ export default function UserSettingsExample() {
   const updateCustom = useUpdateCustomSettings();
   const resetSettings = useResetSettings();
 
-  const [theme, setTheme] = useState<string>("light");
+  const [, setTheme] = useState<string>("light");
 
   if (isLoading) {
     return <div>Loading settings...</div>;
@@ -37,7 +37,7 @@ export default function UserSettingsExample() {
       {/* Structured Settings */}
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Notifications</h2>
-        
+
         <div className="space-y-4">
           <label className="flex items-center gap-2">
             <input

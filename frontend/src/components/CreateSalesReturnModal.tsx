@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useCreateSalesReturn } from "@/hooks/useSalesReturns";
 import {
   Invoice,

@@ -113,10 +113,13 @@ export default function CustomJsonSettings({
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
             <div>
-              <h4 className="font-medium text-yellow-800">Advanced Users Only</h4>
+              <h4 className="font-medium text-yellow-800">
+                Advanced Users Only
+              </h4>
               <p className="text-sm text-yellow-700 mt-1">
-                Editing JSON directly can break your settings if done incorrectly.
-                Only modify if you understand JSON syntax and the settings structure.
+                Editing JSON directly can break your settings if done
+                incorrectly. Only modify if you understand JSON syntax and the
+                settings structure.
               </p>
             </div>
           </div>
@@ -141,7 +144,7 @@ export default function CustomJsonSettings({
               </div>
             )}
           </div>
-          
+
           <textarea
             value={jsonText}
             onChange={(e) => handleJsonChange(e.target.value)}
@@ -170,10 +173,21 @@ export default function CustomJsonSettings({
             Available Custom Settings:
           </h4>
           <div className="text-xs text-gray-600 font-mono space-y-1">
-            <div>• <span className="text-blue-600">theme</span>: &quot;light&quot; | &quot;dark&quot; | &quot;system&quot;</div>
-            <div>• <span className="text-blue-600">sidebarCollapsed</span>: boolean</div>
-            <div>• <span className="text-blue-600">table</span>: {`{ defaultPageSize: number, density: string }`}</div>
-            <div>• <span className="text-blue-600">[custom]</span>: Add your own key-value pairs</div>
+            <div>
+              • <span className="text-blue-600">theme</span>: &quot;light&quot;
+              | &quot;dark&quot; | &quot;system&quot;
+            </div>
+            <div>
+              • <span className="text-blue-600">sidebarCollapsed</span>: boolean
+            </div>
+            <div>
+              • <span className="text-blue-600">table</span>:{" "}
+              {`{ defaultPageSize: number, density: string }`}
+            </div>
+            <div>
+              • <span className="text-blue-600">[custom]</span>: Add your own
+              key-value pairs
+            </div>
           </div>
         </div>
       </div>

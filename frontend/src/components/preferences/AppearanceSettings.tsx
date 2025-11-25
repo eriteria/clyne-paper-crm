@@ -16,11 +16,20 @@ const themes: { value: Theme; label: string; icon: React.ReactNode }[] = [
   { value: "system", label: "System", icon: <Monitor className="h-4 w-4" /> },
 ];
 
-const densities: { value: TableDensity; label: string; description: string }[] = [
-  { value: "comfortable", label: "Comfortable", description: "More spacing, easier to read" },
-  { value: "compact", label: "Compact", description: "Less spacing, more data visible" },
-  { value: "standard", label: "Standard", description: "Balanced spacing" },
-];
+const densities: { value: TableDensity; label: string; description: string }[] =
+  [
+    {
+      value: "comfortable",
+      label: "Comfortable",
+      description: "More spacing, easier to read",
+    },
+    {
+      value: "compact",
+      label: "Compact",
+      description: "Less spacing, more data visible",
+    },
+    { value: "standard", label: "Standard", description: "Balanced spacing" },
+  ];
 
 const pageSizes = [10, 20, 25, 50, 100];
 
@@ -59,12 +68,22 @@ export default function AppearanceSettings({
                     : "border-gray-200 hover:border-gray-300 bg-white"
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                <div className={`${currentTheme === theme.value ? "text-blue-600" : "text-gray-600"}`}>
+                <div
+                  className={`${
+                    currentTheme === theme.value
+                      ? "text-blue-600"
+                      : "text-gray-600"
+                  }`}
+                >
                   {theme.icon}
                 </div>
-                <span className={`text-sm font-medium ${
-                  currentTheme === theme.value ? "text-blue-900" : "text-gray-700"
-                }`}>
+                <span
+                  className={`text-sm font-medium ${
+                    currentTheme === theme.value
+                      ? "text-blue-900"
+                      : "text-gray-700"
+                  }`}
+                >
                   {theme.label}
                 </span>
                 {currentTheme === theme.value && (
@@ -74,10 +93,11 @@ export default function AppearanceSettings({
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            {currentTheme === "system" 
+            {currentTheme === "system"
               ? "Matches your device's system preference"
-              : `${currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)} mode is active`
-            }
+              : `${
+                  currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)
+                } mode is active`}
           </p>
         </div>
 
@@ -88,9 +108,7 @@ export default function AppearanceSettings({
             label="Collapse Sidebar by Default"
             description="Start with a minimized sidebar for more screen space"
             checked={sidebarCollapsed}
-            onChange={(checked) =>
-              onUpdate({ sidebarCollapsed: checked })
-            }
+            onChange={(checked) => onUpdate({ sidebarCollapsed: checked })}
             disabled={isUpdating}
             icon={<SidebarIcon className="h-5 w-5" />}
           />
@@ -152,7 +170,7 @@ export default function AppearanceSettings({
             onChange={(e) =>
               onUpdate({
                 table: {
-                  ...(settings.table as object || {}),
+                  ...((settings.table as object) || {}),
                   defaultPageSize: Number(e.target.value),
                 },
               })

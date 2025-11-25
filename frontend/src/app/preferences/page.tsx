@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { 
-  User, 
-  Bell, 
-  LayoutDashboard, 
-  Palette, 
-  Code, 
-  RefreshCw, 
-  CheckCircle, 
+import {
+  User,
+  Bell,
+  LayoutDashboard,
+  Palette,
+  Code,
+  RefreshCw,
+  CheckCircle,
   AlertTriangle,
-  RotateCcw
+  RotateCcw,
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
@@ -24,9 +24,9 @@ import DashboardSettings from "@/components/preferences/DashboardSettings";
 import AppearanceSettings from "@/components/preferences/AppearanceSettings";
 import CustomJsonSettings from "@/components/preferences/CustomJsonSettings";
 import { deepMerge } from "@/utils/merge";
-import type { 
+import type {
   CustomSettings,
-  UpdateStructuredSettingsRequest
+  UpdateStructuredSettingsRequest,
 } from "@/types/settings";
 
 type TabId = "notifications" | "dashboard" | "appearance" | "advanced";
@@ -47,7 +47,11 @@ export default function PreferencesPage() {
 
   const tabs = [
     { id: "notifications" as TabId, name: "Notifications", icon: Bell },
-    { id: "dashboard" as TabId, name: "Dashboard & Reports", icon: LayoutDashboard },
+    {
+      id: "dashboard" as TabId,
+      name: "Dashboard & Reports",
+      icon: LayoutDashboard,
+    },
     { id: "appearance" as TabId, name: "Appearance & UI", icon: Palette },
     { id: "advanced" as TabId, name: "Advanced", icon: Code },
   ];
@@ -93,9 +97,13 @@ export default function PreferencesPage() {
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-6 w-6 text-red-600" />
             <div>
-              <h3 className="text-lg font-semibold text-red-900">Error Loading Preferences</h3>
+              <h3 className="text-lg font-semibold text-red-900">
+                Error Loading Preferences
+              </h3>
               <p className="text-red-700 mt-1">
-                {error instanceof Error ? error.message : "Failed to load user preferences"}
+                {error instanceof Error
+                  ? error.message
+                  : "Failed to load user preferences"}
               </p>
             </div>
           </div>
@@ -111,9 +119,12 @@ export default function PreferencesPage() {
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-6 w-6 text-yellow-600" />
             <div>
-              <h3 className="text-lg font-semibold text-yellow-900">No Preferences Found</h3>
+              <h3 className="text-lg font-semibold text-yellow-900">
+                No Preferences Found
+              </h3>
               <p className="text-yellow-700 mt-1">
-                Your user preferences couldn&apos;t be loaded. Please contact support.
+                Your user preferences couldn&apos;t be loaded. Please contact
+                support.
               </p>
             </div>
           </div>
@@ -131,7 +142,10 @@ export default function PreferencesPage() {
     defaultDateRange: settingsData.defaultDateRange,
   };
   const custom = settingsData.customSettings || {};
-  const isUpdating = updateStructured.isPending || updateCustom.isPending || resetSettings.isPending;
+  const isUpdating =
+    updateStructured.isPending ||
+    updateCustom.isPending ||
+    resetSettings.isPending;
 
   return (
     <div>
@@ -147,7 +161,7 @@ export default function PreferencesPage() {
               Customize your personal CRM experience
             </p>
           </div>
-          
+
           {/* Reset Button */}
           <button
             onClick={() => setShowResetConfirm(true)}
@@ -164,7 +178,9 @@ export default function PreferencesPage() {
           <div className="mt-4 bg-green-50 border border-green-200 p-4 rounded-lg animate-fade-in">
             <div className="flex items-center gap-2 text-green-800">
               <CheckCircle className="h-5 w-5" />
-              <span className="font-medium">Preferences updated successfully!</span>
+              <span className="font-medium">
+                Preferences updated successfully!
+              </span>
             </div>
           </div>
         )}
@@ -173,7 +189,9 @@ export default function PreferencesPage() {
           <div className="mt-4 bg-red-50 border border-red-200 p-4 rounded-lg">
             <div className="flex items-center gap-2 text-red-800">
               <AlertTriangle className="h-5 w-5" />
-              <span className="font-medium">Failed to update preferences. Please try again.</span>
+              <span className="font-medium">
+                Failed to update preferences. Please try again.
+              </span>
             </div>
           </div>
         )}
@@ -264,7 +282,7 @@ export default function PreferencesPage() {
                   Reset to Default Preferences?
                 </h3>
                 <p className="text-gray-600 text-sm mb-6">
-                  This will reset all your preferences to their default values. 
+                  This will reset all your preferences to their default values.
                   This action cannot be undone.
                 </p>
                 <div className="flex gap-3 justify-end">

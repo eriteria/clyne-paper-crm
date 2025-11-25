@@ -4,7 +4,7 @@ import { useEffect } from "react";
 /**
  * Hook to invalidate all queries when navigating to a page
  * This ensures fresh data is always fetched
- * 
+ *
  * Usage: Add `useCacheInvalidation()` at the top of any page component
  */
 export function useCacheInvalidation() {
@@ -18,10 +18,10 @@ export function useCacheInvalidation() {
 
 /**
  * Hook to invalidate specific query keys
- * 
+ *
  * @param queryKeys - Array of query keys to invalidate
- * 
- * Usage: 
+ *
+ * Usage:
  * ```
  * useQueryInvalidation(['users', 'teams']);
  * ```
@@ -39,7 +39,7 @@ export function useQueryInvalidation(queryKeys: string[]) {
 /**
  * Returns a function to manually invalidate all queries
  * Useful for "Refresh" buttons
- * 
+ *
  * Usage:
  * ```
  * const invalidateAll = useManualInvalidation();

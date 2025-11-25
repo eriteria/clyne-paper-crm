@@ -1174,7 +1174,7 @@ router.post(
                 }
 
                 // Check if item has stock at this location
-                if (inventoryItem.currentQuantity <= 0) {
+                if (Number(inventoryItem.currentQuantity) <= 0) {
                   throw new Error(
                     `Item "${inventoryItem.name}" has no stock available at location "${inventoryItem.location.name}". Current stock: ${inventoryItem.currentQuantity}`
                   );

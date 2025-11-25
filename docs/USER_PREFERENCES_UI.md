@@ -33,6 +33,7 @@ frontend/src/
 ### Key Features
 
 **1. Structured Settings**
+
 - Email notifications (on/off)
 - SMS notifications (on/off)
 - Default dashboard view (sales/inventory/financial/analytics)
@@ -40,6 +41,7 @@ frontend/src/
 - Default date range (7/14/30/60/90 days)
 
 **2. Custom Settings (JSON-based)**
+
 - Theme preference (light/dark/system)
 - Sidebar collapsed state
 - Table density (comfortable/compact/standard)
@@ -47,6 +49,7 @@ frontend/src/
 - Extensible for future preferences
 
 **3. Advanced Features**
+
 - **Deep Merge**: Custom settings use recursive merge to preserve unknown keys
 - **Live Validation**: JSON editor validates in real-time with error messages
 - **Optimistic Updates**: UI updates immediately, rolls back on error
@@ -60,6 +63,7 @@ frontend/src/
 **File**: `frontend/src/app/preferences/page.tsx`
 
 **Features**:
+
 - Tab-based navigation (4 sections)
 - Loading states with spinner
 - Error handling with helpful messages
@@ -69,6 +73,7 @@ frontend/src/
 - Saving indicator overlay
 
 **State Management**:
+
 - React Query for server state
 - Optimistic updates with automatic rollback
 - Automatic refetching on success
@@ -78,6 +83,7 @@ frontend/src/
 **File**: `frontend/src/components/preferences/NotificationSettings.tsx`
 
 **Controls**:
+
 - Email notifications toggle
 - SMS notifications toggle
 - Info box about critical notifications
@@ -89,6 +95,7 @@ frontend/src/
 **File**: `frontend/src/components/preferences/DashboardSettings.tsx`
 
 **Controls**:
+
 - Default dashboard view dropdown (4 options + default)
 - Preferred chart type dropdown (4 types + default)
 - Default date range dropdown (5 ranges)
@@ -100,6 +107,7 @@ frontend/src/
 **File**: `frontend/src/components/preferences/AppearanceSettings.tsx`
 
 **Controls**:
+
 - Theme selector: 3-button grid (Light/Dark/System)
 - Sidebar collapse toggle
 - Table density: 3 radio options
@@ -112,6 +120,7 @@ frontend/src/
 **File**: `frontend/src/components/preferences/CustomJsonSettings.tsx`
 
 **Features**:
+
 - Live JSON validation with syntax error detection
 - Format button (pretty-print with 2-space indent)
 - Reset button (discard changes)
@@ -122,6 +131,7 @@ frontend/src/
 - 96-line monospace textarea
 
 **Validation**:
+
 - Checks for empty string
 - Attempts `JSON.parse()` with error handling
 - Shows specific error messages
@@ -130,12 +140,14 @@ frontend/src/
 ### 6. Reusable Components
 
 **ToggleSwitch** (`ToggleSwitch.tsx`):
+
 - Props: id, label, description, checked, onChange, disabled, icon
 - Blue accent color (#3B82F6)
 - Peer-based focus states
 - Optional icon and description
 
 **SectionCard** (`SectionCard.tsx`):
+
 - Props: title, description, icon, children, actions
 - Consistent white background with border
 - Header with title/icon/actions slot
@@ -201,11 +213,12 @@ type TableDensity = "comfortable" | "compact" | "standard";
 **File**: `frontend/src/components/Sidebar.tsx`
 
 Added navigation link:
+
 ```typescript
-{ 
-  name: "My Preferences", 
-  href: "/preferences", 
-  icon: User, 
+{
+  name: "My Preferences",
+  href: "/preferences",
+  icon: User,
   permission: null  // Always visible to all users
 }
 ```
@@ -222,6 +235,7 @@ The UI uses the following API endpoints (already implemented in backend):
 - **POST** `/api/user-settings/reset` - Reset to defaults
 
 React Query hooks (already implemented):
+
 - `useUserSettings()` - Fetch settings
 - `useUpdateStructuredSettings()` - Update structured settings
 - `useUpdateCustomSettings()` - Update custom settings
@@ -270,6 +284,7 @@ React Query hooks (already implemented):
 All components use **Tailwind CSS** matching existing app patterns:
 
 **Colors**:
+
 - Primary blue: `#3B82F6` (bg-blue-600, text-blue-600)
 - Success green: `bg-green-50`, `text-green-800`
 - Error red: `bg-red-50`, `text-red-800`
@@ -377,12 +392,14 @@ fly deploy
 ### Post-Deployment Validation
 
 1. **Smoke Test**:
+
    - Open /preferences
    - Verify all sections load
    - Make a change and save
    - Refresh page and confirm change persisted
 
 2. **Performance**:
+
    - Check page load time (should be < 2s)
    - Verify API calls are cached by React Query
    - Test optimistic updates feel instant
@@ -398,6 +415,7 @@ fly deploy
 ### Adding New Preferences
 
 **Structured Settings**:
+
 1. Add column to `UserSettings` Prisma model
 2. Run migration: `npm run db:migrate`
 3. Update `UpdateStructuredSettingsRequest` type
@@ -405,6 +423,7 @@ fly deploy
 5. Test and deploy
 
 **Custom Settings**:
+
 1. Add type definition to `CustomSettings` interface
 2. Add control to AppearanceSettings or create new section
 3. Update schema reference in CustomJsonSettings
@@ -414,16 +433,19 @@ fly deploy
 ### Troubleshooting
 
 **Issue**: Settings not saving
+
 - **Check**: Network tab for API errors
 - **Check**: Console for validation errors
 - **Check**: Backend logs for server errors
 
 **Issue**: JSON editor shows error for valid JSON
+
 - **Check**: JSON has no trailing commas
 - **Check**: All strings use double quotes (not single)
 - **Check**: No comments in JSON
 
 **Issue**: Optimistic update doesn't revert on error
+
 - **Check**: React Query error handler is called
 - **Check**: Previous value snapshot exists
 - **Check**: Network connection
@@ -478,7 +500,7 @@ fly deploy
 **Developed by**: GitHub Copilot + Human Developer  
 **Design Pattern**: Inspired by VS Code settings UI  
 **Architecture**: Clean separation of concerns, reusable components  
-**Testing**: Manual testing + production build verification  
+**Testing**: Manual testing + production build verification
 
 ## Related Documentation
 

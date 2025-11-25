@@ -82,10 +82,20 @@ const navigation = [
     icon: Calculator,
     permission: "reports:view_financial",
   },
-  { name: "Reports", href: "/reports", icon: BarChart3, permission: "reports:view_dashboard" },
+  {
+    name: "Reports",
+    href: "/reports",
+    icon: BarChart3,
+    permission: "reports:view_dashboard",
+  },
   { name: "Users", href: "/users", icon: Users, permission: "users:view" },
   { name: "Teams", href: "/teams", icon: UsersIcon, permission: "teams:view" },
-  { name: "My Preferences", href: "/preferences", icon: User, permission: null },
+  {
+    name: "My Preferences",
+    href: "/preferences",
+    icon: User,
+    permission: null,
+  },
   { name: "Settings", href: "/settings", icon: Settings, permission: null }, // Always visible
 ];
 

@@ -60,7 +60,11 @@ export default function DashboardSettings({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {dashboardViews.map((view) => (
-              <option key={view.value || "default"} value={view.value || ""} className="text-gray-900">
+              <option
+                key={view.value || "default"}
+                value={view.value || ""}
+                className="text-gray-900"
+              >
                 {view.label}
               </option>
             ))}
@@ -85,7 +89,11 @@ export default function DashboardSettings({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {chartTypes.map((type) => (
-              <option key={type.value || "default"} value={type.value || ""} className="text-gray-900">
+              <option
+                key={type.value || "default"}
+                value={type.value || ""}
+                className="text-gray-900"
+              >
                 {type.label}
               </option>
             ))}
@@ -110,7 +118,11 @@ export default function DashboardSettings({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {dateRanges.map((range) => (
-              <option key={range.value} value={range.value} className="text-gray-900">
+              <option
+                key={range.value}
+                value={range.value}
+                className="text-gray-900"
+              >
                 {range.label}
               </option>
             ))}

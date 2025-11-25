@@ -59,10 +59,7 @@ export function safeJsonParse<T = unknown>(jsonString: string): T | null {
  * @param indent - Number of spaces for indentation (default: 2)
  * @returns JSON string or empty object string if error
  */
-export function safeJsonStringify(
-  obj: unknown,
-  indent: number = 2
-): string {
+export function safeJsonStringify(obj: unknown, indent: number = 2): string {
   try {
     return JSON.stringify(obj, null, indent);
   } catch {

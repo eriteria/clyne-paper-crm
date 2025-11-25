@@ -152,9 +152,15 @@ export default function CreateInvoiceModal({
               lineTotal: Number(it.lineTotal),
               inventoryItem: it.inventoryItem
                 ? {
-                    ...it.inventoryItem,
+                    id: it.inventoryItem.id,
+                    name: it.inventoryItem.name,
+                    sku: it.inventoryItem.sku,
+                    unit: it.inventoryItem.unit,
                     unitPrice: Number(it.unitPrice ?? 0),
                     currentQuantity: 0,
+                    locationId: it.inventoryItem.locationId || "",
+                    location: it.inventoryItem.location,
+                    product: it.inventoryItem.product,
                   }
                 : undefined,
             }))
@@ -225,9 +231,15 @@ export default function CreateInvoiceModal({
               lineTotal: Number(it.lineTotal),
               inventoryItem: it.inventoryItem
                 ? {
-                    ...it.inventoryItem,
+                    id: it.inventoryItem.id,
+                    name: it.inventoryItem.name,
+                    sku: it.inventoryItem.sku,
+                    unit: it.inventoryItem.unit,
                     unitPrice: Number(it.unitPrice ?? 0),
                     currentQuantity: 0,
+                    locationId: it.inventoryItem.locationId || "",
+                    location: it.inventoryItem.location,
+                    product: it.inventoryItem.product,
                   }
                 : undefined,
             }))
