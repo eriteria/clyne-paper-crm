@@ -648,10 +648,10 @@ router.get(
       const tableTop = currentY;
       const colX = {
         sn: 30,
-        description: 65,
-        qty: 260,
-        unitPrice: 300,
-        amount: 345,
+        description: 60,
+        qty: 235,
+        unitPrice: 275,
+        amount: 325,
       };
       const rowHeight = 20; // Reduced for A5
 
@@ -755,18 +755,20 @@ router.get(
               width: colX.unitPrice - colX.qty - 6,
               align: "center",
             })
+            .fontSize(6.5)
             .text(
               `N${unitPrice.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
               colX.unitPrice + 2,
               currentY + 7,
-              { width: colX.amount - colX.unitPrice - 5, align: "right" }
+              { width: colX.amount - colX.unitPrice - 4, align: "right" }
             )
             .text(
               `N${itemTotal.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
               colX.amount + 2,
               currentY + 7,
-              { width: 390 - colX.amount - 5, align: "right" }
-            );
+              { width: 390 - colX.amount - 4, align: "right" }
+            )
+            .fontSize(7);
 
           currentY += rowHeight;
           serialNumber++;
@@ -833,10 +835,16 @@ router.get(
         maximumFractionDigits: 2,
       });
 
-      // Calculate the x position to right-align within the cell
+      // Use smaller font size for very large amounts to prevent overflow
       const totalText = `N${formattedTotal}`;
+      const estimatedWidth = totalText.length * 5; // Rough estimate
+      if (estimatedWidth > 60) {
+        doc.fontSize(7);
+      }
+
+      // Calculate the x position to right-align within the cell
       const textWidth = doc.widthOfString(totalText);
-      const rightMargin = 5;
+      const rightMargin = 4;
       const cellWidth = 390 - colX.amount;
       const xPosition = 390 - textWidth - rightMargin;
 
@@ -1374,23 +1382,12 @@ router.post(
             select: { fullName: true },
           });
 
-          // Format amount for display (abbreviate large numbers)
-          const formatAmount = (amount: any): string => {
-            const num = Number(amount);
-            if (num >= 1000000) {
-              return `₦${(num / 1000000).toFixed(1)}M`;
-            } else if (num >= 1000) {
-              return `₦${(num / 1000).toFixed(1)}K`;
-            }
-            return `₦${num.toLocaleString()}`;
-          };
-
           for (const user of usersToNotify) {
             sendNotification(
               user.id,
               "info",
               "New Invoice Awaiting Approval",
-              `Invoice #${completeInvoice.invoiceNumber} for ${completeInvoice.customerName} (${formatAmount(completeInvoice.totalAmount)}) requires approval.`,
+              `Invoice #${completeInvoice.invoiceNumber} for ${completeInvoice.customerName} (₦${Number(completeInvoice.totalAmount).toLocaleString()}) requires approval.`,
               {
                 invoiceId: completeInvoice.id,
                 invoiceNumber: completeInvoice.invoiceNumber,
