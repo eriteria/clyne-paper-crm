@@ -23,6 +23,7 @@ import {
   importFlexibleJsonInvoices,
   importInvoices,
 } from "../utils/invoiceImport";
+import { sendNotification } from "./notifications";
 
 const router = express.Router();
 
@@ -1352,6 +1353,47 @@ router.post(
         result.invoice.id,
         completeInvoice
       );
+
+      // Send notifications to users with invoices:approve permission (only for posted invoices, not drafts)
+      if (!isDraft && completeInvoice) {
+        try {
+          const usersToNotify = await prisma.user.findMany({
+            where: {
+              isActive: true,
+              role: {
+                permissions: {
+                  contains: "invoices:approve",
+                },
+              },
+            },
+            select: { id: true, fullName: true },
+          });
+
+          const invoiceCreator = await prisma.user.findUnique({
+            where: { id: req.user!.id },
+            select: { fullName: true },
+          });
+
+          for (const user of usersToNotify) {
+            sendNotification(
+              user.id,
+              "info",
+              "New Invoice Awaiting Approval",
+              `Invoice #${completeInvoice.invoiceNumber} for ${completeInvoice.customerName} (₦${completeInvoice.totalAmount.toLocaleString()}) has been created and requires approval.`,
+              {
+                invoiceId: completeInvoice.id,
+                invoiceNumber: completeInvoice.invoiceNumber,
+                customerName: completeInvoice.customerName,
+                totalAmount: completeInvoice.totalAmount.toString(),
+                createdBy: invoiceCreator?.fullName || "Unknown",
+              }
+            );
+          }
+        } catch (notificationError) {
+          logger.error("Error sending invoice notifications:", notificationError);
+          // Don't fail the invoice creation if notifications fail
+        }
+      }
 
       res.status(201).json({
         success: true,

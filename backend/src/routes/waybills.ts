@@ -233,21 +233,16 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
       return { ...newWaybill, items: waybillItems };
     });
 
-    // Send notifications to admins and users with waybills:receive_notifications permission
+    // Send notifications to users with waybills:approve permission
     try {
-      // Get users to notify (admins and users with the permission)
       const usersToNotify = await prisma.user.findMany({
         where: {
-          OR: [
-            { role: { name: { in: ["Admin", "Super Admin"] } } },
-            {
-              role: {
-                permissions: {
-                  contains: "waybills:receive_notifications",
-                },
-              },
+          isActive: true,
+          role: {
+            permissions: {
+              contains: "waybills:approve",
             },
-          ],
+          },
         },
         select: { id: true, fullName: true },
       });
@@ -257,12 +252,13 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
         sendNotification(
           user.id,
           "info",
-          "New Waybill Created",
-          `Waybill #${waybillNumber} has been created and requires review.`,
+          "New Waybill Awaiting Approval",
+          `Waybill #${waybillNumber} (${transferType}) has been created and requires approval.`,
           {
             waybillId: waybill.id,
             waybillNumber: waybillNumber,
             type: transferType,
+            location: location.name,
           }
         );
       }
